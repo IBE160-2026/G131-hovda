@@ -58,3 +58,10 @@ No tool found that gives per-course readiness feedback measured against the cour
 - The runtime LLM provider the app calls (for summaries, questions, feedback) is not yet chosen. The architecture must choose one, weighing EU data residency, no-training terms, cost and Norwegian-language quality.
 - Voice spike: early on, test browser speech-to-text in Norwegian on the user's iPad and phone (about 1 hour).
 - Planning deadline: 22 November 2026 (end of teaching). Exact submission date unconfirmed.
+
+## Scope changes from 2026-10-08 (for PRD and architecture)
+
+- **Demo mode without login.** It is preloaded with IBE430 chapters 1–4 and replaces dedicated test users. Because the demo is public, its content must come from the developer's own notes, not from copied textbook text.
+- **Login moves to Må del 2.** The core can be tested without accounts through the demo.
+- **The IBE430 curriculum has 6 chapters.** They are staged as follows: chapters 1–4 (del 1), chapter 5 (del 2), chapter 6 (del 3).
+- **Paid accounts are vision only.** They would require payment provider, subscription handling, terms, VAT and stricter privacy. Out of scope for the study project.
