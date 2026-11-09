@@ -6,3 +6,6 @@
 - [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: gjennomgangsspørsmål 4 og 5b–5d mangler kildestoff (løst 2026-11-09: KI svarer ut fra allmennkunnskap)
 - [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: sjekk gjennomgangsspørsmål 5a «Gratis på bordet» (FOB) mot læreboka (løst 2026-11-09: FOB)
 - [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: notatene mangler stoff om den økonomiske effekten av trinnene (læringsmål 4) (løst 2026-11-09: KI svarer ut fra allmennkunnskap)
+- [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — Epic 6 mangler stories, og `epics.md` er ikke ferdig kontrollert; fullfør før Epic 6 og kjør sprintplanleggingen på nytt
+- [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — avklar Bedrock (pris, vilkår om trening, modelltilgang i eu-central-1, AWS-konto og IAM-nøkler) før story 1.5
+- [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — PRD-en mangler datobeslutningene fra 09.11.2026 (måldato 10.12, ny regel for planstart)
