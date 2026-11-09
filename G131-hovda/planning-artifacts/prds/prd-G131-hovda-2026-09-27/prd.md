@@ -2,7 +2,7 @@
 title: "PRD: Studievenn"
 status: final
 created: 2026-09-27
-updated: 2026-10-08
+updated: 2026-10-25
 ---
 
 # PRD: Studievenn
@@ -58,14 +58,14 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Høydepunkt:** Quizresultatet vises («8 av 10 riktige»). Delkapittelet krysses av, og indikatoren flytter seg nærmere målet.
 - **Avslutning:** Den oppdaterte vurderingen ligger på startsiden. Kim legger fra seg iPaden og kjenner at kvelden var verdt det.
 - **Når det går galt:** Får Kim under 80 % riktige, krysses delkapittelet ikke av. Neste gang leser Kim sammendraget på nytt og tar flere quizer. Blir økta avbrutt, fortsetter den der den slapp neste gang.
-- **I del 1 (oktober):** Det finnes ingen innlogging, dagens forslag eller vurdering ennå. Kim velger IBE430 i emnelisten, åpner et delkapittel i kapittel 1–4, leser sammendraget og tar quizen. Indikatoren viser bare andelen gjennomførte delkapitler.
+- **I del 1:** Det finnes ingen dagens forslag eller vurdering ennå. Kim velger IBE430 i emnelisten, åpner et delkapittel i kapittel 1–4, leser sammendraget og tar quizen. Indikatoren viser bare andelen gjennomførte delkapitler.
 
 **UJ-2. Kim setter opp IBE430.** *(Del 1, eksamensdato fra del 2.)*
 - **Situasjon:** Søndag ettermiddag i starten av semesteret, med litt bedre tid enn på en kveld.
 - **Forløp:** Kim oppretter emnet IBE430 og limer inn kapittellisten på engelsk slik den står i pensumboka. Appen gjør listen om til kapitler og delkapitler og oversetter titlene til norsk. Titler med feil oversettelse kan rettes. Deretter skriver Kim inn forelesningsnotatene til kapittel 1, med det viktigste fra foilene skrevet eller limt inn som tekst. Fra del 2 legger Kim også inn eksamensdatoen.
 - **Høydepunkt:** Emnet er klart, og delkapitlene i kapittel 1 kan åpnes.
 - **Avslutning:** Notater til de andre kapitlene legges inn utover semesteret, ett kapittel om gangen. Kim ser ikke gjennom sammendrag og spørsmål på forhånd. Feil som Kim oppdager, rapporteres i appen: et feil quizspørsmål fjernes og erstattes med et nytt.
-- **I del 1:** Det finnes ingen kontoer ennå, så det er utvikleren som gjør dette, bak tilgangslåsen (FR-25).
+- **I del 1:** Det er utvikleren som gjør dette, ved å skrive notatfilen og kjøre importen (FR-8), innlogget med sin egen konto (FR-25).
 
 **UJ-3. Kim får et overraskende forklaringsspørsmål.** *(Del 3.)*
 - **Situasjon:** Samme kveld som i UJ-1. Kim har akkurat fått 9 av 10 riktige på quizen til delkapittel 3.2.
@@ -100,7 +100,7 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Startside:** Siden brukeren kommer til etter innlogging (i del 1: etter tilgangslåsen), med dagens forslag, framdriftsindikator og vurdering.
 - **Demo:** En del av appen som kan brukes uten innlogging, med IBE430 kapittel 1–4 ferdig lagt inn og alt innhold laget på forhånd. Utvides med det som kommer i del 2 og 3 (FR-26).
 - **Demobesøkende:** En person som bruker demoen. Hva en demobesøkende gjør, lagres ikke etter at besøket er over.
-- **Tilgangslås:** En enkel beskyttelse av utviklerens egen versjon i del 1, før innlogging finnes (FR-25).
+- **Tilgangslås:** Innlogging med bare utviklerens konto og registrering av nye brukere slått av (FR-25).
 - **Må del 1 / 2 / 3:** De tre trinnene novemberversjonen bygges i (§4). Hvert trinn kan kjøres og testes før neste starter.
 - **Emne:** Et emne brukeren tar, for eksempel IBE430. Har læringsutbytte, eksamensform, eksamensdato og en kapittelstruktur. En bruker har ett eller flere emner.
 - **Kapittel / delkapittel:** Strukturen i pensum. Et emne har kapitler, og et kapittel har delkapitler. Delkapittelet er enheten appen planlegger, oppsummerer og quizer på.
@@ -140,9 +140,11 @@ Krav merket [Del 1], [Del 2] eller [Del 3] er **Må**-krav. De skal være med i 
 
 | Trinn | Måldato i bruk | Innhold | IBE430 lagt inn |
 |---|---|---|---|
-| **[Del 1]** Kjernen | 18.10.2026 | Emneliste, kapittelstruktur, læringsutbytte, notater, sammendrag, quiz, andel gjennomført, demo og tilgangslås | Kapittel 1–4 |
+| **[Del 1]** Kjernen | 1.11.2026 (sammen med del 2) | Emneliste, kapittelstruktur, læringsutbytte, notater, sammendrag, quiz, andel gjennomført, demo og tilgangslås | Kapittel 1–4 |
 | **[Del 2]** Innlogging og plan mot eksamen | 1.11.2026 | Kontoer og data per bruker, eksamensdato, studieplan, dagens forslag, foran/bak planen, kapittelgjennomgang med KI-tilbakemelding. Demoen får dagens forslag | + kapittel 5 |
 | **[Del 3]** Trening til muntlig eksamen og vurdering | 15.11.2026 | Forklaringsspørsmål per delkapittel og vurdering per emne. Demoen får eksempler på begge | + kapittel 6 (hele pensum) |
+
+**Endring 25.10.2026:** Del 1 og del 2 leveres samlet 1.11.2026, fordi appkoden ikke var startet ved måldatoen 18.10. Merkingen [Del 1] og [Del 2] viser fortsatt rekkefølgen kravene bygges i. Samtidig ble det bestemt i arkitekturen at notatfilene i `notater/<EMNE>/` er kilden til kapittelstruktur, notater og gjennomgangsspørsmål, og at en importkommando lager KI-innholdet (FR-4, FR-8, FR-27).
 
 Kolonnen «IBE430 lagt inn» er et forventet minimum når trinnet er ferdig, ikke en avhengighet. Notater legges inn når forelesningene har vært, uavhengig av hvilket trinn som er i drift. 22.11.2026 er leveringsfrist og buffer.
 
@@ -150,13 +152,13 @@ Kolonnen «IBE430 lagt inn» er et forventet minimum når trinnet er ferdig, ikk
 
 ### 4.1 Tilgang, innlogging og data per bruker
 
-**Beskrivelse:** I del 1 finnes det ingen kontoer. Utviklerens egen versjon er beskyttet med en enkel tilgangslås, og demoen er åpen og atskilt. Fra del 2 har hver bruker sin egen innlogging, og alle data (emner, notater, resultater, vurderinger) hører til én bruker. Innloggingen huskes på enheten, slik at brukeren kommer rett inn om kvelden (UJ-1).
+**Beskrivelse:** I del 1 finnes bare utviklerens konto. Innloggingen er tilgangslåsen, og demoen er åpen og atskilt. Fra del 2 har hver bruker sin egen innlogging, og alle data (emner, notater, resultater, vurderinger) hører til én bruker. Innloggingen huskes på enheten, slik at brukeren kommer rett inn om kvelden (UJ-1).
 
 #### FR-25: Tilgangslås i del 1 [Del 1]
-Utviklerens egen versjon kan bare åpnes med et passord eller en hemmelig lenke.
-- Uten passord eller lenke kommer man bare til demoen (FR-26).
-- Data som legges inn i del 1, følger med over til utviklerens konto når innlogging kommer i del 2. Ingenting må legges inn på nytt.
-- Tilgangslåsen fjernes når FR-1 er på plass.
+Utviklerens egen versjon kan bare åpnes av utvikleren.
+- Låsen er vanlig innlogging fra første versjon, med bare utviklerens konto og registrering av nye brukere slått av.
+- Uten innlogging kommer man bare til demoen (FR-26).
+- Data som legges inn i del 1, hører allerede til utviklerens konto. Ingenting må legges inn på nytt når FR-1 kommer.
 
 #### FR-1: Opprette konto og logge inn [Del 2]
 En bruker kan opprette en konto og logge inn.
@@ -188,7 +190,7 @@ Hvem som helst kan åpne demoen fra forsiden uten å lage konto.
 
 ### 4.3 Emner og kapittelstruktur
 
-**Beskrivelse:** Brukeren har en liste over sine emner og velger hvilket som skal jobbes med. Når brukeren oppretter et emne, legges emnekode og navn inn, og fra del 2 også eksamensdato. Kapittelstrukturen limes inn som en liste på engelsk, og appen gjør den om til kapitler og delkapitler med norske titler. Læringsutbytte og eksamensform limes inn fra emnesiden. Ingenting er spesialtilpasset IBE430, så nye emner kan legges til uten endringer i koden. Realiserer UJ-2.
+**Beskrivelse:** Brukeren har en liste over sine emner og velger hvilket som skal jobbes med. Når brukeren oppretter et emne, legges emnekode og navn inn, og fra del 2 også eksamensdato. For IBE430 kommer kapittelstrukturen fra notatfilene via importen (FR-8). For emner uten notatfiler kan strukturen limes inn som en liste på engelsk, og appen gjør den om til kapitler og delkapitler med norske titler (FR-4, FR-5, [Bør]). Læringsutbytte og eksamensform limes inn fra emnesiden. Ingenting er spesialtilpasset IBE430, så nye emner kan legges til uten endringer i koden. Realiserer UJ-2.
 
 #### FR-3: Opprette og velge emne [Del 1 · eksamensdato i Del 2]
 En bruker kan opprette et emne med emnekode og navn, og velge hvilket emne som er aktivt i emnelisten.
@@ -198,14 +200,14 @@ En bruker kan opprette et emne med emnekode og navn, og velge hvilket emne som e
 - [Del 2] Brukeren legger inn og kan endre eksamensdatoen. Endres eksamensdatoen, beregnes studieplanen på nytt (FR-9).
 - [Del 2] Når eksamensdatoen legges inn, kan brukeren velge planstart. Standard er samme dag. For IBE430 settes planstart til 1.10.2026, slik at etterslep fra oktober blir synlig.
 
-#### FR-4: Lime inn kapittelstruktur [Del 1]
-En bruker kan lime inn en innholdsfortegnelse som ren tekst, og appen gjør den om til kapitler og delkapitler.
+#### FR-4: Lime inn kapittelstruktur [Bør, for emner uten notatfiler]
+En bruker kan lime inn en innholdsfortegnelse som ren tekst, og appen gjør den om til kapitler og delkapitler. For IBE430 kommer strukturen i stedet fra overskriftene (`### n.m Tittel`) i notatfilene via importen (FR-8), og innlimingen trengs ikke før et nytt emne uten notatfiler legges til.
 - Tolkingen gjøres med vanlig kode, ikke KI. En linje som starter med et heltall og punktum («1.») blir et kapittel. En linje som starter med bindestrek («-») eller et nummer med to ledd («1.1») blir et delkapittel under det nærmeste kapittelet over.
 - Den engelske originallisten til IBE430 (se addendum) blir til 6 kapitler og 21 delkapitler i riktig rekkefølge. Listen brukes som testdata.
 - Brukeren ser resultatet og kan rette titler, legge til, slette og flytte kapitler og delkapitler før lagring.
 
-#### FR-5: Oversette titler til norsk [Del 1]
-Appen oversetter kapittel- og delkapitteltitler fra engelsk til norsk.
+#### FR-5: Oversette titler til norsk [Bør, sammen med FR-4]
+Appen oversetter kapittel- og delkapitteltitler fra engelsk til norsk. Titlene i notatfilene til IBE430 er allerede på norsk.
 - Brukeren ser de norske titlene i appen og kan rette dem.
 - Den engelske originaltittelen tas vare på.
 
@@ -222,12 +224,14 @@ Appen kan hente læringsutbytte og eksamensform fra emnesiden på himolde.no ut 
 
 **Beskrivelse:** Brukeren skriver eller limer inn sine egne forelesningsnotater til hvert delkapittel, ett kapittel om gangen utover semesteret. Innhold fra forelesningsfoliene tas med som tekst i notatet. Notatene er det eneste materialet KI-en bruker. Tekst fra pensumboka eller annet opphavsrettsbeskyttet materiale skal ikke legges inn. Realiserer UJ-2.
 
-#### FR-8: Legge inn og redigere notater [Del 1]
-En bruker kan legge inn og redigere notater som tekst til et delkapittel.
-- Når notatene lagres, lager appen sammendrag (FR-11) og spørsmålsbank (FR-13) for delkapittelet, slik at økta kan åpnes med en gang om kvelden.
-- Når notatene endres, lages sammendraget på nytt, og ubesvarte spørsmål i banken erstattes.
-- Et delkapittel uten notater er markert som «mangler notater».
-- Notatene lagres selv om KI-genereringen feiler. Delkapittelet viser status: «innhold lages», «klart» eller «feilet – prøv igjen». En feilet generering prøves automatisk på nytt, og brukeren kan starte den på nytt selv.
+#### FR-8: Importere notater fra notatfilene [Del 1]
+Utvikleren skriver notatene i `notater/<EMNE>/kapittel-<n>.md` og kjører en importkommando som legger dem inn i appen.
+- Importen lager eller oppdaterer kapitler og delkapitler ut fra overskriftene i filen, og legger inn notatene til hvert delkapittel.
+- For nye eller endrede delkapitler lager importen sammendrag (FR-11), spørsmålsbank (FR-13) og forklaringsspørsmål (FR-17, FR-18), slik at økta kan åpnes med en gang om kvelden.
+- Når notatene endres, lages sammendraget på nytt, og ubrukte spørsmål i banken erstattes.
+- Et delkapittel uten notater (også plassholderen «Ingen notater ennå») er markert som «mangler notater».
+- Feiler KI-genereringen, beholdes notatene og eventuelt tidligere innhold. Delkapittelet viser status: «innhold lages», «klart» eller «feilet». Neste import prøver på nytt.
+- Innliming og redigering av notater i appen er [Bør] og gjelder emner uten notatfiler.
 - Et delkapittel er ikke klart før både sammendrag og spørsmålsbank er laget. Det kan ikke åpnes i en økt, og dagens forslag (FR-10) velger det aldri.
 
 **Utenfor omfang:** Opplasting av filer (PDF, PowerPoint, bilder).
@@ -267,7 +271,7 @@ En bruker kan lese sammendraget av et delkapittel.
 
 #### FR-12: Si fra om feil i sammendraget [Del 1]
 En bruker kan sende en feilrapport på et sammendrag.
-- Sammendraget lages da på nytt.
+- Sammendraget merkes og lages på nytt ved neste import (FR-8). Til da vises det gamle.
 
 ### 4.7 Quiz og spørsmålsbank
 
@@ -276,7 +280,7 @@ En bruker kan sende en feilrapport på et sammendrag.
 #### FR-13: Lage spørsmålsbank [Del 1]
 Appen lager en spørsmålsbank for hvert delkapittel med notater.
 - Hvert quizspørsmål har fasit, en kort forklaring og et tema.
-- Banken lages med 20 spørsmål per delkapittel. Når færre enn 10 spørsmål er ubesvart, fylles den på med nye, slik at brukeren kan ta flere quizer uten å få de samme spørsmålene.
+- Banken lages med 20 spørsmål per delkapittel. Når færre enn 10 spørsmål er ubesvart, fyller neste import (FR-8) den på med nye, slik at brukeren kan ta flere quizer uten å få de samme spørsmålene.
 
 #### FR-14: Ta quiz [Del 1]
 En bruker kan ta en quiz på et delkapittel.
@@ -291,7 +295,7 @@ Et delkapittel krysses av som gjennomført når brukeren får minst 80 % riktige
 
 #### FR-16: Si fra om feil quizspørsmål [Del 1]
 En bruker kan sende en feilrapport på et quizspørsmål.
-- Spørsmålet fjernes fra spørsmålsbanken og erstattes med et nytt om samme tema.
+- Spørsmålet tas ut av spørsmålsbanken med en gang og erstattes med et nytt om samme tema ved neste import (FR-8).
 - Spørsmålet teller ikke med i quizresultatet. Resultatet og 80 %-grensen regnes ut fra de gjenværende spørsmålene (for eksempel 8 av 9).
 
 ### 4.8 Forklaringsspørsmål
@@ -317,8 +321,9 @@ En bruker kan skrive svaret på et forklaringsspørsmål eller et gjennomgangssp
 
 **Beskrivelse:** Når alle delkapitlene i et kapittel er gjennomført, går brukeren gjennom hele kapittelet med gjennomgangsspørsmål, vanligvis de faglæreren har gitt. Det binder delkapitlene sammen, slik muntlig eksamen gjør. Spørsmålene besvares med egne ord og får tilbakemelding (FR-19). Gjennomgangen fordeles på flere kvelder. Realiserer UJ-6.
 
-#### FR-27: Lime inn gjennomgangsspørsmål for et kapittel [Del 2]
-En bruker kan lime inn gjennomgangsspørsmålene til et kapittel som ren tekst.
+#### FR-27: Legge inn gjennomgangsspørsmål for et kapittel [Del 2]
+Gjennomgangsspørsmålene til et kapittel står i seksjonen `## Gjennomgangsspørsmål` i notatfilen og legges inn av importen (FR-8). Innliming i appen er [Bør] og gjelder emner uten notatfiler.
+- Mangler seksjonen i filen, lar importen eksisterende spørsmål være i fred. De 29 spørsmålene til kapittel 1 må legges inn i `kapittel-1.md`.
 - Tolkingen gjøres med vanlig kode, ikke KI. En linje som starter med et heltall og punktum («1.») begynner et nytt spørsmål. Linjer uten nummer hører til spørsmålet over.
 - Gjennomgangsspørsmålene til kapittel 1 i IBE430 (se addendum) blir til 29 spørsmål i riktig rekkefølge. Listen brukes som testdata.
 - Brukeren ser resultatet og kan rette, legge til og slette spørsmål før lagring.
@@ -394,7 +399,7 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 
 ## 7. Rammer og begrensninger
 
-- **Frist og ressurser:** Én utvikler fra slutten av september til undervisningsslutt 22. november 2026. Måldatoene er 18.10 for del 1, 1.11 for del 2 og 15.11 for del 3, slik at del 3 er i bruk minst én uke før fristen og det blir tid til retting. Fristen 22.11 er planlagt, men ikke bekreftet (se §11).
+- **Frist og ressurser:** Én utvikler fra slutten av september til undervisningsslutt 22. november 2026. Måldatoene er 1.11 for del 1 og del 2 samlet (endret 25.10 fra 18.10 for del 1) og 15.11 for del 3, slik at del 3 er i bruk minst én uke før fristen og det blir tid til retting. Fristen 22.11 er planlagt, men ikke bekreftet (se §11).
 - **Bygg og bruk samtidig:** Eksamen i IBE430 er i starten av desember, så appen brukes mens den bygges. Hvert trinn legger inn mer av pensum: kapittel 1–4 i del 1, kapittel 5 i del 2 og kapittel 6 i del 3.
 - **IBE160:** Prosjektkode og funksjonalitet utgjør 70 % av karakteren, så funksjoner som virker, går foran finpuss. Appen utvikles med KI (Claude Code og BMad). Det dokumenteres hvordan KI ble brukt i planlegging, koding og testing, og hvordan koden ble kvalitetssikret: tester, gjennomganger og hva som ble rettet. Utviklerens egen bruk fra oktober dokumenteres, med hva som ble endret underveis.
 - **Opphavsrett:** Bare brukerens egne forelesningsnotater legges inn, også i demoen. Det stemmer med HiMoldes KI-retningslinjer og Kopinor-avtalen.
@@ -410,16 +415,16 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 ## 9. Omfang
 
 ### 9.1 Med i denne versjonen
-- **Må del 1 (oktober, IBE430 kapittel 1–4):** FR-3 (uten eksamensdato), FR-4 til FR-6, FR-8, FR-10 (velge selv), FR-11 til FR-16, FR-20 (andel gjennomført), FR-25 og FR-26.
-  - **Minimum i del 1:** FR-3, FR-4, FR-6, FR-8, FR-10, FR-11, FR-13, FR-14, FR-15, FR-20, FR-25 og FR-26. Det er nok til at kveldsøkta fungerer fra start til slutt, både for utvikleren og i demoen. FR-6 er med fordi «den kjenner emnet» skal gjelde fra første dag.
-  - **Kan flyttes til del 2 hvis det blir trangt:** FR-5, FR-12 og FR-16. Fram til FR-5 er på plass, skriver brukeren titlene på norsk selv.
-- **Må del 2 (1.11, IBE430 kapittel 5):** FR-1, FR-2, FR-3 (eksamensdato og planstart), FR-9, FR-10 (dagens forslag og gjennomgangsspørsmål), FR-19, FR-20 (foran/bak), FR-26 (dagens forslag og kapittelgjennomgang i demoen), FR-27 og FR-28. FR-25 fjernes. Del 2 er det største trinnet, fordi kapittelgjennomgangen krever KI-tilbakemelding (FR-19) allerede her.
+- **Må del 1 (levert sammen med del 2 1.11, IBE430 kapittel 1–4):** FR-3 (uten eksamensdato), FR-6, FR-8 (import fra notatfilene), FR-10 (velge selv), FR-11 til FR-16, FR-20 (andel gjennomført), FR-25 og FR-26.
+  - **Minimum i del 1:** FR-3, FR-6, FR-8, FR-10, FR-11, FR-13, FR-14, FR-15, FR-20, FR-25 og FR-26. Det er nok til at kveldsøkta fungerer fra start til slutt, både for utvikleren og i demoen. FR-6 er med fordi «den kjenner emnet» skal gjelde fra første dag.
+  - **Kan flyttes til del 2 hvis det blir trangt:** FR-12 og FR-16.
+- **Må del 2 (1.11, IBE430 kapittel 5):** FR-1, FR-2, FR-3 (eksamensdato og planstart), FR-9, FR-10 (dagens forslag og gjennomgangsspørsmål), FR-19, FR-20 (foran/bak), FR-26 (dagens forslag og kapittelgjennomgang i demoen), FR-27 og FR-28. FR-25 er allerede innloggingen, så den trenger ikke fjernes. Del 2 er det største trinnet, fordi kapittelgjennomgangen krever KI-tilbakemelding (FR-19) allerede her.
   - **Minimum i del 2:** FR-1, FR-3, FR-9, FR-10, FR-19, FR-20, FR-27 (uten KI-genererte spørsmål) og FR-28.
   - **Kan flyttes til del 3 hvis det blir trangt:** FR-2, KI-genererte gjennomgangsspørsmål i FR-27 og demoutvidelsen i FR-26.
 - **Må del 3 (15.11, IBE430 kapittel 6, hele pensum):** FR-10 (repetisjon av svake temaer), FR-17, FR-18, FR-21 og FR-26 (forklaringsspørsmål og vurdering i demoen). FR-19 er allerede bygd i del 2.
   - **Minimum i del 3:** FR-18 og FR-21. Det er nok til å trene til muntlig eksamen og få en vurdering som bygger på forklaring.
   - **Kan kuttes hvis det blir trangt:** FR-17 (overraskende spørsmål etter quiz), repetisjon av svake temaer i FR-10 og demoutvidelsen i FR-26.
-- **Bør være med:** FR-7 (henting fra himolde.no), FR-22 og FR-23 (push-varsler).
+- **Bør være med:** FR-4 og FR-5 (innliming og oversetting av kapittelstruktur), innliming av notater og gjennomgangsspørsmål i appen (FR-8, FR-27) for emner uten notatfiler, FR-7 (henting fra himolde.no), FR-22 og FR-23 (push-varsler).
 - **Strekkmål:** FR-24 (tale).
 
 ### 9.2 Ikke med
@@ -436,7 +441,7 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 ## 10. Suksesskriterier
 
 **For studenten, målt fram til eksamen i IBE430 i desember 2026**
-- **SM-1 Appen brukes:** Minst én økt på minst fem ulike kvelder i uka fra del 1 er i bruk (18.10) til eksamen. Indikerer at FR-10 og FR-20 virker.
+- **SM-1 Appen brukes:** Minst én økt på minst fem ulike kvelder i uka fra del 1 og 2 er i bruk (1.11) til eksamen. Indikerer at FR-10 og FR-20 virker.
 - **SM-2 Målet nås:** Minst 90 % av delkapitlene (19 av 21) er gjennomført før eksamensdatoen. Indikerer at FR-9, FR-14 og FR-15 virker.
   - *Kontrollpunkt 1.11.:* Omtrent så mange delkapitler er gjennomført som planen fra 1.10 tilsier (rundt 10), med de delkapitlene som har notater som øvre grense.
   - *Kontrollpunkt 22.11.:* Brukeren er i rute eller foran studieplanen med planstart 1.10 (FR-9).
@@ -444,7 +449,7 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
   - *Kontrollpunkt før eksamen:* Brukeren noterer én gang i uka fra del 3 er i bruk (15.11) til eksamen om vurderingen stemmer med egen opplevelse. Det gir minst 3 notater, og flertallet sier «stemmer».
 
 **For IBE160**
-- **SM-4 Testbar kjerne i oktober:** Når del 1 er ferdig (18.10), kan appen kjøres og testes med kapittel 1–4 i IBE430: velge emnet, åpne et delkapittel, lese KI-sammendraget og ta en quiz med riktig svar ved feil og nye spørsmål om samme tema. Det samme kan gjøres i demoen. Utvikleren bruker denne versjonen før del 2 starter.
+- **SM-4 Testbar kjerne:** Når del 1 og 2 er ferdig (1.11), kan appen kjøres og testes med kapittel 1–4 i IBE430: velge emnet, åpne et delkapittel, lese KI-sammendraget og ta en quiz med riktig svar ved feil og nye spørsmål om samme tema. Det samme kan gjøres i demoen. Utvikleren bruker denne versjonen før del 2 starter.
 - **SM-5 Alt er i drift:** Alle Må-krav i del 1–3 fungerer i en versjon som er i drift innen 22. november, med alle seks kapitlene i IBE430 lagt inn.
 - **SM-6 Demoen virker for alle:** Hvem som helst, for eksempel faglærer eller sensor, kan kjøre demoen uten å lage konto. Ved levering viser den hele kveldsøkta: dagens forslag, sammendrag, quiz, forklaringsspørsmål og vurdering (FR-26).
 - **SM-7 Dokumentasjon:** Dokumentasjonen viser KI-bruk og kvalitetssikring (tester, gjennomganger og hva som ble rettet) gjennom hele utviklingen, og utviklerens egen bruk fra oktober med hva som ble endret underveis.
