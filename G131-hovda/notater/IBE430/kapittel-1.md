@@ -103,6 +103,40 @@ Resultatregnskapet viser bedriftens inntekter og kostnader over en periode. Innt
 
 Fra spørsmålsbanken (spørsmål 3): En bedrift er lovpålagt å føre finansregnskap.
 
+## Gjennomgangsspørsmål
+
+Spørsmålene dekker hele kapittelet og stilles i kapittelgjennomgangen (FR-28), ikke per delkapittel. Oppgitt av brukeren 08.10.2026 og lagt inn her 09.11.2026 fra PRD-addendumet («Gjennomgangsspørsmål til kapittel 1»), der råteksten står uendret. Skrivefeil er rettet. Innholdet er ikke omformulert.
+
+1. Hva er årsaken til økt global konkurranse?
+2. Hva er konsekvensen av global konkurranse for organisasjoner?
+3. Begrepet «informasjonsrevolusjon»: hva menes med det?
+4. Hva forårsaket informasjonsrevolusjonen?
+5. Hva er implikasjonene av informasjonsrevolusjonen for deg?
+6. Hva er kunnskapsarbeidere?
+7. Hvilke ferdigheter har kunnskapsarbeidere?
+8. Hvorfor er kunnskapsarbeidere viktige for organisasjonen?
+9. Hva er noen av de viktigste forretningsprosessene i en organisasjon?
+10. Har alle selskaper de samme nøkkelprosessene?
+11. Hvorfor, eller hvorfor ikke, har selskaper de samme nøkkelprosessene?
+12. Hva er en felles organisasjonsstruktur?
+13. Hva er fordelen med en organisasjonsstruktur, og hvorfor utviklet denne strukturen seg?
+14. Hva er de typiske funksjonene eller avdelingene i en organisasjon?
+15. Hvilket arbeid utføres i hver av disse avdelingene?
+16. Hva er ulempen med en funksjonell organisasjonsstruktur?
+17. Hvilke negative konsekvenser fører en funksjonell organisasjonsstruktur til?
+18. Hva er funksjonelle informasjonssystemer?
+19. Hva er informasjonssystemenes verdi for organisasjoner, og hva er deres største ulemper?
+20. Hva er bedriftssystemer?
+21. Hvordan skiller de seg fra funksjonelle informasjonssystemer?
+22. Hva er verdien av bedriftssystemer for organisasjoner?
+23. Hva er forretningsprosesser?
+24. Forklar de ulike flytene som er knyttet til en forretningsprosess.
+25. Hva er en kontoplan?
+26. Hvordan er kontoplanen relatert til de to viktigste økonomiske dokumentene?
+27. Hva er de to viktigste økonomiske dokumentene?
+28. Forklar hvordan prosesser påvirker de to viktigste økonomiske dokumentene.
+29. Under hvilke omstendigheter har et prosesstrinn en innvirkning på et selskaps økonomi?
+
 ## Spørsmålsbank
 
 Spørsmål med fasit, fra innliming 5. Skrivefeil er rettet. Spørsmålene er quizspørsmål til delkapitlene (PRD §3 «Spørsmålsbank»), ikke gjennomgangsspørsmål til hele kapittelet. Svarene er også lagt inn som kunnskap i delkapitlene over, unntatt spørsmål 8 (se merknaden).
