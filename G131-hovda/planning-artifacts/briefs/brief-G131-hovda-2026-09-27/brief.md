@@ -1,8 +1,8 @@
 ---
 title: "Product Brief: Studievenn"
-status: draft
+status: final
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-10-08
 ---
 
 # Product Brief: Studievenn
@@ -29,9 +29,9 @@ Konsekvensene er stress, dårlig samvittighet og i noen tilfeller dårlig karakt
 
 ## Hvem den er for
 
-**Primærbruker i første versjon: utvikleren selv**, en deltidsstudent ved Høgskolen i Molde med fulltidsjobb og små barn. Pilotemnet er IBE430 Forretningsprosesser og ERP, som avsluttes med 15 minutters muntlig eksamen. Suksess betyr å vite hva hver kveld skal brukes til, å se at det går framover, og å møte til eksamen uten å pugge i siste liten.
+**Primærbruker: deltidsstudenten med barn.** Primærbrukeren er en deltidsstudent med fulltidsjobb og små barn, som har rundt halvannen time til studier sent på kvelden, ofte med lite energi igjen. Studenten tar ett eller flere emner ved siden av jobben og vil vite hva hver kveld skal brukes til, se at det går framover og møte til eksamen uten å pugge i siste liten. Designet tar utgangspunkt i denne personen, ikke bare i utviklerens egen bruk.
 
-**Senere: andre studenter i samme situasjon**, med jobb, familie og lite, oppstykket studietid. Appen bygges fra start med innlogging og data per bruker, slik at den kan åpnes for flere senere.
+**Utvikleren bruker appen selv.** Utvikleren passer til beskrivelsen og bruker appen i IBE430 Forretningsprosesser og ERP, som avsluttes med 15 minutters muntlig eksamen. Det er ingen egne testbrukere. I stedet har appen en **demo som kan kjøres uten innlogging**, slik at andre, for eksempel faglærer, sensor eller medstudenter, kan prøve kveldsøkta uten å lage konto. Ellers bygges appen med innlogging og data per bruker.
 
 **Flere emner over tid.** Brukeren velger emne fra en liste over egne emner. IBE430 er det første, men ingenting skal være spesialtilpasset det. Nye emner, for eksempel fra vårsemesteret i januar 2027, skal kunne legges til uten endringer i koden.
 
@@ -62,15 +62,26 @@ Det Studievenn gjør annerledes, er smalt, men reelt:
 
 ## Omfang
 
-Én utvikler har fra slutten av september til undervisningsslutt 22. november 2026, som også er leveringsfristen i planleggingen. Siden eksamen i IBE430 er i starten av desember, bygges og brukes appen samtidig: en enkel versjon med ett delkapittel, sammendrag og quiz tas i bruk i oktober og utvides gradvis. Det gir læring i IBE430 underveis og ekte brukertesting til dokumentasjonen i IBE160.
+Én utvikler har fra slutten av september til undervisningsslutt 22. november 2026, som også er leveringsfristen i planleggingen. Siden eksamen i IBE430 er i starten av desember, bygges og brukes appen samtidig: kjernen (Må del 1) tas i bruk i oktober og utvides trinn for trinn. Det gir læring i IBE430 underveis og grunnlag for dokumentasjonen i IBE160.
 
-**Må være med (novemberversjonen)**
-- Innlogging og data per bruker
+**Må være med (novemberversjonen), bygget i trinn**
+
+Alt under er nødvendig innen november, men det bygges i rekkefølge. Både funksjoner og pensum i IBE430 legges inn trinnvis. Hvert trinn gir en versjon som kan kjøres og testes før neste trinn starter.
+
+*Må del 1: kjernen, med de fire første kapitlene i IBE430*
+- Kapittel 1–4 i IBE430 er lagt inn med delkapittelstruktur og egne notater og foiler
 - Emneliste: legge til emner og velge hvilket man vil jobbe med
-- Legge inn kapittel- og delkapittelstruktur og laste opp egne notater og foiler
 - KI-generert sammendrag per delkapittel
 - Quiz per delkapittel fra en spørsmålsbank: riktig svar vises ved feil, og et nytt spørsmål om samme tema kommer senere
+- Demo som kan kjøres uten innlogging, med kapittel 1–4 ferdig lagt inn
+
+*Må del 2: kapittel 5, innlogging og plan fram mot eksamen*
+- Kapittel 5 i IBE430 legges inn
+- Innlogging og data per bruker
 - Eksamensdato og dagens forslag («I kveld: …»)
+
+*Må del 3: kapittel 6, trening til muntlig eksamen og vurdering*
+- Kapittel 6 i IBE430 legges inn, slik at hele pensum på seks kapitler er med
 - Forklaringsspørsmål besvart med tekst, med tilbakemelding fra KI-en. De trengs fordi muntlig eksamen tester forklaring, og vurderingen ikke kan bli realistisk uten dem.
 - En kort vurdering av hvordan man ligger an, per emne, basert på både quiz og forklaringsspørsmål, som også sier hvor mye den bygger på
 
@@ -83,7 +94,8 @@ Tale som svarform på forklaringsspørsmål, fordi det ligger nærmest muntlig e
 **Ikke med i denne versjonen**
 - Flashcards, fordi quizen dekker behovet
 - Spaced repetition, altså repetisjon med økende mellomrom
-- Åpning for andre brukere
+- Egne testbrukere; demoen erstatter dem
+- Betalte kontoer, som hører til visjonen
 - Integrasjon med Canvas eller Leganto
 - Opplasting av opphavsrettsbeskyttede lærebøker
 
@@ -96,10 +108,12 @@ Tale som svarform på forklaringsspørsmål, fordi det ligger nærmest muntlig e
 
 **For IBE160-prosjektet:**
 Prosjektkode og funksjonalitet utgjør 70 % av karakteren, og vurderingen krever en KI-generert applikasjon med dokumentasjon.
-- Alle punktene under «Må være med» fungerer i en versjon som er satt i drift og brukes av utvikleren.
+- **Testbar kjerne i oktober:** Når Må del 1 er ferdig, kan appen kjøres og testes med de fire første kapitlene i IBE430. Man velger emnet, åpner et delkapittel, leser KI-sammendraget og tar en quiz med riktig svar ved feil og nye spørsmål om samme tema. Det samme kan gjøres i demoen uten innlogging. Utvikleren bruker denne versjonen før Må del 2 starter.
+- Alle trinnene under «Må være med» fungerer i en versjon som er satt i drift innen 22. november, med alle seks kapitlene i IBE430 lagt inn.
+- Demoen kan kjøres av hvem som helst, for eksempel faglærer eller sensor, uten å lage konto.
 - Dokumentasjonen viser hvordan KI ble brukt gjennom hele utviklingen (planlegging, koding og testing), og hvordan koden ble kvalitetssikret (tester, gjennomganger og hva som ble rettet).
-- Egen bruk av appen fra oktober er dokumentert som brukertesting.
+- Utviklerens egen bruk fra oktober er dokumentert, med hva som ble endret underveis.
 
 ## Visjon
 
-Studievenn er først og fremst et studieprosjekt i IBE160 og et studieverktøy fram mot eksamen i IBE430 i desember 2026. Alt etter det er en bonus. Fungerer appen godt, er det naturlig å fortsette å bruke den i nye emner fra januar 2027. Målet for neste versjon er tale som svarform, slik at forklaringsspørsmålene ligner enda mer på muntlig eksamen, hvis prosjektet kommer så langt. Om appen skal åpnes for andre studenter, avgjøres først etter at den er prøvd i et helt emne.
+Studievenn er først og fremst et studieprosjekt i IBE160 og et studieverktøy fram mot eksamen i IBE430 i desember 2026. Alt etter det er en bonus. Fungerer appen godt, er det naturlig å fortsette å bruke den i nye emner fra januar 2027. Målet for neste versjon er tale som svarform, slik at forklaringsspørsmålene ligner enda mer på muntlig eksamen, hvis prosjektet kommer så langt. Om appen skal åpnes for andre studenter, avgjøres først etter at den er prøvd i et helt emne. Blir den åpnet, er betalte kontoer en mulig modell, men det hører til en senere versjon og ikke til studieprosjektet.
