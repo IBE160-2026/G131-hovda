@@ -16,3 +16,21 @@ Marte ba om å hente endringer fra GitHub (`IBE160-2026/G131-hovda`).
 
 ### Åpne punkter
 - Nyere arbeid på `planlegging/brief-og-prd` (arkitektur-spine, reviews, oppdatert PRD, ferdig brief, IBE430-notater) er ikke flettet inn i `main`. Trenger en ny PR/merge, og `main` har egne endringer i brief/PRD (`58f4e2a`) som kan gi konflikter.
+
+## 2026-11-09 kl. 20:41 — Marte
+
+### Oppgave
+Marte ba om å flette `planlegging/brief-og-prd` inn i `main` og løse eventuelle konflikter.
+
+### Plan
+- `git merge --no-ff --no-commit planlegging/brief-og-prd` på `main`.
+- Kontroller at resultatet er lik grenen pluss det som bare finnes på `main`, før commit.
+- Push `main` til GitHub.
+
+### Resultat
+- Sammenslåingen gikk uten konflikter. Resultatet er lik grenen, pluss det `main` hadde alene: `tilbakemelding-product-brief.md`, sesjonslogg-skillen, `CLAUDE.md`-instruksen og `.logs/marte/`.
+- Merge-commit `cde5d12` er pushet til `origin/main`. Kontrollert at `38b6ccf`, `60a1026` og `b948628` nå er med i `origin/main`.
+- Lukket det åpne punktet om manglende arbeid i `main` i `issues.md`.
+
+### Åpne punkter
+Ingen.
