@@ -5,4 +5,4 @@
 - [ ] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3 mangler nøkkelbegreper (gjennomgangsspørsmål og læringsmål lagt inn 2026-11-09)
 - [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: gjennomgangsspørsmål 4 og 5b–5d mangler kildestoff (løst 2026-11-09: KI svarer ut fra allmennkunnskap)
 - [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: sjekk gjennomgangsspørsmål 5a «Gratis på bordet» (FOB) mot læreboka (løst 2026-11-09: FOB)
-- [ ] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: notatene mangler stoff om den økonomiske effekten av trinnene (læringsmål 4)
+- [x] 2026-11-09 [ibe430-kapittel-3-sammendrag](998-2026-11-09-21-34-07-ibe430-kapittel-3-sammendrag.md) — kapittel 3: notatene mangler stoff om den økonomiske effekten av trinnene (læringsmål 4) (løst 2026-11-09: KI svarer ut fra allmennkunnskap)
