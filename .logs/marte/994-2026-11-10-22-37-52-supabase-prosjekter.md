@@ -24,6 +24,12 @@ Sette opp `studievenn-dev` og `studievenn-prod` i eu-central-1 etter sjekklista 
   - at eierens bruker finnes i dev
   - noe som helst i `studievenn-prod`
 
+- Vercel-prosjektet `g131-hovda`:
+  - Første forsøk ble feil: nøkkelverdiene havnet i navnefeltet, og dev-nøkkelen lå i Production. Variablene ble slettet og lagt inn på nytt.
+  - Ut fra skjermbildene finnes nå både `NEXT_PUBLIC_SUPABASE_URL` og `NEXT_PUBLIC_SUPABASE_ANON_KEY` i Production og i Preview.
+  - Verdiene er skjult, så Claude har ikke sjekket dem.
+- Produksjonsadressen er `https://g131-hovda.vercel.app`.
+
 ### Åpne punkter
-- Bekreft at `studievenn-prod` finnes i eu-central-1, at registreringen er av og at bare eierens bruker finnes der. Sett Site URL til Vercel-adressen.
-- Legg Supabase-nøklene inn i Vercel-prosjektet `g131-hovda`: prod for Production, dev for Preview.
+- Bekreft at `studievenn-prod` finnes i eu-central-1, at registreringen er av og at bare eierens bruker finnes der. Sett Site URL til `https://g131-hovda.vercel.app`.
+- ~~Legg Supabase-nøklene inn i Vercel-prosjektet `g131-hovda`: prod for Production, dev for Preview.~~ Løst 2026-11-10.

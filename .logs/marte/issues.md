@@ -14,5 +14,5 @@
 - [x] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — etter første deploy: sjekk forsiden på Vercel, funksjonsregion `fra1` og at GitHub Actions passerer (løst 2026-11-10: Marte har sjekket alle tre)
 - [x] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — sjekk forsiden i mobil-, iPad- og PC-bredde i nettleser (løst 2026-11-10: Marte har sjekket)
 - [ ] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — 7 moderate sårbarheter i `@typescript-eslint` (utviklingsavhengigheter); følg med på oppdatering av eslint-config-next
-- [ ] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — bekreft `studievenn-prod` (eu-central-1, registrering av, bare eierens bruker) og sett Site URL til Vercel-adressen
-- [ ] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — legg Supabase-nøklene inn i Vercel-prosjektet `g131-hovda` (prod for Production, dev for Preview)
+- [ ] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — bekreft `studievenn-prod` (eu-central-1, registrering av, bare eierens bruker) og sett Site URL til `https://g131-hovda.vercel.app`
+- [x] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — legg Supabase-nøklene inn i Vercel-prosjektet `g131-hovda` (prod for Production, dev for Preview) (løst 2026-11-10: begge variablene finnes i Production og Preview, verdiene er skjult og ikke sjekket av Claude)
