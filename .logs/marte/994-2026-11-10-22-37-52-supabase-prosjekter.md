@@ -34,6 +34,7 @@ Sette opp `studievenn-dev` og `studievenn-prod` i eu-central-1 etter sjekklista 
 - Sjekket `GET /auth/v1/settings` mot prod med prod-nøkkelen: den virker, `disable_signup=true` og e-post er på.
 - Produksjonsadressen er `https://g131-hovda.vercel.app`. I studievenn-prod ble den først lagt inn som Redirect URL uten `https://`, mens Site URL fortsatt sto som `localhost`. Det er rettet: Site URL er `https://g131-hovda.vercel.app`, og Redirect URLs er tom. Sjekket med skjermbilde.
 - Brukerlista i studievenn-prod ble sjekket med skjermbilde: det finnes bare én bruker, `marte.h.hansen@himolde.no`, med innlogging via e-post.
+- Spesifikasjonen for story 1.2 er committet som utkast (`3d831f0`). Alt ble pushet til `origin/main` (`e3fa809..3d831f0`) etter at Marte ba om det.
 - Brukeren i dev er ikke sjekket. Den blir testet første gang Marte logger inn mot dev.
 
 ### Åpne punkter
