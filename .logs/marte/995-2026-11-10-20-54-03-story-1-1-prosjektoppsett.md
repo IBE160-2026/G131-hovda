@@ -13,7 +13,8 @@ Bygge story 1.1 etter den godkjente spesifikasjonen: Next.js-prosjekt med arkite
 - Commit `fc2edcb`: Next.js 16.4.6, React 19.3, Tailwind CSS 4.3, Vitest 4.1 i roten av repoet. Kildetreet fra arkitekturen, `hasNotes()` med 6 tester, ESLint-regler for lagene i `src/domain`, `src/application`, `src/app` og `scripts`, GitHub Actions (typesjekk, lint, tester), `vercel.json` med `fra1`, `.env.example` og en README-seksjon.
 - Verifisert lokalt: `npm run typecheck`, `npm run lint`, `npm test` (6 av 6) og `npm run build` lykkes. Lagreglene er sjekket med midlertidige filer med ulovlige importer.
 - Gjennomgangen ble gjort i samme økt (ikke uavhengig). Den fant at `src/application` ikke var dekket av lagregelen. Det er rettet. Ett punkt om `cacheComponents` er utsatt til story 1.2 (`deferred-work.md`).
-- Story 1.1 står som `review` i sprintplanen. Ingenting er pushet.
+- Story 1.1 står som `review` i sprintplanen.
+- `main` pushet til GitHub samme kveld etter Martes ja (`cde5d12..e3fa809`). Det starter første deploy på Vercel og GitHub Actions. Resultatet er ikke sjekket ennå.
 - Vercel-prosjektet `g131-hovda` ble opprettet i en annen økt (se [vercel-prosjekt](996-2026-11-10-20-53-14-vercel-prosjekt.md)).
 
 ### Åpne punkter
