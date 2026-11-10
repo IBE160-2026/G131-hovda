@@ -9,3 +9,5 @@
 - [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — Epic 6 mangler stories, og `epics.md` er ikke ferdig kontrollert; fullfør før Epic 6 og kjør sprintplanleggingen på nytt
 - [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — avklar Bedrock (pris, vilkår om trening, modelltilgang i eu-central-1, AWS-konto og IAM-nøkler) før story 1.5
 - [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — PRD-en mangler datobeslutningene fra 09.11.2026 (måldato 10.12, ny regel for planstart)
+- [ ] 2026-11-10 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — bygg story 1.1 i en ny `bmad-build`-økt (spesifikasjonen er godkjent)
+- [ ] 2026-11-10 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — koble GitHub-repoet til et nytt Vercel-prosjekt i Vercel-dashbordet
