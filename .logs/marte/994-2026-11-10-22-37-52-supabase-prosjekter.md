@@ -32,7 +32,7 @@ Sette opp `studievenn-dev` og `studievenn-prod` i eu-central-1 etter sjekklista 
   - `NEXT_PUBLIC_SUPABASE_URL` hadde først dashbord-lenken som verdi. Nå er den `https://frykrsmzrbdvijtaivcd.supabase.co`.
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` er `sb_publishable_toA2…`.
 - Sjekket `GET /auth/v1/settings` mot prod med prod-nøkkelen: den virker, `disable_signup=true` og e-post er på.
-- Produksjonsadressen er `https://g131-hovda.vercel.app`. I studievenn-prod ble den først lagt inn som Redirect URL uten `https://`, mens Site URL fortsatt sto som `localhost`. Marte har fått beskjed om å rette det.
+- Produksjonsadressen er `https://g131-hovda.vercel.app`. I studievenn-prod ble den først lagt inn som Redirect URL uten `https://`, mens Site URL fortsatt sto som `localhost`. Det er rettet: Site URL er `https://g131-hovda.vercel.app`, og Redirect URLs er tom. Sjekket med skjermbilde.
 
 ### Åpne punkter
 - Bekreft at `studievenn-prod` finnes i eu-central-1, at registreringen er av og at bare eierens bruker finnes der. Sett Site URL til `https://g131-hovda.vercel.app`.
