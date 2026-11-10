@@ -29,14 +29,14 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-09-2026 22:11
-last_updated: 11-09-2026 22:11
+last_updated: 11-10-2026 20:38
 project: G131-hovda
 project_key: NOKEY
 tracking_system: file-system
 story_location: G131-hovda/implementation-artifacts
 development_status:
-  epic-1: backlog
-  1-1-prosjektet-er-satt-opp-og-forsiden-er-i-drift: backlog
+  epic-1: in-progress
+  1-1-prosjektet-er-satt-opp-og-forsiden-er-i-drift: ready-for-dev
   1-2-eieren-logger-inn-bak-tilgangslåsen: backlog
   1-3-eieren-oppretter-emnet-ibe430-med-læringsutbytte: backlog
   1-4-importen-legger-inn-kapitler-delkapitler-og-notater: backlog
