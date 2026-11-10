@@ -7,3 +7,20 @@ Repoet inneholder gruppens applikasjon og dokumentasjon av utvikling, testing og
 ## Medlemmer
 
 - Marte Hovda Hansen
+
+## Kjøre appen lokalt
+
+Appen heter Studievenn og er laget med Next.js 16, TypeScript og Tailwind CSS. Du trenger Node.js 20.9 eller nyere.
+
+```sh
+npm install        # installer avhengigheter
+npm run dev        # start utviklingsserveren på http://localhost:3000
+npm test           # kjør enhetstestene (Vitest)
+npm run lint       # sjekk koden, blant annet at lagene i arkitekturen holdes
+npm run typecheck  # typesjekk med TypeScript
+npm run build      # bygg appen for produksjon
+```
+
+Miljøvariablene står i `.env.example`. Kopier fila til `.env.local` og fyll inn verdiene når appen trenger Supabase eller KI. Filer med ekte verdier (`.env*.local`) skal aldri committes.
+
+Planleggingen ligger i `G131-hovda/planning-artifacts/`, og kildenotatene for emnene i `G131-hovda/notater/`.
