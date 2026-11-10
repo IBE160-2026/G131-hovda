@@ -15,6 +15,7 @@ Bygge story 1.1 etter den godkjente spesifikasjonen: Next.js-prosjekt med arkite
 - Gjennomgangen ble gjort i samme økt (ikke uavhengig). Den fant at `src/application` ikke var dekket av lagregelen. Det er rettet. Ett punkt om `cacheComponents` er utsatt til story 1.2 (`deferred-work.md`).
 - Story 1.1 står som `review` i sprintplanen.
 - `main` pushet til GitHub samme kveld etter Martes ja (`cde5d12..e3fa809`). Det starter første deploy på Vercel og GitHub Actions. Første deploy feilet med `STATIC_BUILD_NO_OUT_DIR` fordi Vercel-prosjektet var opprettet mens repoet var tomt, og da fikk det rammeverket «Other». Marte satte Framework Preset til Next.js i dashbordet og deployet på nytt. Det gikk bra. `vercel.json` er ikke endret, så rammeverket er bare satt i dashbordet.
+- Marte har sjekket at forsiden er oppe, at funksjonsregionen er `fra1`, at GitHub Actions er grønn, og at forsiden ser riktig ut i mobil-, iPad- og PC-bredde. Story 1.1 er satt til `done` i `sprint-status.yaml`. Det ble ikke kjørt noen uavhengig kodegjennomgang (`bmad-code-review`).
 - Vercel-prosjektet `g131-hovda` ble opprettet i en annen økt (se [vercel-prosjekt](996-2026-11-10-20-53-14-vercel-prosjekt.md)).
 
 ### Åpne punkter

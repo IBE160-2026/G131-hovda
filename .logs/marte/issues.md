@@ -11,6 +11,6 @@
 - [ ] 2026-11-09 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — PRD-en mangler datobeslutningene fra 09.11.2026 (måldato 10.12, ny regel for planstart)
 - [x] 2026-11-10 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — bygg story 1.1 i en ny `bmad-build`-økt (spesifikasjonen er godkjent) (løst 2026-11-10: `fc2edcb`)
 - [x] 2026-11-10 [sprintplan-og-ett-vindu](997-2026-11-09-22-12-06-sprintplan-og-ett-vindu.md) — koble GitHub-repoet til et nytt Vercel-prosjekt i Vercel-dashbordet (løst 2026-11-10: prosjektet `g131-hovda` er opprettet, se [vercel-prosjekt](996-2026-11-10-20-53-14-vercel-prosjekt.md))
-- [ ] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — etter første deploy: sjekk forsiden på Vercel, funksjonsregion `fra1` og at GitHub Actions passerer
-- [ ] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — sjekk forsiden i mobil-, iPad- og PC-bredde i nettleser
+- [x] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — etter første deploy: sjekk forsiden på Vercel, funksjonsregion `fra1` og at GitHub Actions passerer (løst 2026-11-10: Marte har sjekket alle tre)
+- [x] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — sjekk forsiden i mobil-, iPad- og PC-bredde i nettleser (løst 2026-11-10: Marte har sjekket)
 - [ ] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — 7 moderate sårbarheter i `@typescript-eslint` (utviklingsavhengigheter); følg med på oppdatering av eslint-config-next
