@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { RedirectIfOwner } from "./RedirectIfOwner";
 
 const features = [
   {
@@ -21,6 +23,9 @@ const features = [
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-12 sm:px-8 sm:py-20">
+      <Suspense fallback={null}>
+        <RedirectIfOwner />
+      </Suspense>
       <header className="flex flex-col gap-4">
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
           Studievenn

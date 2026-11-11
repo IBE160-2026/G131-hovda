@@ -8,6 +8,7 @@
   --accent-hover: #3730a3;
   --accent-contrast: #ffffff;
   --card: #ffffff;
+  --error: #b42318;
   --sun: #fde68a;
   --mint: #a7f3d0;
   --sky: #bfdbfe;
@@ -22,6 +23,7 @@
     --accent-hover: #c7d2fe;
     --accent-contrast: #141824;
     --card: #1e2333;
+    --error: #fca5a5;
     --sun: #78591a;
     --mint: #1d5c4a;
     --sky: #2a4a7a;
@@ -36,6 +38,7 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-contrast: var(--accent-contrast);
   --color-card: var(--card);
+  --color-error: var(--error);
   --color-sun: var(--sun);
   --color-mint: var(--mint);
   --color-sky: var(--sky);
