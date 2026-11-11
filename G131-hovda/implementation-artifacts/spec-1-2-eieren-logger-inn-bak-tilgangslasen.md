@@ -86,6 +86,37 @@ context:
 - Given Supabase-dashbordet for `dev` og `prod`, when innstillingene sjekkes, then er registrering av, og bare eierens konto finnes.
 - Given `fornyingsruten` med `neste=https://annen.no`, when den åpnes, then sendes brukeren til en side i appen, ikke ut.
 
+### Review Findings
+
+Code review 2026-11-11 (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor) mot `f12d12a..43cc17b`.
+
+- [x] [Review][Decision] Uendelig fornyingsrunde ved kort JWT-utløp — supabase-js regner tokenet som utløpt 90 s før `exp` (`EXPIRY_MARGIN_MS`). Er JWT-utløpet i Supabase 90 s eller lavere, er også det nye tokenet «utløpt» med en gang. Da sender `/start` og `/auth/forny` eieren fram og tilbake uten stopp. Marte valgte 2026-11-11: vakt i `RefreshSession` (ett forsøk per 30 s, ellers vises siden) og dokumentert grense (JWT-utløp over 90 s i fornyingstesten). Gjort om til patch.
+- [x] [Review][Patch] Vakt mot fornyingsrunde: `RefreshSession` prøver bare én gang per 30 s og viser ellers siden [src/app/(innlogget)/RefreshSession.tsx:7]
+- [x] [Review][Patch] Åpen omdirigering med tab eller linjeskift i `neste` (`/%09/annen.no` blir `//annen.no` i nettleseren) [src/app/auth/forny/safeNextPath.ts:3]
+- [x] [Review][Patch] README sier at forsiden virker uten Supabase-nøkler, men `RedirectIfOwner` kaster da ved hver visning [README.md:23]
+- [x] [Review][Patch] Feilmeldingen er koblet til `<form>` med `aria-describedby`, ikke til feltene, og `aria-invalid` mangler [src/app/logg-inn/LoginForm.tsx:15]
+- [x] [Review][Patch] Testene for omdirigering matcher bare delstreng, så `redirect:/start` består en test som venter `/` [src/app/auth/forny/route.test.ts:29]
+- [x] [Review][Patch] `OwnerOnly` og `RedirectIfOwner` har ingen tester [src/app/(innlogget)/OwnerOnly.tsx:14]
+- [x] [Review][Patch] `toSignInResult` mangler tester for 400 uten kode og for 429 [src/adapters/supabase/auth.ts:17]
+- [x] [Review][Defer] Fornyingsmerkingen i `getOwnerForRender` er ikke testet mot ekte `setAll` [src/composition/server.ts:32] — deferred: krever mocking av `next/headers`, `react.cache` og SSR-klienten, og gir mest verdi som en egen testoppgave
+- [x] [Review][Defer] Regelen «hver side i `(innlogget)` må pakke innholdet i `OwnerOnly`» håndheves ikke og står ikke i arkitekturen [src/app/(innlogget)/layout.tsx:6] — deferred: må føres inn i arkitektur eller epic-kontekst før neste beskyttede side (story 1.3)
+
+**Rejected:**
+- `false` — Utlogging ved nettverksfeil holder eieren innlogget: med `scope: "local"` fjerner supabase-js økta før nettverkskallet (`GoTrueClient._signOut`).
+- `false` — `refreshPending` sjekkes før `owner`: omveien via `/auth/forny` rydder bort de gamle cookiene og ender på `/`, slik den skal.
+- `false` — Status `done` i specen mot `review` i sprintstatus: `bmad-build` setter det slik med vilje, og denne reviewen setter endelig status.
+- `false` — AC 4 kan ikke bekreftes: registrering av og brukerlista er sjekket mot API og med skjermbilder (logg 994).
+- `false` — AC 1 mangler bevis: Marte testet innloggingen i prod 2026-11-11.
+- `false` — Kontrast for `--error`: ca. 6,3:1 mot lys bakgrunn og ca. 9:1 mot mørk, over 4,5:1.
+- `false` — Krasj uten miljøvariabler i Server Action og visning: høylytt feil ved manglende oppsett er riktig oppførsel (README-påstanden rettes som patch).
+- `low` — Fornyingen krever JavaScript: appen er en Next.js-app som krever JavaScript uansett.
+- `low` — Avhengig av gjenbruksvinduet på 10 s: runden via klienten tar om lag 1 s.
+- `low` — Tomme felt og andre 4xx gir «Prøv igjen senere»: krever at `required` omgås, eierens konto er bekreftet, og meldingen passer for 429.
+- `low` — `File` i skjemadata: bare mulig med en laget forespørsel, og ufarlig.
+- `low` — Varig økt hviler på standardverdien i `@supabase/ssr`: versjonen er låst.
+- `low` — `/auth/forny` endrer tilstand ved GET: en fremmed side kan bare fornye eierens egen økt og sende innenfor appen.
+- Avvist (endrer specen) — Utdatert Review Triage Log, og tasks og Spec Change Log mangler de ekstra filene.
+
 ## Implementation Notes
 
 - `cacheComponents` står på. Alle lesinger av økta ligger i `<Suspense>` (`RedirectIfOwner`, `OwnerGate`, `OwnerOnly`), og bygget lykkes med `/`, `/logg-inn` og `/start` som Partial Prerender.
@@ -102,6 +133,7 @@ context:
 ## Review Triage Log
 
 - 2026-11-11: Review-laget (Blind Hunter, Edge Case Hunter, Verification Gap) ble hoppet over etter valg fra Marte. Ingen funn er vurdert.
+- 2026-11-11: Code review kjørt i etterkant med fire lag. Funnene og avgjørelsene står i Review Findings under Tasks & Acceptance. 7 patcher er rettet, 2 er utsatt og 14 avvist.
 
 ## Design Notes
 
@@ -121,5 +153,5 @@ context:
 
 **Manual checks (if no CLI):**
 - Mot `dev`: logg inn riktig, feil passord, ukjent e-post, logg ut, åpne `/start` uinnlogget.
-- Fornying: sett JWT-utløp lavt i `dev` (Auth settings), vent, åpne `/start` og se at økta fornyes.
+- Fornying: sett JWT-utløpet i `dev` (Auth settings) til over 90 s, f.eks. 120 s, vent minst 30 s (supabase-js fornyer 90 s før utløp), åpne `/start` og se at økta fornyes. Med 90 s eller lavere regner supabase-js også det nye tokenet som utløpt. Da stopper vakten i `RefreshSession` runden, men fornyingen virker ikke.
 - Etter deploy: samme sjekk mot `prod` på Vercel-adressen.
