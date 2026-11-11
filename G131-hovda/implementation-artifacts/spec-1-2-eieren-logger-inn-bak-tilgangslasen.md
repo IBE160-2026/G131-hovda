@@ -2,7 +2,7 @@
 title: 'Story 1.2: Eieren logger inn bak tilgangslåsen'
 type: 'feature'
 created: '2026-11-10'
-status: 'draft'
+status: 'ready-for-dev'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
