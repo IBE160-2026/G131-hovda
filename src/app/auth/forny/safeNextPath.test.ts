@@ -19,6 +19,12 @@ describe("safeNextPath", () => {
     expect(safeNextPath("javascript:alert(1)")).toBe("/");
   });
 
+  it("sender ikke ut av appen med tab eller linjeskift i stien", () => {
+    expect(safeNextPath("/\t/annen.no")).toBe("/");
+    expect(safeNextPath("/\n/annen.no")).toBe("/");
+    expect(safeNextPath("/\r/annen.no")).toBe("/");
+  });
+
   it("sender ikke tilbake til fornyingsruten", () => {
     expect(safeNextPath("/auth/forny?neste=/start")).toBe("/");
   });
