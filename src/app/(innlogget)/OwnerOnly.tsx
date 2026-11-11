@@ -10,7 +10,7 @@ export function OwnerOnly({ children }: { children: React.ReactNode }) {
   );
 }
 
-async function OwnerCheck({ children }: { children: React.ReactNode }) {
+export async function OwnerCheck({ children }: { children: React.ReactNode }) {
   const { owner } = await getOwnerForRender();
   return owner ? children : null;
 }

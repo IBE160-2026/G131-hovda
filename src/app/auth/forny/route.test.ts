@@ -20,12 +20,12 @@ describe("GET /auth/forny", () => {
 
   it("fornyer økta og sender tilbake til siden eieren kom fra", async () => {
     getOwner.mockResolvedValue({ id: "u1", email: "eier@example.no" });
-    await expect(GET(request("/start"))).rejects.toThrow("redirect:/start");
+    await expect(GET(request("/start"))).rejects.toThrow(/^redirect:\/start$/);
   });
 
   it("sender til forsiden når fornyingen feiler", async () => {
     getOwner.mockResolvedValue(null);
-    await expect(GET(request("/start"))).rejects.toThrow("redirect:/");
+    await expect(GET(request("/start"))).rejects.toThrow(/^redirect:\/$/);
   });
 
   it("sender ikke ut av appen", async () => {

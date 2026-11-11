@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AuthApiError, AuthRetryableFetchError, type AuthError } from "@supabase/supabase-js";
-import { SupabaseAuth, type SupabaseAuthClient } from "./auth";
+import { SupabaseAuth, toSignInResult, type SupabaseAuthClient } from "./auth";
 
 function fakeClient(overrides: Partial<SupabaseAuthClient>): SupabaseAuthClient {
   return {
@@ -70,6 +70,22 @@ describe("SupabaseAuth.signIn", () => {
       }),
     );
     expect(await auth.signIn("eier@example.no", "riktig")).toBe("unavailable");
+  });
+});
+
+describe("toSignInResult", () => {
+  it("gir invalid for 400 uten feilkode", () => {
+    expect(toSignInResult({ status: 400 })).toBe("invalid");
+  });
+
+  it("gir unavailable for andre 400-feil med kode", () => {
+    expect(toSignInResult({ status: 400, code: "validation_failed" })).toBe("unavailable");
+  });
+
+  it("gir unavailable ved for mange forsøk", () => {
+    expect(toSignInResult({ status: 429, code: "over_request_rate_limit" })).toBe(
+      "unavailable",
+    );
   });
 });
 

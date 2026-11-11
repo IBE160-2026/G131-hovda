@@ -12,7 +12,7 @@ const { logOut } = await import("./actions");
 
 describe("logOut", () => {
   it("logger ut og sender til forsiden", async () => {
-    await expect(logOut()).rejects.toThrow("redirect:/");
+    await expect(logOut()).rejects.toThrow(/^redirect:\/$/);
     expect(signOut).toHaveBeenCalledOnce();
   });
 });
