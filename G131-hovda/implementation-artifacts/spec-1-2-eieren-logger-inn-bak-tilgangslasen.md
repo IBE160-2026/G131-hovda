@@ -2,7 +2,8 @@
 title: 'Story 1.2: Eieren logger inn bak tilgangslåsen'
 type: 'feature'
 created: '2026-11-10'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: 'f12d12ab6093cbd609b7c8c410dfbcdac31cc20c'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -66,17 +67,17 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json` -- legg til `@supabase/ssr` og `@supabase/supabase-js` med faste versjoner
-- [ ] `src/application/auth.ts` -- port `Auth`: `signIn(email, password)` gir `ok | invalid | unavailable`, `signOut()`, `getOwner()` gir bruker eller `null` -- brukstilfellene skal ikke kjenne Supabase
-- [ ] `src/adapters/supabase/serverClient.ts`, `src/adapters/supabase/auth.ts` -- `createServerClient` med `next/headers`-cookies og `SupabaseAuth` som implementerer porten, og som oversetter Supabase-feil til de tre utfallene -- AD-9
-- [ ] `src/adapters/supabase/auth.test.ts` -- tester feiloversettelsen (feil passord og ukjent e-post gir `invalid`, nettverksfeil gir `unavailable`) med en falsk Supabase-klient
-- [ ] `src/composition/server.ts` -- komposisjonsroten for Next.js-serveren, gir `getAuth()` -- AD-1
-- [ ] `src/app/page.tsx` -- send innlogget eier til `/start` (forsiden vises ellers som før)
-- [ ] `src/app/logg-inn/page.tsx` + `actions.ts` -- skjema og Server Action for innlogging, redirect til `/start` ved `ok`, og innlogget eier sendes rett til `/start`
-- [ ] `src/app/(innlogget)/layout.tsx` -- sjekker eieren, sender uinnloggede til `/`, sender til fornyingsruten ved utløpt token
-- [ ] `src/app/(innlogget)/start/page.tsx` -- enkel startside («Hei!», tekst om at emnene kommer) med «Logg ut»-knapp (Server Action)
-- [ ] `src/app/auth/forny/route.ts` -- Route Handler som fornyer økta, skriver cookies og sender tilbake til en relativ `neste`-sti (ellers `/`)
-- [ ] `README.md` -- kort om `.env.local` og at innlogging krever Supabase-nøkler
+- [x] `package.json` -- legg til `@supabase/ssr` og `@supabase/supabase-js` med faste versjoner
+- [x] `src/application/auth.ts` -- port `Auth`: `signIn(email, password)` gir `ok | invalid | unavailable`, `signOut()`, `getOwner()` gir bruker eller `null` -- brukstilfellene skal ikke kjenne Supabase
+- [x] `src/adapters/supabase/serverClient.ts`, `src/adapters/supabase/auth.ts` -- `createServerClient` med `next/headers`-cookies og `SupabaseAuth` som implementerer porten, og som oversetter Supabase-feil til de tre utfallene -- AD-9
+- [x] `src/adapters/supabase/auth.test.ts` -- tester feiloversettelsen (feil passord og ukjent e-post gir `invalid`, nettverksfeil gir `unavailable`) med en falsk Supabase-klient
+- [x] `src/composition/server.ts` -- komposisjonsroten for Next.js-serveren, gir `getAuth()` -- AD-1
+- [x] `src/app/page.tsx` -- send innlogget eier til `/start` (forsiden vises ellers som før)
+- [x] `src/app/logg-inn/page.tsx` + `actions.ts` -- skjema og Server Action for innlogging, redirect til `/start` ved `ok`, og innlogget eier sendes rett til `/start`
+- [x] `src/app/(innlogget)/layout.tsx` -- sjekker eieren, sender uinnloggede til `/`, sender til fornyingsruten ved utløpt token
+- [x] `src/app/(innlogget)/start/page.tsx` -- enkel startside («Hei!», tekst om at emnene kommer) med «Logg ut»-knapp (Server Action)
+- [x] `src/app/auth/forny/route.ts` -- Route Handler som fornyer økta, skriver cookies og sender tilbake til en relativ `neste`-sti (ellers `/`)
+- [x] `README.md` -- kort om `.env.local` og at innlogging krever Supabase-nøkler
 
 **Acceptance Criteria:**
 - Given eierens konto i `dev`, when eieren logger inn, lukker nettleseren og åpner `/start` igjen, then startsiden vises uten ny innlogging.
@@ -87,9 +88,20 @@ context:
 
 ## Implementation Notes
 
+- `cacheComponents` står på. Alle lesinger av økta ligger i `<Suspense>` (`RedirectIfOwner`, `OwnerGate`, `OwnerOnly`), og bygget lykkes med `/`, `/logg-inn` og `/start` som Partial Prerender.
+- Sider i `(innlogget)` rendres for seg, uavhengig av layouten. Uten egen sjekk havnet startsidens statiske markup i RSC-dataene til uinnloggede (sett med curl). Derfor pakker hver side innholdet i `OwnerOnly`. Komposisjonsroten deler ett `getUser`-oppslag per forespørsel med `React.cache` (`getOwnerForRender`).
+- Komposisjonsroten har `getAuth()` (skrivbare cookies, for Server Actions og Route Handlers) og `getOwnerForRender()` (Server Components, merker fornying i `setAll`).
+- Layouten vet ikke hvilken sti som vises. Ved fornying viser den `RefreshSession` (klientkomponent), som sender til `/auth/forny?neste=<sti>` med `window.location`.
+- Feiloversettelsen er sjekket mot `dev`: feil passord og ukjent e-post gir begge `AuthApiError 400 invalid_credentials`.
+- Utlogging bruker `scope: "local"`, så bare denne enheten logges ut.
+- `vitest.config.ts` har fått alias for `@/`, så testene kan mocke komposisjonsroten.
+- Nytt fargetoken `--error` for feilmeldingen.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+- 2026-11-11: Review-laget (Blind Hunter, Edge Case Hunter, Verification Gap) ble hoppet over etter valg fra Marte. Ingen funn er vurdert.
 
 ## Design Notes
 
