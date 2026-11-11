@@ -21,4 +21,6 @@
 - [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — test fornying av økta i `dev` med JWT-utløp over 90 s (f.eks. 120 s), vent minst 30 s og åpne `/start`
 - [x] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — etter deploy: test innloggingen mot `prod` på https://g131-hovda.vercel.app (løst 2026-11-11: Marte har testet i appen, det virker)
 - [x] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — review av story 1.2 ble hoppet over; kjør `bmad-code-review` før storyen settes til `done` (løst 2026-11-11: reviewen er kjørt, 7 patcher er rettet, `b18a1d6`)
-- [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — før story 1.3: før regelen «hver side i `(innlogget)` pakker innholdet i `OwnerOnly`» inn i arkitekturen eller epic-konteksten
+- [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — før story 1.3: før regelen «hver side i `(innlogget)` pakker innholdet i `OwnerOnly`» inn i arkitekturen eller epic-konteksten (planlagt i spec-1-3: regel i arkitekturen og test)
+- [ ] 2026-11-11 [story-1-3-spesifikasjon](992-2026-11-11-22-36-55-story-1-3-spesifikasjon.md) — bygg story 1.3 i en ny `bmad-build`-økt (spesifikasjonen er godkjent)
+- [ ] 2026-11-11 [story-1-3-spesifikasjon](992-2026-11-11-22-36-55-story-1-3-spesifikasjon.md) — før bygget av 1.3: opprett testkonto i `dev` og legg `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`
