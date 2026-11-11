@@ -16,3 +16,4 @@
 - [ ] 2026-11-10 [story-1-1-prosjektoppsett](995-2026-11-10-20-54-03-story-1-1-prosjektoppsett.md) — 7 moderate sårbarheter i `@typescript-eslint` (utviklingsavhengigheter); følg med på oppdatering av eslint-config-next
 - [x] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — bekreft at bare eierens bruker finnes i `studievenn-prod` (registrering av og Site URL `https://g131-hovda.vercel.app` er ordnet 2026-11-10) (løst 2026-11-10: bare `marte.h.hansen@himolde.no`)
 - [x] 2026-11-10 [supabase-prosjekter](994-2026-11-10-22-37-52-supabase-prosjekter.md) — legg Supabase-nøklene inn i Vercel-prosjektet `g131-hovda` (prod for Production, dev for Preview) (løst 2026-11-10: begge variablene finnes i Production og Preview, verdiene er skjult og ikke sjekket av Claude)
+- [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — bygg story 1.2 i en ny `bmad-build`-økt (spesifikasjonen er godkjent)
