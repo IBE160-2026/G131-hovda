@@ -25,7 +25,7 @@ describe("OwnerGate", () => {
 
   it("sender uinnloggede til forsiden", async () => {
     getOwnerForRender.mockResolvedValue({ owner: null, refreshPending: false });
-    await expect(OwnerGate({ children: "innhold" })).rejects.toThrow("redirect:/");
+    await expect(OwnerGate({ children: "innhold" })).rejects.toThrow(/^redirect:\/$/);
   });
 
   it("sender innom fornyingsruten når tokenet ble fornyet under visningen", async () => {
@@ -35,5 +35,9 @@ describe("OwnerGate", () => {
     });
     const result = await OwnerGate({ children: "innhold" });
     expect(isValidElement(result) && result.type).toBe(RefreshSession);
+    // Innholdet følger med, så RefreshSession kan vise siden hvis fornyingen går i ring.
+    expect(isValidElement<{ children: unknown }>(result) && result.props.children).toBe(
+      "innhold",
+    );
   });
 });
