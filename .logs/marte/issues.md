@@ -19,5 +19,5 @@
 - [x] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — bygg story 1.2 i en ny `bmad-build`-økt (spesifikasjonen er godkjent) (løst 2026-11-11: `4e1e29f`)
 - [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — manuell test av innlogging mot `dev` (riktig, feil passord, ukjent e-post, lukk nettleseren, utlogging); sjekker også at eierens bruker finnes i `dev`
 - [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — test fornying av økta med lavt JWT-utløp i `dev`
-- [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — etter deploy: test innloggingen mot `prod` på https://g131-hovda.vercel.app
+- [x] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — etter deploy: test innloggingen mot `prod` på https://g131-hovda.vercel.app (løst 2026-11-11: Marte har testet i appen, det virker)
 - [ ] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — review av story 1.2 ble hoppet over; kjør `bmad-code-review` før storyen settes til `done`
