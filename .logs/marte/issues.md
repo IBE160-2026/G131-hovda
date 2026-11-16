@@ -29,3 +29,7 @@
 - [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — RLS-lesetestene beviser ingenting før eieren har rader i `dev` (se deferred-work.md)
 - [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — sjekk audit-advarslene fra `npm install` av `supabase@3.2.0`
 - [x] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — push story 1.3 til `main` (deploy) og test emnene på https://g131-hovda.vercel.app; koble Supabase CLI tilbake til `dev` (løst 2026-11-16: pushet, Marte har testet i `prod`, CLI koblet til `dev`)
+- [ ] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — bygg story 1.4 i en ny `bmad-build`-økt (spesifikasjonen er godkjent)
+- [ ] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — før bygget av 1.4: lag `.env.dev.local` med `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` og `OWNER_EMAIL`
+- [ ] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — fjern de tre plassholderlinjene nederst i `.gitignore`
+- [ ] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — `planning-artifacts/architecture/technology.md` gjelder et annet prosjekt (pytagoras-website-v2); avklar om den skal fjernes eller flyttes
