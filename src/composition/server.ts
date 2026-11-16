@@ -2,13 +2,15 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
 import type { Auth, Owner } from "@/application/auth";
+import type { DataSource } from "@/application/dataSource";
 import { SupabaseAuth } from "@/adapters/supabase/auth";
+import { SupabaseDataSource } from "@/adapters/supabase/dataSource";
 import { createSupabaseServerClient } from "@/adapters/supabase/serverClient";
 
-// For Server Actions og Route Handlers, der cookies kan skrives.
-export async function getAuth(): Promise<Auth> {
+// Klient med skrivbare cookies, for Server Actions og Route Handlers.
+async function createWritableClient() {
   const cookieStore = await cookies();
-  const client = createSupabaseServerClient({
+  return createSupabaseServerClient({
     getAll: () => cookieStore.getAll(),
     setAll: (toSet) => {
       for (const { name, value, options } of toSet) {
@@ -16,7 +18,11 @@ export async function getAuth(): Promise<Auth> {
       }
     },
   });
-  return new SupabaseAuth(client.auth);
+}
+
+// For Server Actions og Route Handlers, der cookies kan skrives.
+export async function getAuth(): Promise<Auth> {
+  return new SupabaseAuth((await createWritableClient()).auth);
 }
 
 // For Server Components, der cookies ikke kan skrives. Fornyer Supabase tokenet under
@@ -37,3 +43,25 @@ export const getOwnerForRender = cache(
     return { owner, refreshPending };
   },
 );
+
+// For Server Actions. Verifiserer eieren selv og gir `null` uten innlogget eier.
+// Databasekallene går med eierens økt, så RLS virker (AD-10).
+export async function getDataSource(): Promise<DataSource | null> {
+  const client = await createWritableClient();
+  const owner = await new SupabaseAuth(client.auth).getOwner();
+  if (!owner) return null;
+  return new SupabaseDataSource(client, owner.id);
+}
+
+// For Server Components. Bruker eieren fra `getOwnerForRender` og gir `null` uten eier.
+export const getDataSourceForRender = cache(async (): Promise<DataSource | null> => {
+  const { owner } = await getOwnerForRender();
+  if (!owner) return null;
+  const cookieStore = await cookies();
+  // Cookies kan ikke skrives her. Fornying under visningen fanges av `getOwnerForRender`.
+  const client = createSupabaseServerClient({
+    getAll: () => cookieStore.getAll(),
+    setAll: () => {},
+  });
+  return new SupabaseDataSource(client, owner.id);
+});

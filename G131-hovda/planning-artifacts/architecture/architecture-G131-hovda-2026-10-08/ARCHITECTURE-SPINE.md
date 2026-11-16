@@ -159,6 +159,7 @@ graph LR
 | Datoer | Rene datoer for kalenderdager, UTC for tidspunkter, Europe/Oslo for all datologikk (AD-11) |
 | Feil fra KI | Lagres som status `feilet` på en ny versjon (AD-7, AD-8), aldri som et halvferdig resultat |
 | Hemmeligheter | `.env.local` (dev-server), `.env.dev.local` og `.env.prod.local` (scripts), Vercel-miljøvariabler. Gjelder Supabase- og AWS-nøkler. `.env.example` lister navnene uten verdier |
+| Sider bak tilgangslåsen | Hver `page.tsx` i `src/app/(innlogget)` pakker innholdet i `OwnerOnly`, så det aldri havner i den statiske delen av siden (Partial Prerendering). Server Actions sjekker eieren selv. Testen `ownerOnlyPages.test.ts` feiler hvis en side mangler `OwnerOnly` (AD-9) |
 | Tester og CI | Domeneregler har enhetstester med Vitest (NFR-8). GitHub Actions kjører typesjekk, lint og domenetester ved hver push. Adaptere testes mot `dev`, aldri mot `prod` |
 | Sikkerhetskopi | Ukentlig `supabase db dump` av `prod` til en mappe som er i `.gitignore` (gratisnivået har ingen sikkerhetskopi) |
 | Commits | Små, med beskrivende norske meldinger, slik at veien fra plan til kode er sporbar (IBE160) |
