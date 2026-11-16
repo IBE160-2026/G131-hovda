@@ -24,7 +24,8 @@
 - [x] 2026-11-11 [story-1-2-spesifikasjon](993-2026-11-11-21-06-11-story-1-2-spesifikasjon.md) — før story 1.3: før regelen «hver side i `(innlogget)` pakker innholdet i `OwnerOnly`» inn i arkitekturen eller epic-konteksten (planlagt i spec-1-3: regel i arkitekturen og test) (løst 2026-11-16: regel i ARCHITECTURE-SPINE og testen `ownerOnlyPages.test.ts`, `e5686c7`)
 - [x] 2026-11-11 [story-1-3-spesifikasjon](992-2026-11-11-22-36-55-story-1-3-spesifikasjon.md) — bygg story 1.3 i en ny `bmad-build`-økt (spesifikasjonen er godkjent) (løst 2026-11-16: `e5686c7`)
 - [x] 2026-11-11 [story-1-3-spesifikasjon](992-2026-11-11-22-36-55-story-1-3-spesifikasjon.md) — før bygget av 1.3: opprett testkonto i `dev` og legg `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local` (løst 2026-11-16)
-- [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — kjør migreringen for 1.3 mot `prod`, deploy og test emnene på https://g131-hovda.vercel.app (venter på ja fra Marte)
+- [x] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — kjør migreringen for 1.3 mot `prod`, deploy og test emnene på https://g131-hovda.vercel.app (venter på ja fra Marte) (løst 2026-11-16: migreringen er kjørt mot `prod`, deploy og test gjenstår i eget punkt)
 - [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — manuell test av emnesidene i nettleseren mot `dev` (opprett, samme kode på nytt, endre, bytt, slett)
 - [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — RLS-lesetestene beviser ingenting før eieren har rader i `dev` (se deferred-work.md)
 - [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — sjekk audit-advarslene fra `npm install` av `supabase@3.2.0`
+- [ ] 2026-11-16 [story-1-3-bygg](991-2026-11-16-21-27-16-story-1-3-bygg.md) — push story 1.3 til `main` (deploy) og test emnene på https://g131-hovda.vercel.app; koble Supabase CLI tilbake til `dev`
