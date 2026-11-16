@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { Chapter, ReadResult } from "@/application/dataSource";
+import { hasNotes } from "@/domain/hasNotes";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../OwnerOnly";
 import { unavailableMessage } from "../emner/formState";
@@ -100,6 +102,52 @@ export async function ActiveCourse() {
           Bytt emne
         </Link>
       </div>
+      <ChapterList chapters={await data.listChapters(course.id)} />
     </>
+  );
+}
+
+/** Kapitlene i det aktive emnet med delkapitler i rekkefølge. Delkapitlene blir lenker i 1.7. */
+export function ChapterList({ chapters }: { chapters: ReadResult<Chapter[]> }) {
+  return (
+    <section aria-labelledby="kapitler" className="mt-4 flex flex-col gap-4">
+      <h2 id="kapitler" className="text-2xl font-bold">
+        Kapitler
+      </h2>
+      {chapters.status !== "ok" ? (
+        <p role="alert" className="font-semibold text-error">
+          {unavailableMessage}
+        </p>
+      ) : chapters.value.length === 0 ? (
+        <p className="max-w-prose text-muted">Ingen kapitler er importert ennå.</p>
+      ) : (
+        <ol className="flex flex-col gap-6">
+          {chapters.value.map((chapter) => (
+            <li key={chapter.id} className="flex flex-col gap-3">
+              <h3 className="text-xl font-semibold break-words">
+                Kapittel {chapter.number}: {chapter.title}
+              </h3>
+              <ol className="flex flex-col gap-2">
+                {chapter.subchapters.map((sub) => (
+                  <li
+                    key={sub.id}
+                    className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-sky px-4 py-3"
+                  >
+                    <span className="min-w-0 break-words">
+                      <span className="font-semibold">{sub.number}</span> {sub.title}
+                    </span>
+                    {!hasNotes(sub.noteText) && (
+                      <span className="rounded-full bg-sun px-3 py-0.5 text-sm font-semibold">
+                        mangler notater
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }

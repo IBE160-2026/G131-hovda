@@ -15,3 +15,12 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-3-eieren-oppretter-emnet-ibe430-med-laeringsutbytte.md`
   summary: (unverified, medium) `getDataSourceForRender` lager en egen Supabase-klient med samme cookies og kan fornye tokenet en gang til under visning.
   evidence: Avgjøres ved å logge inn, la tilgangstokenet gå ut og se om to fornyinger skjer i samme forespørsel, og om økten overlever når de skjer mer enn 10 s fra hverandre.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-4-importen-legger-inn-kapitler-delkapitler-og-notater.md`
+  summary: `findUserId` i `src/composition/script.ts` (paginering og store/små bokstaver i `OWNER_EMAIL`) er utestet.
+  evidence: Klienten lages inne i `getDataSourceForScript`, så en test krever å injisere klienten. En endret stoppbetingelse eller fjernet `.toLowerCase()` merkes ikke av noen test.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-4-importen-legger-inn-kapitler-delkapitler-og-notater.md`
+  summary: Ingen automatisk test av service role-GRANT på `chapters`, `subchapters` og `courses`.
+  evidence: `rls.dev.test.ts` tester bare `authenticated` og `anon`. Uten `grant select on courses to service_role` feiler importen med «Fikk ikke kontakt med databasen». Krever service role-nøkkelen i dev-testmiljøet.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-4-importen-legger-inn-kapitler-delkapitler-og-notater.md`
+  summary: Alle databasefeil blir «unavailable», så importen sier «Fikk ikke kontakt med databasen» også når tabellene mangler.
+  evidence: `guarded()` (fra 1.3) kaster Postgres-koden. Kjøres importen mot `prod` før migreringen er pushet, blir meldingen misvisende. For scriptet bør koden/meldingen skrives til stderr.

@@ -1,72 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CourseInput } from "@/domain/course";
 import { chooseCourse, removeCourse, saveCourse } from "./courses";
-import type { Course, DataSource } from "./dataSource";
-
-// Datakilde i minnet med samme regler som databasen: unik kode per eier og on delete set null.
-class MemoryDataSource implements DataSource {
-  courses: Course[] = [];
-  activeId: string | null = null;
-  down = false;
-  private nextId = 1;
-
-  private unavailable() {
-    return { status: "unavailable" as const };
-  }
-
-  private hasCode(code: string, exceptId?: string) {
-    return this.courses.some((c) => c.id !== exceptId && c.code.toUpperCase() === code.toUpperCase());
-  }
-
-  async listCourses() {
-    if (this.down) return this.unavailable();
-    const value = [...this.courses].sort((a, b) => a.code.localeCompare(b.code));
-    return { status: "ok" as const, value };
-  }
-
-  async getCourse(id: string) {
-    if (this.down) return this.unavailable();
-    return { status: "ok" as const, value: this.courses.find((c) => c.id === id) ?? null };
-  }
-
-  async createCourse(input: CourseInput) {
-    if (this.down) return this.unavailable();
-    if (this.hasCode(input.code)) return { status: "duplicate" as const };
-    const course = { ...input, id: `c${this.nextId++}` };
-    this.courses.push(course);
-    return { status: "ok" as const, value: course };
-  }
-
-  async updateCourse(id: string, input: CourseInput) {
-    if (this.down) return this.unavailable();
-    if (this.hasCode(input.code, id)) return { status: "duplicate" as const };
-    const index = this.courses.findIndex((c) => c.id === id);
-    if (index < 0) return { status: "ok" as const, value: null };
-    this.courses[index] = { ...input, id };
-    return { status: "ok" as const, value: this.courses[index] };
-  }
-
-  async deleteCourse(id: string) {
-    if (this.down) return this.unavailable();
-    this.courses = this.courses.filter((c) => c.id !== id);
-    if (this.activeId === id) this.activeId = null;
-    return { status: "ok" as const, value: undefined };
-  }
-
-  async getActiveCourse() {
-    if (this.down) return this.unavailable();
-    return {
-      status: "ok" as const,
-      value: this.courses.find((c) => c.id === this.activeId) ?? null,
-    };
-  }
-
-  async setActiveCourse(id: string | null) {
-    if (this.down) return this.unavailable();
-    this.activeId = id;
-    return { status: "ok" as const, value: undefined };
-  }
-}
+import { MemoryDataSource } from "./testing/MemoryDataSource";
 
 function input(code: string, name = `Emne ${code}`): CourseInput {
   return { code, name, learningOutcomes: "LU", examForm: "Skriftlig" };

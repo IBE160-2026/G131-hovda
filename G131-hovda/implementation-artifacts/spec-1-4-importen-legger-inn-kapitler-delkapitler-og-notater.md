@@ -2,7 +2,8 @@
 title: 'Story 1.4: Importen legger inn kapitler, delkapitler og notater'
 type: 'feature'
 created: '2026-11-16'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: 'e55d97b7cf25fdd80abde646cce20fb47678a9f4'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -78,17 +79,17 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json` -- `tsx` som utviklingsavhengighet med fast versjon, og skriptet `import`: `tsx scripts/import.ts`
-- [ ] `supabase/migrations/<tidsstempel>_chapters.sql` -- `chapters` (eier, `course_id` FK med cascade, `number` int, `title`, `learning_goals`, `key_concepts`, unik (eier, `course_id`, `number`)), `subchapters` (eier, `chapter_id` FK med cascade, `number` tekst «n.m», `position` int, `title`, `note_text`, `removed_at` (null = aktivt), unik (eier, `chapter_id`, `number`)), tidsstempler, RLS og `GRANT` som `courses`
-- [ ] `src/domain/notesFile.ts` + `notesFile.test.ts` -- `parseNotesFile(text)` gir kapittelnummer, tittel, læringsmål, nøkkelbegreper og delkapitler, eller feil med linjenummer. Tester mot de ekte filene og matriseradene for tolking
-- [ ] `src/application/dataSource.ts` -- metodene `listChapters(courseId)` (med aktive delkapitler i rekkefølge) og `saveChapter(courseId, chapter)` (oppretter, oppdaterer, merker fjernede og gjenoppretter, rapporterer hva som ble endret)
-- [ ] `src/application/importChapter.ts` + test -- brukstilfellet: finner emnet, validerer, lagrer, gir sammendrag (opprettet / oppdatert / uendret per delkapittel). Eneste skriver av kapitler
-- [ ] `src/adapters/supabase/dataSource.ts` + test -- kapittelmetodene, filtrerer på eier
-- [ ] `src/composition/script.ts` -- leser `.env.dev.local` eller `.env.prod.local`, lager Supabase-klient med `SUPABASE_SERVICE_ROLE_KEY`, finner eierens id fra `OWNER_EMAIL` og gir en `DataSource`
-- [ ] `scripts/import.ts` + `scripts/importArgs.test.ts` -- tolker argumentene, leser filen, spør «Skriv ja for å importere til prod» ved `prod`, skriver norsk resultat og avslutter med kode 1 ved feil
-- [ ] `src/app/(innlogget)/start/page.tsx` + `page.test.ts` -- kapittellisten under aktivt emne: kapitler med delkapitler i rekkefølge, «mangler notater» der `hasNotes` er false. Delkapitlene er ikke lenker ennå (1.7)
-- [ ] `src/adapters/supabase/rls.dev.test.ts` -- testkontoen ser ingen fremmede rader i `chapters` og `subchapters`
-- [ ] `.env.example`, `README.md` -- beskriv `.env.dev.local`/`.env.prod.local` og `npm run import`
+- [x] `package.json` -- `tsx` som utviklingsavhengighet med fast versjon, og skriptet `import`: `tsx scripts/import.ts`
+- [x] `supabase/migrations/<tidsstempel>_chapters.sql` -- `chapters` (eier, `course_id` FK med cascade, `number` int, `title`, `learning_goals`, `key_concepts`, unik (eier, `course_id`, `number`)), `subchapters` (eier, `chapter_id` FK med cascade, `number` tekst «n.m», `position` int, `title`, `note_text`, `removed_at` (null = aktivt), unik (eier, `chapter_id`, `number`)), tidsstempler, RLS og `GRANT` som `courses`
+- [x] `src/domain/notesFile.ts` + `notesFile.test.ts` -- `parseNotesFile(text)` gir kapittelnummer, tittel, læringsmål, nøkkelbegreper og delkapitler, eller feil med linjenummer. Tester mot de ekte filene og matriseradene for tolking
+- [x] `src/application/dataSource.ts` -- metodene `listChapters(courseId)` (med aktive delkapitler i rekkefølge) og `saveChapter(courseId, chapter)` (oppretter, oppdaterer, merker fjernede og gjenoppretter, rapporterer hva som ble endret)
+- [x] `src/application/importChapter.ts` + test -- brukstilfellet: finner emnet, validerer, lagrer, gir sammendrag (opprettet / oppdatert / uendret per delkapittel). Eneste skriver av kapitler
+- [x] `src/adapters/supabase/dataSource.ts` + test -- kapittelmetodene, filtrerer på eier
+- [x] `src/composition/script.ts` -- leser `.env.dev.local` eller `.env.prod.local`, lager Supabase-klient med `SUPABASE_SERVICE_ROLE_KEY`, finner eierens id fra `OWNER_EMAIL` og gir en `DataSource`
+- [x] `scripts/import.ts` + `scripts/importArgs.test.ts` -- tolker argumentene, leser filen, spør «Skriv ja for å importere til prod» ved `prod`, skriver norsk resultat og avslutter med kode 1 ved feil
+- [x] `src/app/(innlogget)/start/page.tsx` + `page.test.ts` -- kapittellisten under aktivt emne: kapitler med delkapitler i rekkefølge, «mangler notater» der `hasNotes` er false. Delkapitlene er ikke lenker ennå (1.7)
+- [x] `src/adapters/supabase/rls.dev.test.ts` -- testkontoen ser ingen fremmede rader i `chapters` og `subchapters`
+- [x] `.env.example`, `README.md` -- beskriv `.env.dev.local`/`.env.prod.local` og `npm run import`
 
 **Acceptance Criteria:**
 - Given migreringen, when den kjøres med `npx supabase db push --remote` mot `dev`, then finnes `chapters` og `subchapters` med FK, cascade, RLS og `GRANT`.
@@ -101,6 +102,31 @@ context:
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Finding | Verdict | Route | Evidence |
+|---|---------|---------|-------|----------|
+| 1 | Startsiden: ingen test av at `listChapters` får det aktive emnets id (blind, verification-gap) | medium | patch | `page.test.ts`: stubben ignorerer argumentet, så `listChapters(course.code)` ville bestått |
+| 2 | Feil etter første spørring i `saveChapter`/`listChapters` er utestet (blind, verification-gap) | medium | patch | Eneste feiltest feiler alle spørringer og stopper på første `select`; en fjernet `if (removed.error)` ville gitt «fjernet» og kode 0 |
+| 3 | `readEnv` i `src/composition/script.ts` er utestet (blind, verification-gap) | low | patch | Ingen test i `src/composition/`; `root` er parameter, så test med temp-mappe er billig |
+| 4 | `main()` i `scripts/import.ts` bare testet på prod-avbrudd (verification-gap) | medium | patch | Manglende fil / manglende `--target` kunne gitt kode 0 uten at testene merket det |
+| 5 | `parseEnv` krever Node ≥ 20.12, `engines` sier ≥ 20.9 (blind, edge) | low | patch | `package.json` `engines.node: ">=20.9"`; direkte rettelse |
+| 6 | `saveChapter` er ikke én transaksjon, README lover «ingen endringer» (blind, edge, verification-gap) | low | patch | Flere separate kall; ny kjøring reparerer (idempotent). Transaksjon (rpc) er utenfor scope; README-presisering er direkte rettelse |
+| 7 | `findUserId` (paginering, store/små bokstaver) er utestet (verification-gap) | low | defer | Klienten lages inne i funksjonen; test krever å injisere klienten |
+| 8 | Service role-GRANT og ekte import ikke verifisert automatisk (verification-gap) | medium | defer | Ingen dev-test bruker service role-nøkkelen; dekkes manuelt av AK-importen mot `dev` |
+| 9 | Alle databasefeil vises som «Fikk ikke kontakt med databasen» (blind) | low | defer | Eksisterende `guarded()`-mønster fra 1.3 kaster årsaken; manglende migrering i prod gir misvisende melding |
+| 10 | Prod-bekreftelsen viser ikke hvilken database (URL) den skriver til (blind, edge) | low | reject | Ekte, men env-filene lages én gang av eieren; rettelsen krever ny flate i komposisjonsroten. Nevnes i presentasjonen |
+| 11 | Samtidige importer gir 23505 → «unavailable» (edge) | low | reject | Én eier kjører importen for hånd; usannsynlig |
+| 12 | `--target` oppgitt to ganger: siste vinner (edge) | low | reject | Usannsynlig, rettelsen er en ny vakt |
+| 13 | Kodeblokker: kortere/ulik avsluttende fence godtas (blind, edge) | low | reject | Ikke i de ekte filene; rettelsen legger til lengdesporing |
+| 14 | Nesten-riktig seksjonsnavn («## Nøkkelbegreper:») gir stille tom tekst (edge) | low | reject | Usannsynlig med faste maler; rettelsen legger til normalisering |
+| 15 | Svært stort kapittelnummer gir databasefeil i stedet for filfeil (edge) | low | reject | Usannsynlig; ny vakt |
+| 16 | Lesefeil som ikke er ENOENT gir «Fant ikke notatfilen» (edge) | low | reject | Usannsynlig; ny gren |
+| 17 | Fjernede delkapitler vises uten tittel i sammendraget (blind) | low | reject | Kosmetisk; krever nytt felt i steget |
+| 18 | `scripts/import.test.ts` avhenger av ekte notatfil (blind) | low | reject | Samme bevisste valg som `notesFile.test.ts` |
+| 19 | Kapitler kan ikke ryddes bort (blind) | low | reject | Utenfor intensjonen (bare delkapitler merkes fjernet); emnesletting kaskaderer. Nevnes i presentasjonen |
+| 20 | Status i spec (`in-review`) og sprint-status (`in-progress`) er ulike (blind) | false | reject | Arbeidsflyten synker sprint-status ved presentasjon |
+| 21 | Specen mangler bevis for at AK er sjekket mot `dev` (blind) | false | reject | Rettelsen er å redigere specen; AK mot `dev` venter på Martes migrering og tas i presentasjonen |
+| 22 | Doc-kommentar i `chapter.ts` sier (eier, emne, «n.m»), skjemaet bruker `chapter_id` (blind) | false | reject | Samme identitet: kapittelet er unikt per (eier, emne, nummer), og ordlyden følger AD-5 i specen |
 
 ## Design Notes
 

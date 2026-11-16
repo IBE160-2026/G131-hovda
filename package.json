@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:dev": "vitest run --config vitest.dev.config.ts"
+    "test:dev": "vitest run --config vitest.dev.config.ts",
+    "import": "tsx scripts/import.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -28,10 +29,11 @@
     "eslint-config-next": "16.4.6",
     "supabase": "3.2.0",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.12"
   },
   "engines": {
-    "node": ">=20.9"
+    "node": ">=20.12"
   }
 }

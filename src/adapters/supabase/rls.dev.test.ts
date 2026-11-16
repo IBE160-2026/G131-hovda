@@ -1,4 +1,4 @@
-// Sjekker RLS og GRANT for courses og user_settings mot Supabase-prosjektet dev (AD-10).
+// Sjekker RLS og GRANT for courses, user_settings, chapters og subchapters mot Supabase-prosjektet dev (AD-10).
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -108,11 +108,34 @@ describe("RLS i dev", () => {
     expect(settings.data).toEqual([{ owner_id: testUserId, active_course_id: null }]);
   });
 
+  it("gir testkontoen ingen av eierens kapitler eller delkapitler", async () => {
+    const chapters = await testUser.from("chapters").select("id, owner_id");
+    const subchapters = await testUser.from("subchapters").select("id, owner_id");
+    expect(chapters.error).toBeNull();
+    expect(subchapters.error).toBeNull();
+    expect(chapters.data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+    expect(subchapters.data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+  });
+
+  it("stopper et kapittel med en annen eier", async () => {
+    const { error } = await testUser.from("chapters").insert({
+      owner_id: "00000000-0000-0000-0000-000000000000",
+      course_id: "00000000-0000-0000-0000-000000000000",
+      number: 1,
+      title: "x",
+    });
+    expect(error?.code).toBe("42501");
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
     const settings = await anon.from("user_settings").select("owner_id");
     expect(courses.error?.code).toBe("42501");
     expect(settings.error?.code).toBe("42501");
+    for (const table of ["chapters", "subchapters"]) {
+      const { error } = await anon.from(table).select("id");
+      expect(error?.code).toBe("42501");
+    }
   });
 });
