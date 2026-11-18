@@ -25,10 +25,10 @@ Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, 
 - Tilgangslås: bare eierens konto, offentlig registrering av, ingen registreringsside. Uinnloggede kommer bare til forsiden (og senere demoen). Feil innlogging avslører ikke om e-posten finnes.
 - Data og KI i EU/EØS, KI-leverandøren trener ikke på dataene, ingen andre personopplysninger enn e-post. All trafikk over HTTPS. KI-kostnad maks 100 kr i måneden.
 - Appen er i drift fra første story, og hver funksjon settes i drift når den er ferdig.
-- Automatiske tester for domeneregler: tolking av notatfiler (mot de ekte filene `kapittel-1.md` til `kapittel-5.md`), `hasNotes`, 80 %-avkrysning (8/10 ja, 7/10 nei, 8/9 etter fjernet spørsmål ja) og nytt spørsmål om samme tema. RLS testes mot `dev` med en annen testkonto.
+- Automatiske tester for domeneregler: tolking av notatfiler (mot de ekte filene `kapittel-1.md` til `kapittel-5.md`, der kapittel 1 gir 6 delkapitler og kapittel 2 nå gir 3, ikke 5), `hasNotes`, 80 %-avkrysning (8/10 ja, 7/10 nei, 8/9 etter fjernet spørsmål ja) og nytt spørsmål om samme tema. RLS testes mot `dev` med en annen testkonto.
 - Innhold: sammendrag maks 600 ord, bare fra notatet. Spørsmålsbank med 20 flervalgsspørsmål per delkapittel (4 alternativer, nøyaktig ett riktig, forklaring, tema fra temalisten, minst 2 per tema), påfylles når færre enn 10 er ubesvart. Quiz med 10 spørsmål, aldri samme spørsmål på nytt, resultat som «8 av 10 riktige».
 - Et delkapittel er «klart» først når både sammendrag og spørsmålsbank har en klar versjon. Uten notater er det «mangler notater».
-- Framdrift: andel gjennomførte delkapitler og avstand til målet på 90 % (IBE430: 19 av 21).
+- Framdrift: andel gjennomførte delkapitler og avstand til målet på 90 % av delkapitlene. Eksempelet «19 av 21» i planene er utdatert: 2.3 og 2.5 er tatt ut av IBE430 fordi det ikke kommer notater til dem, så kapittel 2 består av 2.1, 2.2 og 2.4, og emnet har 19 delkapitler. Målet regnes fra antallet delkapitler som faktisk finnes, og hardkodes ikke.
 
 ## Technical Decisions
 
@@ -36,7 +36,7 @@ Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, 
 - **Ports and adapters:** `src/domain` (rene regler, importerer ingenting utenfra), `src/application` (brukstilfeller og portene `DataSource`, `AiProvider`, `Clock`), `src/adapters/{supabase,bedrock,demo,clock}`, `src/app` og `scripts/`. `src/app` og `scripts` importerer aldri fra `src/adapters` direkte (lint-regel). Én komposisjonsrot per inngangspunkt. `domain` og `application` bruker ingen serverkode, slik at demoen kan kjøre dem i nettleseren.
 - **Ingen Next.js-middleware.** Innloggingsøkta fornyes i serverkode. Hver `page.tsx` i `src/app/(innlogget)` pakker innholdet i `OwnerOnly`, så det aldri havner i den statiske delen (Partial Prerendering). Server Actions sjekker eieren selv. Testen `ownerOnlyPages.test.ts` feiler hvis en side mangler `OwnerOnly`.
 - **Database:** Alle brukertabeller har eier-FK til `auth.users` med `on delete cascade`, RLS og `GRANT`. Endringer bare via migreringer i `supabase/migrations/`, dev før prod, aldri via dashbordet. Adaptere testes mot `dev`, aldri mot `prod`.
-- **Identitet:** Kapittel = (eier, emnekode, nr.), delkapittel = (eier, emnekode, «n.m»). Titler er attributter. Nytt nummer betyr ny enhet.
+- **Identitet:** Kapittel = (eier, emnekode, nr.), delkapittel = (eier, emnekode, «n.m»). Titler er attributter. Nytt nummer betyr ny enhet. Hull i nummereringen (2.1, 2.2, 2.4) er gyldig og skal ikke nummereres om.
 - **Import:** `npm run import -- --target dev|prod <EMNE> <n>`, kjøres eksplisitt og er idempotent. Leser `.env.dev.local` eller `.env.prod.local`, prod krever bekreftelse, eieren finnes via `OWNER_EMAIL`, og emnet må finnes fra før (opprettes i appen). Bare importen oppretter kapitler og delkapitler for emner med notatfiler. Hele filen valideres før noe skrives (delkapittelnummer må starte med filens kapittelnummer, ingen duplikater), og feil gir norsk melding med linjenummer.
 - **Notatformat:** Frontmatter (`emne`, `kapittel`, `tittel`), `## Læringsmål for kapittelet`, `## Nøkkelbegreper`, delkapitler som `### n.m Tittel`, valgfri `## Spørsmålsbank` (tabell `#`, `Delkapittel`, `Spørsmål`, `Fasit`). `## Råtekst` og `## Rettelser` er aldri med i notattekst, hash eller KI-input. `hasNotes()` er eneste definisjon av «har notater» (tom, bare mellomrom og `*Ingen notater ennå.*` gir false).
 - **Endringsdeteksjon:** `inputHash` = hash(normalisert notat + kapittelets læringsmål og nøkkelbegreper + promptversjon). Uendret hash gir ingen KI-kall. `--force <n.m>` tvinger ny generering.
@@ -65,6 +65,6 @@ Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, 
 - 1.2 (Supabase Auth, `OwnerOnly`) må være på plass før 1.3 og alt med brukerdata.
 - 1.3 (emnet finnes) før 1.4, siden importen stopper hvis emnet mangler.
 - 1.4 (import uten KI) før 1.5 og 1.6. 1.5 og 1.6 krever avklart Bedrock-tilgang (AWS-konto med fakturering, EU-pris, vilkår om trening, modelltilgang i eu-central-1, IAM-nøkler i Vercel).
-- Etter 1.4–1.6 kjøres importen mot `prod` for IBE430 kapittel 1–5, så alle delkapitler med notater er klare i drift.
+- Etter 1.4–1.6 kjøres importen mot `prod` for IBE430 kapittel 1–5, så alle delkapitler med notater er klare i drift. Kapittel 6 har ingen notatfil ennå.
 - 1.7 krever 1.6. 1.8 krever 1.7. 1.9 krever 1.5 og 1.7, og kan flyttes til etter Epic 3 hvis tiden blir knapp.
 - Epic 2 (demo) gjenbruker brukstilfellene i nettleseren med en egen datakilde, så `domain` og `application` må holdes fri for serverkode.

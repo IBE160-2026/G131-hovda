@@ -24,3 +24,6 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-4-importen-legger-inn-kapitler-delkapitler-og-notater.md`
   summary: Alle databasefeil blir «unavailable», så importen sier «Fikk ikke kontakt med databasen» også når tabellene mangler.
   evidence: `guarded()` (fra 1.3) kaster Postgres-koden. Kjøres importen mot `prod` før migreringen er pushet, blir meldingen misvisende. For scriptet bør koden/meldingen skrives til stderr.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
+  summary: Story 1.5b: kapittellisten viser status per delkapittel («mangler notater», «innhold lages», «klart», «feilet»), og eieren kan åpne et klart delkapittel og lese siste klare sammendrag på under 3 s (side `/delkapittel/<id>` i `OwnerOnly`, 404 uten klar versjon).
+  evidence: Marte valgte 18.11.2026 å dele story 1.5 fordi specen var på rundt 3 000 tokens. 1.5a (KI-modul, migrering og import) må være ferdig først.
