@@ -19,6 +19,8 @@ Oppgitt av brukeren 27.09.2026 fra pensumboka, oversatt til norsk (originaltitte
    - 2.3 Super Skateboard Builders (SSB), casebedriften
    - 2.4 Oversikt over SAP (SAP overview)
    - 2.5 SAP-programvaren (SAP software)
+
+   *Merknad 18.11.2026:* 2.3 og 2.5 er fjernet fra appen, fordi det ikke kommer notater til dem. De er tatt ut av `notater/IBE430/kapittel-2.md`, og kapittel 2 består i appen av 2.1, 2.2 og 2.4.
 3. **Innkjøpsprosessen** (The Procurement Process)
    - 3.1 Nøkkelbegreper og forutsetninger (Key concepts and assumptions)
    - 3.2 Forretningssystemenes rolle i innkjøpsprosessen (Role of enterprise systems in the procurement process)
