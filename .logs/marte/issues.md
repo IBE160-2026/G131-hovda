@@ -34,5 +34,6 @@
 - [x] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — fjern de tre plassholderlinjene nederst i `.gitignore` (løst 2026-11-16)
 - [ ] 2026-11-16 [story-1-4-spesifikasjon](990-2026-11-16-22-12-34-story-1-4-spesifikasjon.md) — `planning-artifacts/architecture/technology.md` gjelder et annet prosjekt (pytagoras-website-v2); avklar om den skal fjernes eller flyttes
 - [x] 2026-11-16 [story-1-4-bygg](989-2026-11-16-22-41-47-story-1-4-bygg.md) — kjør migreringen for 1.4 mot `dev`, importer IBE430 kapittel 1 (to ganger) og 2, kjør `npm run test:dev` og sjekk startsiden i `dev` («mangler notater» på 2.3 og 2.5); sett så 1.4 til `done` (løst 2026-11-18: alt verifisert i `dev`, `ffb6d53`)
-- [ ] 2026-11-16 [story-1-4-bygg](989-2026-11-16-22-41-47-story-1-4-bygg.md) — før push av 1.4 til `main`: kjør migreringen mot `prod` først, ellers viser startsiden «Noe gikk galt»
+- [x] 2026-11-16 [story-1-4-bygg](989-2026-11-16-22-41-47-story-1-4-bygg.md) — før push av 1.4 til `main`: kjør migreringen mot `prod` først, ellers viser startsiden «Noe gikk galt» (løst 2026-11-18: migrert og pushet)
 - [ ] 2026-11-16 [story-1-4-bygg](989-2026-11-16-22-41-47-story-1-4-bygg.md) — før første import til `prod`: sjekk at `.env.prod.local` peker på `frykrsmzrbdvijtaivcd` (bekreftelsen viser ikke URL-en)
+- [ ] 2026-11-18 [story-1-4-bygg](989-2026-11-16-22-41-47-story-1-4-bygg.md) — etter deploy: sjekk at startsiden på https://g131-hovda.vercel.app viser «Ingen kapitler er importert ennå.» under IBE430 (ikke «Noe gikk galt»)
