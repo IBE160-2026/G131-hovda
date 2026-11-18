@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getDataSourceForScript } from "./script";
+import { getAiProviderForScript, getDataSourceForScript } from "./script";
 
 describe("getDataSourceForScript", () => {
   let root = "";
@@ -25,5 +25,27 @@ describe("getDataSourceForScript", () => {
       ok: false,
       error: "Mangler SUPABASE_SERVICE_ROLE_KEY, OWNER_EMAIL i .env.dev.local.",
     });
+  });
+});
+
+describe("getAiProviderForScript", () => {
+  let root = "";
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "studievenn-script-"));
+  });
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  it("sier at sammendrag ikke er laget når AWS-nøklene mangler", () => {
+    writeFileSync(join(root, ".env.dev.local"), "OWNER_EMAIL=eier@example.com\nAWS_ACCESS_KEY_ID=\n");
+    expect(getAiProviderForScript("dev", root)).toEqual({
+      ok: false,
+      error: "Mangler AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY i .env.dev.local. Sammendrag er ikke laget.",
+    });
+  });
+
+  it("lager KI-modulen uten å kalle KI når nøklene finnes", () => {
+    writeFileSync(join(root, ".env.prod.local"), "AWS_ACCESS_KEY_ID=AKIATEST\nAWS_SECRET_ACCESS_KEY=hemmelig\n");
+    const result = getAiProviderForScript("prod", root);
+    expect(result.ok && result.ai.summaryPromptVersion).toBe("summary.v1");
   });
 });

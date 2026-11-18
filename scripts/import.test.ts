@@ -28,7 +28,14 @@ describe("npm run import mot prod", () => {
 describe("npm run import med feil", () => {
   it("viser bruken og avslutter med kode 1 uten --target", () => {
     const result = runImport(["IBE430", "1"], "");
-    expect(result.stderr).toContain("Bruk: npm run import -- --target dev|prod <EMNE> <n>");
+    expect(result.stderr).toContain("Bruk: npm run import -- --target dev|prod [--force <n.m>] <EMNE> <n>");
+    expect(result.status).toBe(1);
+  }, 20000);
+
+  it("avviser --force for et delkapittel i et annet kapittel før noe skrives", () => {
+    const result = runImport(["--target", "dev", "--force", "2.1", "IBE430", "1"], "");
+    expect(result.stderr).toContain("--force 2.1 hører ikke til kapittel 1. Ingenting er skrevet.");
+    expect(result.stdout).not.toContain("Importerer");
     expect(result.status).toBe(1);
   }, 20000);
 

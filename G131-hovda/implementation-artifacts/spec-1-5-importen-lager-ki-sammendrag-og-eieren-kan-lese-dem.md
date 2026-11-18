@@ -2,7 +2,8 @@
 title: 'Story 1.5a: Importen lager KI-sammendrag'
 type: 'feature'
 created: '2026-11-18'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: '4050989693e2f4b9a0939ae206bcebe4bc35487d'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -70,18 +71,18 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json` -- `@anthropic-ai/bedrock-sdk`, `@anthropic-ai/sdk` og `zod` med faste versjoner
-- [ ] `supabase/migrations/<tidsstempel>_summary_versions.sql` -- `summary_versions` (eier, `subchapter_id` FK med cascade via (`owner_id`, `subchapter_id`), `status` `lages`/`klart`/`feilet`, `text`, `model_id`, `prompt_version`, `input_hash`, `error`, tidsstempler), indeks på (`subchapter_id`, `created_at`), RLS og `GRANT` som `chapters`
-- [ ] `src/domain/summary.ts` + test -- normalisering av notatet, hash-grunnlaget, ordtelling og validering (ikke tom, høyst 600 ord)
-- [ ] `src/application/aiProvider.ts` -- porten `AiProvider.summarize(input)`: tekst, modell-ID og promptversjon, eller en årsak til feil
-- [ ] `src/application/dataSource.ts`, `MemoryDataSource.ts`, `src/adapters/supabase/dataSource.ts` + test -- lese siste versjon og siste klare versjon per delkapittel, og lagre en ny versjon. Filtrerer på eier
-- [ ] `src/application/importChapter.ts` + test -- lager sammendrag etter matrisen, og `describeImport` skriver én linje per delkapittel. Testene bruker en falsk `AiProvider`
-- [ ] `src/adapters/bedrock/settings.ts` + `settings.test.ts`, `prompts/summary.v1.ts`, `bedrockAiProvider.ts` -- innstillingene (modell og effort `medium`, region `eu-central-1`), testen av EU-regelen, en versjonert prompt, og en klient som validerer svaret mot et zod-skjema via strukturert utdata
-- [ ] `src/composition/script.ts` -- `getAiProviderForScript(target)` leser `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` fra `.env.<target>.local`
-- [ ] `scripts/importArgs.ts`, `scripts/import.ts` + tester -- `--force <n.m>` (må høre til kapittelet) og kode 1 når et sammendrag feilet eller AWS-nøklene mangler
-- [ ] `src/adapters/supabase/rls.dev.test.ts` -- testkontoen ser ingen fremmede rader i `summary_versions`
-- [ ] `ARCHITECTURE-SPINE.md` -- merknad under AD-7 om Mantle, `anthropic.`-prefiks og regionalt endepunkt i `eu-central-1` (beslutning 18.11.2026)
-- [ ] `.env.example`, `README.md` -- AWS-nøklene i `.env.dev.local`/`.env.prod.local`, `--force`, og at importen koster penger
+- [x] `package.json` -- `@anthropic-ai/bedrock-sdk`, `@anthropic-ai/sdk` og `zod` med faste versjoner
+- [x] `supabase/migrations/<tidsstempel>_summary_versions.sql` -- `summary_versions` (eier, `subchapter_id` FK med cascade via (`owner_id`, `subchapter_id`), `status` `lages`/`klart`/`feilet`, `text`, `model_id`, `prompt_version`, `input_hash`, `error`, tidsstempler), indeks på (`subchapter_id`, `created_at`), RLS og `GRANT` som `chapters`
+- [x] `src/domain/summary.ts` + test -- normalisering av notatet, hash-grunnlaget, ordtelling og validering (ikke tom, høyst 600 ord)
+- [x] `src/application/aiProvider.ts` -- porten `AiProvider.summarize(input)`: tekst, modell-ID og promptversjon, eller en årsak til feil
+- [x] `src/application/dataSource.ts`, `MemoryDataSource.ts`, `src/adapters/supabase/dataSource.ts` + test -- lese siste versjon og siste klare versjon per delkapittel, og lagre en ny versjon. Filtrerer på eier
+- [x] `src/application/importChapter.ts` + test -- lager sammendrag etter matrisen, og `describeImport` skriver én linje per delkapittel. Testene bruker en falsk `AiProvider`
+- [x] `src/adapters/bedrock/settings.ts` + `settings.test.ts`, `prompts/summary.v1.ts`, `bedrockAiProvider.ts` -- innstillingene (modell og effort `medium`, region `eu-central-1`), testen av EU-regelen, en versjonert prompt, og en klient som validerer svaret mot et zod-skjema via strukturert utdata
+- [x] `src/composition/script.ts` -- `getAiProviderForScript(target)` leser `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` fra `.env.<target>.local`
+- [x] `scripts/importArgs.ts`, `scripts/import.ts` + tester -- `--force <n.m>` (må høre til kapittelet) og kode 1 når et sammendrag feilet eller AWS-nøklene mangler
+- [x] `src/adapters/supabase/rls.dev.test.ts` -- testkontoen ser ingen fremmede rader i `summary_versions`
+- [x] `ARCHITECTURE-SPINE.md` -- merknad under AD-7 om Mantle, `anthropic.`-prefiks og regionalt endepunkt i `eu-central-1` (beslutning 18.11.2026)
+- [x] `.env.example`, `README.md` -- AWS-nøklene i `.env.dev.local`/`.env.prod.local`, `--force`, og at importen koster penger
 
 **Acceptance Criteria:**
 - Given innstillingsfilen, when en modell-ID ikke starter med `anthropic.` eller regionen ikke er `eu-central-1`, then feiler en enhetstest.
@@ -90,9 +91,47 @@ context:
 
 ## Implementation Notes
 
+- Migreringen `20261118120000_summary_versions.sql` er skrevet, men ikke kjørt mot `dev`: `npx supabase db push --remote` ble stoppet av tillatelsessjekken. Marte kjører den (lenket prosjekt er `studievenn-dev`). Til da feiler `npm run test:dev` på `summary_versions`.
+- `DataSource` fikk `listSummaryVersions(ids)` (siste og siste klare per delkapittel) og `addSummaryVersion`. Hashen ligger i `src/application/summaryHash.ts` med global `crypto.subtle`, hash-grunnlaget i `src/domain/summary.ts`.
+- Bare en siste versjon med status `klart` og samme hash hopper over KI-kallet. En feilet siste versjon prøves alltid på nytt.
+- `--force` sjekkes to steder: `parseImportArgs` (må høre til kapittelet, før noe leses) og `prepareChapterImport` (må finnes i notatfilen, før prod-bekreftelsen).
+- `describeImport` legger sammendragsstatus på samme linje som delkapittelet («1.1 En: uendret, sammendrag laget»). Delkapitler uten notater får «mangler notater».
+- Klienten får region, endepunkt (`https://bedrock-mantle.eu-central-1.api.aws/anthropic`) og nøkler som konstruktørvalg, og `apiKey: null`, så verken `AWS_REGION`, `ANTHROPIC_BEDROCK_MANTLE_BASE_URL` eller `AWS_BEARER_TOKEN_BEDROCK` fra miljøet kan styre kallet. `AWS_REGION` er tatt ut av `.env.example`.
+- Lint-regelen for `src/application` avviser nå også `@anthropic-ai/*` og `@aws-sdk/*`.
+- Pakker: `@anthropic-ai/bedrock-sdk` 1.1.2, `@anthropic-ai/sdk` 1.10.0, `zod` 4.6.7.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Finding | Verdict | Route | Evidence |
+|---|---------|---------|-------|----------|
+| 1 | `--force n.m` for et delkapittel uten notater gjør ingenting og gir kode 0 (edge, blind, verification-gap) | low | patch | `prepareChapterImport` sjekker bare at nummeret finnes; `createSummaries` gir `noNotes`. Direkte sjekk med `hasNotes` |
+| 2 | AWS-nøklene sjekkes etter prod-bekreftelsen (edge, blind) | low | patch | `getAiProviderForScript` kalles etter `ask`; eieren bekrefter et KI-kall som ikke skjer. Flytting av ett kall |
+| 3 | `createMantleClient` kan kaste etter bekreftelsen (edge, blind) | false | reject | `settingsErrors` kjører på konstante innstillinger som `settings.test.ts` viser er gyldige; konstruktøren kaster ikke med gitte valg |
+| 4 | Utskrift og kode i `main()` er utestet (verification-gap) | medium | patch | `return 0` eller fjernet `console.error(ai.error)` ville bestått alle tester |
+| 5 | `allUnavailable`-greinene i `createSummaries` kjøres aldri i test (verification-gap) | medium | patch | `MemoryDataSource` kan ikke feile `listSummaryVersions` etter vellykket `saveChapter` |
+| 6 | Testen av Mantle-klienten beviser ikke at env ikke kan flytte kallet (verification-gap) | medium | patch | SDK-en faller tilbake til samme URL fra regionen, så fjernet `baseURL` ville bestått |
+| 7 | Avslag-testen sjekker ikke årsaken (blind) | low | patch | Bare `status` sjekkes; direkte tillegg |
+| 8 | Etterstilte mellomrom i notatet gir ny hash og betalt nytt kall (edge) | low | patch | `normalizeNote` fjerner ikke mellomrom på slutten av linjer; én `replace` |
+| 9 | README sier ny kjøring er gratis, men feilede prøves og koster hver gang (blind) | low | patch | AD-8 prøver feilede på nytt; teksten er feil mens noe feiler. Direkte rettelse |
+| 10 | RLS-lesetesten for `summary_versions` består selv uten RLS når tabellen er tom (verification-gap, blind) | medium | defer | Ingen eierrader i `dev` før første import med KI; samme mønster som for kapitler |
+| 11 | Hashen tar ikke med modell-ID eller emnets læringsutbytte (blind, verification-gap) | false | reject | Intensjonen definerer `inputHash` som notat + læringsmål + nøkkelbegreper + promptversjon; koden følger den. Nevnt for Marte som mulig endring av AD-4 |
+| 12 | Siste `feilet` med gammel hash, mens siste `klart` har dagens hash, gir nytt kall (edge) | low | reject | Krever at notatet endres, feiler og endres tilbake; løsningen legger til en grein |
+| 13 | `lages` med samme hash gir dobbel generering (edge) | false | reject | Ingen kode skriver `lages` i 1.5a |
+| 14 | `listSummaryVersions` har ingen grense og kan kuttes ved PostgREST `max-rows` (edge, blind) | low | reject | Krever over 1000 versjoner for ett kapittels delkapitler; løsningen er mer enn en direkte rettelse |
+| 15 | Ingen tiebreak på `created_at` (edge, blind) | false | reject | Versjoner for samme delkapittel skrives i egne kall med `now()` i mikrosekunder; lik tid er ikke nåbar fra importen |
+| 16 | Samtidige importer gir doble kall (edge) | low | reject | Én eier kjører CLI-en manuelt; lås er utenfor en direkte rettelse |
+| 17 | Migreringen gir `update`, men versjoner skal ikke endres (blind) | false | reject | `lages` → `klart` (1.5b) trenger `update`; policyen er eiers egen, som for `chapters` |
+| 18 | Feiler en gjentatt feil, koster hver kjøring et kall (blind) | false | reject | Intensjonen sier at neste import prøver feilede på nytt; README-teksten rettes i #9 |
+| 19 | Betalt sammendrag går tapt hvis lagringen feiler (blind) | low | reject | Sjelden (database nede midt i importen); løsningen legger til lagring utenfor databasen |
+| 20 | Markdown-tegn telles som ord (blind) | low | reject | Prompten ber om høyst 600 ord, og normale sammendrag ligger langt under; ny telleregel er mer enn en rettelse |
+| 21 | Prod-bekreftelsen sier ikke hvor mange kall som kommer (blind) | low | reject | Ny funksjon, ikke en feil |
+| 22 | Kast fra KI lagres med `modelId: "ukjent"` (blind) | false | reject | `BedrockAiProvider.summarize` fanger alle feil selv, så `summarizeSafely` sin catch nås ikke med den ekte modulen |
+| 23 | AD-7-regelen motsier merknaden under (blind) | false | reject | Intensjonen ba om en merknad, og merknaden sier at den erstatter `eu.`-regelen; `settings.test.ts` håndhever den nye |
+| 24 | `failureReason` lagrer serverens melding (blind) | low | reject | Bedrock-feilmeldinger tar ikke med nøkler; kortes til 500 tegn |
+| 25 | README mangler IAM-tilganger og rekkefølge for migrering (blind) | low | reject | Avhenger av AWS-oppsettet som ikke er klart; tas når det ekte kallet verifiseres |
+| 26 | Kode 1 når AWS mangler selv om ingen delkapitler har notater (blind) | false | reject | Matrisen sier kode 1 når AWS-nøklene mangler |
 
 ## Design Notes
 

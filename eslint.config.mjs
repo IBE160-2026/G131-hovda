@@ -104,9 +104,11 @@ const eslintConfig = defineConfig([
                 "**/app/*",
                 "next",
                 "next/*",
+                "@anthropic-ai/*",
+                "@aws-sdk/*",
               ],
               message:
-                "src/application kan bare importere fra src/domain, ikke fra adaptere eller Next.js (AD-1).",
+                "src/application kan bare importere fra src/domain, ikke fra adaptere, Next.js eller KI-pakker (AD-1, AD-7).",
             },
             serverOnlyImports,
           ],

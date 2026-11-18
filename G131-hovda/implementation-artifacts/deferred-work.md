@@ -27,3 +27,6 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
   summary: Story 1.5b: kapittellisten viser status per delkapittel («mangler notater», «innhold lages», «klart», «feilet»), og eieren kan åpne et klart delkapittel og lese siste klare sammendrag på under 3 s (side `/delkapittel/<id>` i `OwnerOnly`, 404 uten klar versjon).
   evidence: Marte valgte 18.11.2026 å dele story 1.5 fordi specen var på rundt 3 000 tokens. 1.5a (KI-modul, migrering og import) må være ferdig først.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
+  summary: RLS-lesetesten for `summary_versions` i `rls.dev.test.ts` beviser ingenting så lenge tabellen i `dev` ikke har eierrader.
+  evidence: Testen filtrerer bort testkontoens egne rader og venter en tom liste; med tom tabell består den også med `using (true)`. Bør kreve minst én eierrad (telle med service role) etter første import med KI mot `dev`.

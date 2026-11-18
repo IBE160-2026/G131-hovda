@@ -13,11 +13,15 @@ import type {
   Chapter,
   Course,
   DataSource,
+  NewSummaryVersion,
   ReadResult,
   SaveChapterReport,
+  SubchapterSummaries,
+  SummaryVersion,
   Unavailable,
   WriteResult,
 } from "@/application/dataSource";
+import type { SummaryStatus } from "@/domain/summary";
 
 // Bare den delen av Supabase-klienten som adapteren bruker, så testene kan bruke en falsk klient.
 export type SupabaseDataClient = Pick<SupabaseClient, "from">;
@@ -54,6 +58,35 @@ type SubchapterRow = {
 
 const chapterColumns = "id, number, title, learning_goals, key_concepts";
 const subchapterColumns = "id, chapter_id, number, position, title, note_text, removed_at";
+
+type SummaryVersionRow = {
+  id: string;
+  subchapter_id: string;
+  status: SummaryStatus;
+  text: string | null;
+  model_id: string;
+  prompt_version: string;
+  input_hash: string;
+  error: string | null;
+  created_at: string;
+};
+
+const summaryVersionColumns =
+  "id, subchapter_id, status, text, model_id, prompt_version, input_hash, error, created_at";
+
+function toSummaryVersion(row: SummaryVersionRow): SummaryVersion {
+  return {
+    id: row.id,
+    subchapterId: row.subchapter_id,
+    status: row.status,
+    text: row.text,
+    modelId: row.model_id,
+    promptVersion: row.prompt_version,
+    inputHash: row.input_hash,
+    error: row.error,
+    createdAt: row.created_at,
+  };
+}
 
 function toChapterFields(row: ChapterRow): StoredChapterFields {
   return { title: row.title, learningGoals: row.learning_goals, keyConcepts: row.key_concepts };
@@ -358,6 +391,57 @@ export class SupabaseDataSource implements DataSource {
           subchapters: steps.map((step) => ({ number: step.number, change: subchapterChangeOf(step) })),
         },
       };
+    });
+  }
+
+  listSummaryVersions(subchapterIds: string[]): Promise<ReadResult<SubchapterSummaries[]>> {
+    return guarded(async () => {
+      let rows: SummaryVersionRow[] = [];
+      if (subchapterIds.length > 0) {
+        // Nyeste først, så den første raden per delkapittel er siste versjon. Alle versjonene
+        // hentes, siden det er få per delkapittel.
+        const { data, error } = await this.client
+          .from("summary_versions")
+          .select(summaryVersionColumns)
+          .eq("owner_id", this.ownerId)
+          .in("subchapter_id", subchapterIds)
+          .order("created_at", { ascending: false });
+        if (error || !data) return unavailable;
+        rows = data as SummaryVersionRow[];
+      }
+      return {
+        status: "ok",
+        value: subchapterIds.map((subchapterId) => {
+          const own = rows.filter((r) => r.subchapter_id === subchapterId);
+          const ready = own.find((r) => r.status === "klart");
+          return {
+            subchapterId,
+            latest: own[0] ? toSummaryVersion(own[0]) : null,
+            latestReady: ready ? toSummaryVersion(ready) : null,
+          };
+        }),
+      };
+    });
+  }
+
+  addSummaryVersion(version: NewSummaryVersion): Promise<WriteResult<SummaryVersion>> {
+    return guarded(async () => {
+      const { data, error } = await this.client
+        .from("summary_versions")
+        .insert({
+          owner_id: this.ownerId,
+          subchapter_id: version.subchapterId,
+          status: version.status,
+          text: version.status === "klart" ? version.text : null,
+          error: version.status === "feilet" ? version.error : null,
+          model_id: version.modelId,
+          prompt_version: version.promptVersion,
+          input_hash: version.inputHash,
+        })
+        .select(summaryVersionColumns)
+        .single();
+      if (error || !data) return unavailable;
+      return { status: "ok", value: toSummaryVersion(data as SummaryVersionRow) };
     });
   }
 }

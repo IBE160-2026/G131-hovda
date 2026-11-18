@@ -386,3 +386,114 @@ describe("SupabaseDataSource med kapitler når en senere spørring feiler", () =
     });
   });
 });
+
+const versionRow = (id: string, subchapterId: string, status: string, createdAt: string) => ({
+  id,
+  subchapter_id: subchapterId,
+  status,
+  text: status === "klart" ? `Tekst ${id}` : null,
+  model_id: "anthropic.claude-sonnet-5-5",
+  prompt_version: "summary.v1",
+  input_hash: "h",
+  error: status === "feilet" ? "Nede." : null,
+  created_at: createdAt,
+});
+
+describe("SupabaseDataSource med sammendragsversjoner", () => {
+  it("gir siste og siste klare versjon per delkapittel, filtrert på eier", async () => {
+    const rows = [
+      versionRow("v3", "d1", "feilet", "2026-11-18T03:00:00Z"),
+      versionRow("v2", "d1", "klart", "2026-11-18T02:00:00Z"),
+      versionRow("v1", "d1", "klart", "2026-11-18T01:00:00Z"),
+    ];
+    const { client, queries } = fakeClient(() => ({ data: rows }));
+    const result = await new SupabaseDataSource(client, "eier").listSummaryVersions(["d1", "d2"]);
+    expect(result).toEqual({
+      status: "ok",
+      value: [
+        {
+          subchapterId: "d1",
+          latest: expect.objectContaining({ id: "v3", status: "feilet", error: "Nede.", text: null }),
+          latestReady: {
+            id: "v2",
+            subchapterId: "d1",
+            status: "klart",
+            text: "Tekst v2",
+            modelId: "anthropic.claude-sonnet-5-5",
+            promptVersion: "summary.v1",
+            inputHash: "h",
+            error: null,
+            createdAt: "2026-11-18T02:00:00Z",
+          },
+        },
+        { subchapterId: "d2", latest: null, latestReady: null },
+      ],
+    });
+    expect(queries[0].table).toBe("summary_versions");
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["in", "subchapter_id", ["d1", "d2"]]);
+    expect(queries[0].calls).toContainEqual(["order", "created_at", { ascending: false }]);
+  });
+
+  it("spør ikke databasen uten delkapitler", async () => {
+    const { client, queries } = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(client, "eier").listSummaryVersions([])).toEqual({ status: "ok", value: [] });
+    expect(queries).toHaveLength(0);
+  });
+
+  it("lagrer en ny versjon med eieren satt", async () => {
+    const row = versionRow("v1", "d1", "klart", "2026-11-18T01:00:00Z");
+    const { client, queries } = fakeClient(() => ({ data: row }));
+    const result = await new SupabaseDataSource(client, "eier").addSummaryVersion({
+      subchapterId: "d1",
+      status: "klart",
+      text: "Tekst v1",
+      modelId: "anthropic.claude-sonnet-5-5",
+      promptVersion: "summary.v1",
+      inputHash: "h",
+    });
+    expect(result).toEqual({ status: "ok", value: expect.objectContaining({ id: "v1", status: "klart" }) });
+    expect(queries[0].calls[0]).toEqual([
+      "insert",
+      {
+        owner_id: "eier",
+        subchapter_id: "d1",
+        status: "klart",
+        text: "Tekst v1",
+        error: null,
+        model_id: "anthropic.claude-sonnet-5-5",
+        prompt_version: "summary.v1",
+        input_hash: "h",
+      },
+    ]);
+  });
+
+  it("lagrer en feilet versjon med årsak og uten tekst", async () => {
+    const { client, queries } = fakeClient(() => ({ data: versionRow("v1", "d1", "feilet", "2026-11-18T01:00:00Z") }));
+    await new SupabaseDataSource(client, "eier").addSummaryVersion({
+      subchapterId: "d1",
+      status: "feilet",
+      error: "Nede.",
+      modelId: "anthropic.claude-sonnet-5-5",
+      promptVersion: "summary.v1",
+      inputHash: "h",
+    });
+    expect(queries[0].calls[0][1]).toMatchObject({ status: "feilet", text: null, error: "Nede." });
+  });
+
+  it("gir unavailable når versjonene ikke kan leses eller lagres", async () => {
+    const { client } = fakeClient(() => ({ error: { code: "", message: "fetch failed" } }));
+    const data = new SupabaseDataSource(client, "eier");
+    expect(await data.listSummaryVersions(["d1"])).toEqual({ status: "unavailable" });
+    expect(
+      await data.addSummaryVersion({
+        subchapterId: "d1",
+        status: "feilet",
+        error: "x",
+        modelId: "m",
+        promptVersion: "p",
+        inputHash: "h",
+      }),
+    ).toEqual({ status: "unavailable" });
+  });
+});
