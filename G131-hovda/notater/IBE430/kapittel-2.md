@@ -22,7 +22,7 @@ Når kapittelet er ferdig, skal du kunne:
 
 ## Fordelt på delkapitler
 
-Notatet i appen ligger per delkapittel. Teksten er fordelt slik, fra råtekstene nederst.
+Notatet i appen ligger per delkapittel. Teksten er fordelt slik, fra råtekstene nederst. 2.3 (Super Skateboard Builders) og 2.5 (SAP-programvaren) er tatt ut 18.11.2026, fordi det ikke kommer notater til dem.
 
 ### 2.1 Forretningssystemer
 
@@ -38,19 +38,11 @@ Fra spørsmålsbanken (spørsmål 5–8): I IBE430 defineres et ERP-system som e
 
 Fra spørsmålsbanken (spørsmål 1–4): Det finnes tre typer data i ERP-systemer: organisasjonsdata, masterdata og transaksjonsdata. Avdelingsnavn er organisasjonsdata, leverandørnavn er masterdata, og antall varer bestilt er transaksjonsdata.
 
-### 2.3 Super Skateboard Builders (SSB), casebedriften
-
-*Ingen notater ennå.*
-
 ### 2.4 Oversikt over SAP
 
 SAP er verdens største ES-leverandør.
 
 SAP var det første selskapet som skapte et fullstendig integrert og globalt ERP-system. SAP er verdens ledende ES-leverandør, og deres vekst og ekspansjon gikk parallelt med utviklingen og adopsjonen av ES-løsninger.
-
-### 2.5 SAP-programvaren
-
-*Ingen notater ennå.*
 
 ## Nøkkelbegreper
 

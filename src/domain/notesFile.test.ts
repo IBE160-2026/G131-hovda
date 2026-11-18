@@ -55,17 +55,15 @@ describe("parseNotesFile med de ekte filene", () => {
     expect(file.chapter.subchapters[5].noteText.endsWith("En bedrift er lovpålagt å føre finansregnskap.")).toBe(true);
   });
 
-  it("tolker kapittel 2 med nøkkelbegreper etter delkapitlene, og 2.3 og 2.5 uten notater", () => {
+  it("tolker kapittel 2 med nøkkelbegreper etter delkapitlene (2.3 og 2.5 er tatt ut av fila)", () => {
     const file = parsed(kapittel2);
     expect(file.chapter.title).toBe("Forretningssystemer");
-    expect(file.chapter.subchapters.map((s) => s.number)).toEqual(["2.1", "2.2", "2.3", "2.4", "2.5"]);
+    expect(file.chapter.subchapters.map((s) => s.number)).toEqual(["2.1", "2.2", "2.4"]);
     expect(file.chapter.keyConcepts).toContain("- ERP: Bedriftsressursplanlegging");
     expect(file.chapter.keyConcepts).toContain("- SCM: Forsyningskjedeadministrasjon");
-    const withoutNotes = file.chapter.subchapters.filter((s) => !hasNotes(s.noteText)).map((s) => s.number);
-    expect(withoutNotes).toEqual(["2.3", "2.5"]);
-    expect(file.chapter.subchapters[2].noteText).toBe("*Ingen notater ennå.*");
-    // Delkapittelet slutter ved neste ##, så nøkkelbegrepene havner ikke i 2.5.
-    expect(file.chapter.subchapters[4].noteText).not.toContain("CRM");
+    expect(file.chapter.subchapters.every((s) => hasNotes(s.noteText))).toBe(true);
+    // Delkapittelet slutter ved neste ##, så nøkkelbegrepene havner ikke i 2.4.
+    expect(file.chapter.subchapters[2].noteText).not.toContain("CRM");
   });
 
   it.each([
