@@ -47,3 +47,4 @@
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — `epics.md` og stabeltabellen i ARCHITECTURE-SPINE viser fortsatt `eu.anthropic.…`-ID-er
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — RLS-lesetesten for `summary_versions` beviser ingenting før eieren har rader i `dev` (se deferred-work.md)
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — feilgrenen når `listChapters` feiler etter lagringen i `createSummaries` er utestet
+- [ ] 2026-11-19 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — før merge av PR-en for 1.5a: kjør migreringen mot `prod` (krever ja fra Marte) før første import med KI til `prod`
