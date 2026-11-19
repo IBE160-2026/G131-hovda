@@ -2,7 +2,8 @@
 title: 'Story 1.5a: Importen lager KI-sammendrag'
 type: 'feature'
 created: '2026-11-18'
-status: 'done'
+status: 'superseded'
+superseded_by: 'G131-hovda/planning-artifacts/sprint-change-proposal-2026-11-19.md (ny spec: Story 1.5a v2)'
 baseline_commit: '4050989693e2f4b9a0939ae206bcebe4bc35487d'
 route: 'dispatch'
 review_loop_iteration: 0

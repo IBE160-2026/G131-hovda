@@ -7,7 +7,7 @@ paradigm: 'ports and adapters (heksagonal)'
 scope: 'Hele Studievenn-appen, del 1–3 (levering 1.11.2026 og 15.11.2026)'
 status: final
 created: '2026-10-08'
-updated: '2026-10-25'
+updated: '2026-11-19'
 binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19, FR-20, FR-21, FR-25, FR-26, FR-27, FR-28, NFR-1, NFR-2, NFR-3, NFR-4, NFR-5, NFR-6, NFR-7, NFR-8]
 sources: ['../../prds/prd-G131-hovda-2026-09-27/prd.md', '.memlog.md']
 companions: []
@@ -17,13 +17,13 @@ companions: []
 
 ## Design Paradigm
 
-**Ports and adapters (heksagonal arkitektur).** Kjernen (domene og applikasjon) kjenner bare grensesnitt («porter»). Database, KI, demodata, klokke og importkommandoen er utskiftbare adaptere. Next.js-ruter og skjermer kaller bare applikasjonslaget.
+**Ports and adapters (heksagonal arkitektur).** Kjernen (domene og applikasjon) kjenner bare grensesnitt («porter»). Database, demodata, klokke og importkommandoen er utskiftbare adaptere. Appen kaller ingen KI-leverandør (AD-7, endret 19.11.2026). Next.js-ruter og skjermer kaller bare applikasjonslaget.
 
 | Lag | Mappe | Inneholder |
 | --- | --- | --- |
-| Domene | `src/domain/` | Rene regler: 80 %-avkrysning, planformelen, nytt spørsmål om samme tema, størrelsen på dagens forslag, når kapittelgjennomgangen åpnes, `hasNotes`, tolking av kapittellister og gjennomgangsspørsmål |
-| Applikasjon | `src/application/` | Brukstilfeller (for eksempel `finishQuiz`, `startPlan`, `endSession`, `importChapter`) og portene `DataSource`, `AiProvider`, `Clock`. Skjema for demofilene |
-| Adaptere | `src/adapters/` | `supabase/`, `bedrock/`, `demo/` (statiske filer og minne), `clock/` |
+| Domene | `src/domain/` | Rene regler: 80 %-avkrysning, planformelen, nytt spørsmål om samme tema, størrelsen på dagens forslag, når kapittelgjennomgangen åpnes, `hasNotes`, tolking av kapittellister, gjennomgangsspørsmål og innholdsfiler, regelen for vurderingen |
+| Applikasjon | `src/application/` | Brukstilfeller (for eksempel `finishQuiz`, `startPlan`, `endSession`, `importChapter`) og portene `DataSource`, `Clock`. Skjema for demofilene |
+| Adaptere | `src/adapters/` | `supabase/`, `demo/` (statiske filer og minne), `clock/` |
 | Inngangspunkter | `src/app/` (Next.js), `scripts/` | Skjermer og ruter, importkommandoen og eksportkommandoen for demodata |
 
 ```mermaid
@@ -32,10 +32,8 @@ graph LR
   CLI["scripts (import / eksport)"] --> APP
   APP --> DOM["src/domain"]
   SUPA["adapters/supabase"] -.implementerer.-> APP
-  BED["adapters/bedrock"] -.implementerer.-> APP
   DEMO["adapters/demo"] -.implementerer.-> APP
   SUPA --> DOM
-  BED --> DOM
   DEMO --> DOM
 ```
 
@@ -57,13 +55,13 @@ graph LR
 
 - **Binds:** FR-26, NFR-5
 - **Prevents:** en egen demo-kodebase som glir fra appen, og at demoen ser eller endrer eierens data.
-- **Rule:** Demoen kjører de samme brukstilfellene i nettleseren med `DemoDataSource` (frosne filer pluss tilstand i minnet, speilet til `sessionStorage`) og en `DemoClock` med fast dato. Den gjør aldri KI-kall og rører aldri databasen. Demofilene følger ett skjema i `src/application`, som både `scripts/export-demo.ts` og demo-adapteren validerer mot. Demodata lages bare med eksportkommandoen (kapittel 1–3: sammendrag, spørsmålsbanker, gjennomgangsspørsmål med faste eksempeltilbakemeldinger og planinndata).
+- **Rule:** Demoen kjører de samme brukstilfellene i nettleseren med `DemoDataSource` (frosne filer pluss tilstand i minnet, speilet til `sessionStorage`) og en `DemoClock` med fast dato. Den gjør aldri KI-kall og rører aldri databasen. Demofilene følger ett skjema i `src/application`, som både `scripts/export-demo.ts` og demo-adapteren validerer mot. Demodata lages bare med eksportkommandoen (kapittel 1–3: sammendrag, spørsmålsbanker, gjennomgangsspørsmål med modellsvar og planinndata).
 
-### AD-4: Notater kommer inn via en lokal importkommando, som også lager KI-innholdet [ADOPTED]
+### AD-4: Notater kommer inn via en lokal importkommando, som også legger inn KI-innholdet [ADOPTED]
 
 - **Binds:** FR-8, FR-11, FR-13, FR-27, NFR-3, NFR-6
-- **Prevents:** at notater og KI-innhold havner i databasen på flere måter som ikke stemmer overens, at KI-kostnader oppstår uten kontroll, og at én rettelse regenererer et helt kapittel.
-- **Rule:** Kilden er `notater/<EMNE>/kapittel-<n>.md`. Importkommandoen kjøres eksplisitt (ikke ved deploy) og er idempotent. Endringer oppdages per artefakt med `inputHash = hash(normalisert delkapittelnotat + kapittelets læringsmål og nøkkelbegreper + promptversjon)`. Seksjonene `## Råtekst` og `## Rettelser` er aldri med i hashen eller i KI-input. For artefakter med ny hash lager importen sammendrag, spørsmålsbank og forklaringsspørsmål gjennom KI-modulen (AD-7) før den skriver til databasen. Den fyller også på banker med færre enn 10 ubesvarte spørsmål og lager erstatninger for feilrapportert innhold (AD-18). `--force <n.m>` tvinger fram ny generering.
+- **Prevents:** at notater og KI-innhold havner i databasen på flere måter som ikke stemmer overens, at utdatert KI-innhold vises uten at noen vet det, og at én rettelse legger inn et helt kapittel på nytt.
+- **Rule:** Kilden er `notater/<EMNE>/kapittel-<n>.md` for notater og `notater/<EMNE>/kapittel-<n>.innhold.md` for KI-innholdet. Importkommandoen kjøres eksplisitt (ikke ved deploy) og er idempotent. Hvert delkapittel har en `inputHash = hash(normalisert delkapittelnotat + kapittelets læringsmål og nøkkelbegreper + instruksjonsversjon)`. Seksjonene `## Råtekst` og `## Rettelser` er aldri med i hashen eller i grunnlaget for KI-innholdet. Innholdsfila oppgir `inputHash` per delkapittel fra notatet den ble laget av. Er hashen ulik notatets hash nå, er innholdet utdatert, og importen sier fra. Uendret innhold gir ingen ny versjon. Påfylling av banker med færre enn 10 ubesvarte spørsmål og erstatning av feilrapportert innhold skjer i innholdsfila, og importen sier fra når det trengs (AD-18). `--force <n.m>` legger inn innholdet for ett delkapittel på nytt.
 
 ### AD-5: Kapitler og delkapitler identifiseres ved nummer, ikke tittel [ADOPTED]
 
@@ -77,18 +75,21 @@ graph LR
 - **Prevents:** svarforsøk som peker på spørsmål som ikke finnes, quizer som mister spørsmål underveis, og at KI «retter» brukerens fasit.
 - **Rule:** Quiz- og gjennomgangsspørsmål har stabil ID, trekkes tilbake med status og slettes aldri. Et spørsmål regnes som *brukt* når det er valgt til en quiz. Når notater endres, trekkes bare *ubrukte, KI-genererte* spørsmål tilbake. En quiz som er i gang, fullføres alltid med spørsmålene den startet med, og bare en feilrapport (FR-16) kan ta ut ett av dem underveis. Spørsmål brukeren har skrevet selv (fra `## Spørsmålsbank` i notatfilen), erstattes aldri automatisk. Brukerens fasit er alltid riktig alternativ, og KI lager bare tre gale alternativer, en kort forklaring og et tema (AD-14).
 
-### AD-7: Alle KI-kall går gjennom én KI-modul [ADOPTED]
+### AD-7: KI-innhold lages utenfor appen, etter én versjonert instruksjon [ADOPTED, erstattet 19.11.2026]
 
-- **Binds:** FR-5, FR-11, FR-13, FR-17, FR-18, FR-19, FR-21, NFR-2, NFR-4, NFR-6
-- **Prevents:** KI-kall spredt rundt i koden, ugyldig KI-innhold i databasen, KI-kall utenfor EU, og innhold der man ikke vet hvordan det ble laget.
-- **Rule:** KI-modulen implementerer porten `AiProvider` med `AnthropicBedrock` (standardendepunktet `bedrock-runtime`) i `eu-central-1`. Prompter ligger i versjonerte filer. Hvert svar valideres mot et fast skjema før det lagres (for eksempel har et flervalgsspørsmål nøyaktig fire alternativer og ett riktig). Hvert lagret KI-resultat lagrer modell-ID og promptversjon. Modell og effort for hver oppgave står i én innstillingsfil i modulen og ingen andre steder, og effort settes alltid eksplisitt (lav eller middels som start): Opus 5.5 for tilbakemelding (FR-19), Sonnet 5.5 for sammendrag, spørsmålsbank, forklaringsspørsmål og vurdering, Haiku 5.5 for oversetting av titler. Modell-ID-ene er EU-profiler (`eu.anthropic.claude-…`). En automatisk test feiler hvis en ID starter med noe annet enn `eu.`, for eksempel `global.` eller `us.`. Kapittelets læringsmål og nøkkelbegreper sendes med som kontekst, sammen med emnets læringsutbytte.
-- **Merknad (beslutning 18.11.2026, Marte, story 1.5a):** Klienten er `AnthropicBedrockMantle` fra `@anthropic-ai/bedrock-sdk` mot det regionale endepunktet i `eu-central-1` (`bedrock-mantle.eu-central-1.api.aws`), så all behandling skjer i Frankfurt. Det globale endepunktet brukes aldri. Modell-ID-ene på Mantle starter med `anthropic.` (sammendrag: `anthropic.claude-sonnet-5-5`), ikke `eu.`. EU-regelen i testen (`src/adapters/bedrock/settings.test.ts`) erstatter `eu.`-regelen over: testen feiler hvis en modell-ID ikke starter med `anthropic.` eller regionen ikke er `eu-central-1`. Region og endepunkt settes eksplisitt i koden, ikke fra miljøvariabler.
+- **Binds:** FR-5, FR-11, FR-13, FR-17, FR-18, FR-19, FR-27, NFR-2, NFR-4, NFR-6
+- **Prevents:** at appen er avhengig av en KI-leverandør, nøkler og kostnad i drift, ugyldig KI-innhold i databasen, og innhold der man ikke vet hvordan det ble laget.
+- **Rule:** Appen kaller aldri en KI-leverandør, og ingen KI-pakker er avhengigheter. KI-innhold lages i Claude Code etter en versjonert instruksjon i repoet (`G131-hovda/notater/_instruksjoner/innhold.v<n>.md`), som sier hva hver innholdstype skal inneholde (sammendrag på høyst 600 ord bare fra notatet, fire alternativer og ett riktig, tema fra listen, modellsvar med hovedpunkter). Emnets læringsutbytte og kapittelets læringsmål og nøkkelbegreper står i instruksjonen som kontekst. Innholdsfila oppgir instruksjonsversjon og modell (for eksempel `claude-code/claude-opus-5-5`). Importen validerer hele fila mot et fast skjema i `src/domain` før den skriver noe, og lagrer modell og instruksjonsversjon (`model_id`, `prompt_version`) på hver versjon. Oversetting av titler (FR-5, [Bør]) gjøres på samme måte hvis den bygges.
+- **Historikk:** Til 19.11.2026 gikk alle KI-kall gjennom en KI-modul (`AiProvider`) mot Amazon Bedrock i `eu-central-1`. Regelen under er erstattet og står bare som historikk (se `planning-artifacts/sprint-change-proposal-2026-11-19.md`).
+- ~~**Gammel regel:**~~
+  KI-modulen implementerer porten `AiProvider` med `AnthropicBedrock` (standardendepunktet `bedrock-runtime`) i `eu-central-1`. Prompter ligger i versjonerte filer. Hvert svar valideres mot et fast skjema før det lagres (for eksempel har et flervalgsspørsmål nøyaktig fire alternativer og ett riktig). Hvert lagret KI-resultat lagrer modell-ID og promptversjon. Modell og effort for hver oppgave står i én innstillingsfil i modulen og ingen andre steder, og effort settes alltid eksplisitt (lav eller middels som start): Opus 5.5 for tilbakemelding (FR-19), Sonnet 5.5 for sammendrag, spørsmålsbank, forklaringsspørsmål og vurdering, Haiku 5.5 for oversetting av titler. Modell-ID-ene er EU-profiler (`eu.anthropic.claude-…`). En automatisk test feiler hvis en ID starter med noe annet enn `eu.`, for eksempel `global.` eller `us.`. Kapittelets læringsmål og nøkkelbegreper sendes med som kontekst, sammen med emnets læringsutbytte.
+  Merknad 18.11.2026: Klienten er `AnthropicBedrockMantle` fra `@anthropic-ai/bedrock-sdk` mot det regionale endepunktet i `eu-central-1` (`bedrock-mantle.eu-central-1.api.aws`), så all behandling skjer i Frankfurt. Det globale endepunktet brukes aldri. Modell-ID-ene på Mantle starter med `anthropic.` (sammendrag: `anthropic.claude-sonnet-5-5`), ikke `eu.`. EU-regelen i testen (`src/adapters/bedrock/settings.test.ts`) erstatter `eu.`-regelen over: testen feiler hvis en modell-ID ikke starter med `anthropic.` eller regionen ikke er `eu-central-1`. Region og endepunkt settes eksplisitt i koden, ikke fra miljøvariabler.
 
 ### AD-8: Innhold har versjoner, og bare klart innhold kan foreslås [ADOPTED]
 
 - **Binds:** FR-8, FR-10, FR-11, FR-12, FR-13, NFR-3
-- **Prevents:** at kveldsøkta stopper fordi et delkapittel mangler sammendrag eller spørsmål, og at en feilet ny generering tar bort innhold som virket.
-- **Rule:** Sammendrag og spørsmålsbank har versjoner med statusen `lages`, `klart` eller `feilet`. Et delkapittel er klart når det finnes en klar versjon av begge, og appen viser den siste klare versjonen. En feilet ny generering registreres på den nye versjonen og tar aldri bort en klar versjon. Dagens forslag (FR-10) velger aldri et delkapittel som ikke er klart.
+- **Prevents:** at kveldsøkta stopper fordi et delkapittel mangler sammendrag eller spørsmål, og at ugyldig nytt innhold tar bort innhold som virket.
+- **Rule:** Sammendrag og spørsmålsbank har versjoner med statusen `lages`, `klart` eller `feilet`. Et delkapittel er klart når det finnes en klar versjon av begge, og appen viser den siste klare versjonen. Ugyldig innhold avvises av importen før noe skrives, og tar aldri bort en klar versjon. Statusen `feilet` brukes bare hvis lagringen feiler underveis. Dagens forslag (FR-10) velger aldri et delkapittel som ikke er klart.
 
 ### AD-9: Supabase-innlogging fra dag én er tilgangslåsen [ADOPTED]
 
@@ -108,11 +109,11 @@ graph LR
 - **Prevents:** at «i dag», studiedager og etterslep blir feil rundt midnatt fordi server og nettleser har ulik tidssone.
 - **Rule:** «I dag», studiedager (mandag–fredag), helger og planformelen (*d*, *D*) regnes i Europe/Oslo via porten `Clock`. Kalenderdatoer lagres som rene datoer, og tidspunkter lagres som UTC.
 
-### AD-12: Data og KI holdes i EU, og miljøene holdes atskilt [ADOPTED]
+### AD-12: Data holdes i EU, og miljøene holdes atskilt [ADOPTED]
 
 - **Binds:** NFR-4, NFR-7
-- **Prevents:** at data eller KI-kall havner utenfor EU/EØS, og at lokal utvikling eller tester skriver til ekte data.
-- **Rule:** Supabase-prosjektene `dev` og `prod` ligger i eu-central-1 (Frankfurt). `vercel.json` setter `"regions": ["fra1"]`. Appen bruker ikke Next.js-middleware, fordi Vercel kjører middleware i alle regioner. Innloggingsøkta fornyes i serverkode. Claude kalles bare via Bedrocks EU-profil, som kan behandle forespørsler i flere EU-regioner. Dev-serveren og testene bruker bare `dev` (`.env.local`). Import og eksport krever `--target dev|prod` og leser `.env.dev.local` eller `.env.prod.local`, og ved `prod` må brukeren bekrefte. Eieren finnes ved oppslag på e-post (`OWNER_EMAIL`) i målprosjektet. `export-demo` leser alltid fra `prod`. Forhåndsvisninger i Vercel bruker `dev`, og bare `main` kjører mot `prod`.
+- **Prevents:** at data havner utenfor EU/EØS, og at lokal utvikling eller tester skriver til ekte data.
+- **Rule:** Supabase-prosjektene `dev` og `prod` ligger i eu-central-1 (Frankfurt). `vercel.json` setter `"regions": ["fra1"]`. Appen bruker ikke Next.js-middleware, fordi Vercel kjører middleware i alle regioner. Innloggingsøkta fornyes i serverkode. Appen gjør ingen KI-kall (AD-7). Dev-serveren og testene bruker bare `dev` (`.env.local`). Import og eksport krever `--target dev|prod` og leser `.env.dev.local` eller `.env.prod.local`, og ved `prod` må brukeren bekrefte. Eieren finnes ved oppslag på e-post (`OWNER_EMAIL`) i målprosjektet. `export-demo` leser alltid fra `prod`. Forhåndsvisninger i Vercel bruker `dev`, og bare `main` kjører mot `prod`.
 
 ### AD-13: «Gjennomført» skrives én gang, av `finishQuiz`
 
@@ -124,7 +125,7 @@ graph LR
 
 - **Binds:** FR-13, FR-14, FR-16, FR-21
 - **Prevents:** at samme tema får litt ulike navn i ulike KI-kjøringer, slik at «nytt spørsmål om samme tema» og «svakt tema» slutter å virke.
-- **Rule:** Temaer opprettes bare når hele spørsmålsbanken for et delkapittel lages. Påfylling og erstatning av spørsmål får den eksisterende temalisten med i prompten, og skjemaet godtar bare temaer fra listen.
+- **Rule:** Temaer opprettes bare når hele spørsmålsbanken for et delkapittel lages. Påfylling og erstatning av spørsmål i innholdsfila bruker den eksisterende temalisten, og importen godtar bare temaer fra listen.
 
 ### AD-15: Planen lagres som et øyeblikksbilde, og dagens forslag ligger fast gjennom dagen
 
@@ -136,7 +137,7 @@ graph LR
 
 - **Binds:** FR-17, FR-18, FR-19, FR-21, FR-28
 - **Prevents:** to vurderinger samme kveld eller ingen, og fritekstsvar uten fast plass.
-- **Rule:** Hver økt er en `session`. Alle svar (quizsvar og skrevne svar på forklarings- og gjennomgangsspørsmål) er knyttet til en økt. Bare `endSession` avslutter økta og ber om én vurdering (FR-21) per avsluttet økt.
+- **Rule:** Hver økt er en `session`. Alle svar (quizsvar og skrevne svar på forklarings- og gjennomgangsspørsmål) er knyttet til en økt. Bare `endSession` avslutter økta og lager én vurdering (FR-21) per avsluttet økt, regnet ut i `src/domain`.
 
 ### AD-17: Notatfilene eier kapittelstrukturen og gjennomgangsspørsmålene [ADOPTED]
 
@@ -144,22 +145,23 @@ graph LR
 - **Prevents:** at appen og importen begge oppretter delkapitler, slik at titler overskrives eller et skrivefeil-nummer gir et ekstra delkapittel, og at gjennomgangsspørsmål har to kilder.
 - **Rule:** For emner med notatfiler oppretter og oppdaterer bare importen kapitler og delkapitler, ut fra `### n.m Tittel` i `kapittel-<n>.md`. Importen validerer hele filen før den skriver noe: hvert delkapittelnummer må starte med filens kapittelnummer, og ingen nummer kan stå to ganger. Er noe feil, stopper den uten å skrive. Gjennomgangsspørsmål kommer bare fra `## Gjennomgangsspørsmål` i samme fil. Mangler seksjonen, lar importen eksisterende spørsmål være i fred. Et spørsmål gjenkjennes på normalisert tekst, og endret tekst gir et nytt spørsmål mens det gamle trekkes tilbake (AD-6). Innliming i appen (FR-4, FR-5, FR-27) er bare for emner uten notatfiler og skriver aldri til et emne som har dem.
 
-### AD-18: Bare tilbakemelding og vurdering kaller KI mens appen er i bruk [ADOPTED]
+### AD-18: Ingen KI-kall mens appen er i bruk [ADOPTED, erstattet 19.11.2026]
 
 - **Binds:** FR-12, FR-13, FR-16, FR-17, FR-18, FR-19, FR-21
-- **Prevents:** at spørsmålsbanken får to skrivere (importen og appen), og at KI-kall fra appen mangler kapittelkonteksten importen har.
-- **Rule:** Bare tilbakemelding på skrevne svar (FR-19) og vurdering (FR-21) kalles synkront fra serverkode på Vercel, gjennom `AiProvider`. Feiler kallet, lagres svaret, brukeren får beskjed og kan prøve igjen, og quizen stopper aldri. Alt annet KI-innhold (sammendrag, spørsmålsbank, påfylling, erstatninger og forklaringsspørsmål) lages bare av importen. En feilrapport (FR-12, FR-16) merker eller trekker tilbake innholdet med en gang, og importen lager erstatningen neste gang den kjøres.
+- **Prevents:** at spørsmålsbanken får to skrivere (importen og appen), og at appen trenger en KI-leverandør for å virke.
+- **Rule:** Alt KI-innhold (sammendrag, spørsmålsbank, påfylling, erstatninger, forklarings- og gjennomgangsspørsmål med modellsvar) kommer fra innholdsfila via importen. Etter et skrevet svar viser appen modellsvaret og lagrer selvvurderingen (FR-19). Vurderingen (FR-21) regnes ut i `src/domain` fra quizresultater per tema og selvvurderinger. En feilrapport (FR-12, FR-16) merker eller trekker tilbake innholdet med en gang, og importen lister det som må rettes i innholdsfila.
+- **Historikk:** Til 19.11.2026 ble tilbakemelding (FR-19) og vurdering (FR-21) laget med synkrone KI-kall fra Vercel.
 
 ## Consistency Conventions
 
 | Concern | Convention |
 | --- | --- |
-| Eierskap | Hver entitet har ett brukstilfelle som skriver den. Andre leser den gjennom `DataSource` og regner ikke ut avledet tilstand selv. Struktur, notat, gjennomgangsspørsmål og KI-innhold → importen (AD-17, AD-18), gjennomført → `finishQuiz`, plan → `startPlan`, vurdering → `endSession` |
+| Eierskap | Hver entitet har ett brukstilfelle som skriver den. Andre leser den gjennom `DataSource` og regner ikke ut avledet tilstand selv. Struktur, notat, gjennomgangsspørsmål og KI-innhold → importen (AD-17, AD-18), gjennomført → `finishQuiz`, plan → `startPlan`, vurdering → `endSession` (regel i `src/domain`) |
 | Navn i kode | Engelsk for tabeller, funksjoner, filer og ruter. Fast ordliste: emne=course, kapittel=chapter, delkapittel=subchapter, notat=note, sammendrag=summary, spørsmålsbank=questionBank, quizspørsmål=quizQuestion, tema=theme, gjennomgangsspørsmål=reviewQuestion, kapittelgjennomgang=chapterReview, forklaringsspørsmål=explanationQuestion, tilbakemelding=feedback, vurdering=assessment, studieplan=studyPlan, etterslep=backlog, dagens forslag=dailySuggestion, økt=session |
 | Språk | Grensesnitt, prompter, KI-innhold, commit-meldinger og dokumentasjon på norsk bokmål |
 | Datoer | Rene datoer for kalenderdager, UTC for tidspunkter, Europe/Oslo for all datologikk (AD-11) |
-| Feil fra KI | Lagres som status `feilet` på en ny versjon (AD-7, AD-8), aldri som et halvferdig resultat |
-| Hemmeligheter | `.env.local` (dev-server), `.env.dev.local` og `.env.prod.local` (scripts), Vercel-miljøvariabler. Gjelder Supabase- og AWS-nøkler. `.env.example` lister navnene uten verdier |
+| Ugyldig innhold | Hele innholdsfila avvises før noe skrives (AD-7, AD-17-mønsteret), aldri et halvferdig resultat |
+| Hemmeligheter | `.env.local` (dev-server), `.env.dev.local` og `.env.prod.local` (scripts), Vercel-miljøvariabler. Gjelder Supabase-nøkler. `.env.example` lister navnene uten verdier |
 | Sider bak tilgangslåsen | Hver `page.tsx` i `src/app/(innlogget)` pakker innholdet i `OwnerOnly`, så det aldri havner i den statiske delen av siden (Partial Prerendering). Server Actions sjekker eieren selv. Testen `ownerOnlyPages.test.ts` feiler hvis en side mangler `OwnerOnly` (AD-9) |
 | Tester og CI | Domeneregler har enhetstester med Vitest (NFR-8). GitHub Actions kjører typesjekk, lint og domenetester ved hver push. Adaptere testes mot `dev`, aldri mot `prod` |
 | Sikkerhetskopi | Ukentlig `supabase db dump` av `prod` til en mappe som er i `.gitignore` (gratisnivået har ingen sikkerhetskopi) |
@@ -174,11 +176,7 @@ graph LR
 | Supabase JS-klient (`@supabase/supabase-js`) og Supabase CLI | låses ved installasjon |
 | Vercel (hosting), funksjonsregion `fra1` | Hobby |
 | Vitest (enhetstester) og GitHub Actions (CI) | låses ved installasjon |
-| KI: Claude via Amazon Bedrock, EU-profil fra eu-central-1 | per oppgave, se under |
-| Claude Opus 5.5: tilbakemelding på forklaringssvar (FR-19) | `eu.anthropic.claude-opus-5-5` |
-| Claude Sonnet 5.5: sammendrag, spørsmålsbank, forklaringsspørsmål, vurdering (FR-11, 13, 17, 18, 21) | `eu.anthropic.claude-sonnet-5-5` |
-| Claude Haiku 5.5: oversetting av titler (FR-5) | `eu.anthropic.claude-haiku-5-5` |
-| Bedrock-klient (`@anthropic-ai/bedrock-sdk`, `AnthropicBedrock`) | låses ved installasjon |
+| KI-innhold: Claude Code (utenfor appen), se AD-7 | modellen står i innholdsfila |
 
 ## Structural Seed
 
@@ -190,20 +188,22 @@ graph TB
     DEV["Next.js dev-server"]
     IMP["Import / eksport (--target dev|prod)"]
     NOT["notater/EMNE/kapittel-n.md"]
+    INN["notater/EMNE/kapittel-n.innhold.md"]
+    CC["Claude Code"]
   end
   subgraph EU["EU"]
     VER["Vercel fra1: Next.js"]
     SDEV["Supabase dev (Frankfurt)"]
     SPROD["Supabase prod (Frankfurt)"]
-    BR["Amazon Bedrock EU-profil: Claude"]
   end
+  NOT --> CC
+  CC --> INN
   NOT --> IMP
-  IMP --> BR
+  INN --> IMP
   IMP --> SDEV
   IMP --> SPROD
   DEV --> SDEV
   VER --> SPROD
-  VER --> BR
   VER --> DEMOF["Statiske demofiler i repoet"]
 ```
 
@@ -225,7 +225,7 @@ erDiagram
   QUIZ_ANSWER }o--|| QUIZ_QUESTION : svarer
   CHAPTER ||--o{ REVIEW_QUESTION : "kapittelgjennomgang"
   SUBCHAPTER ||--o{ EXPLANATION_QUESTION : har
-  WRITTEN_ANSWER ||--o| FEEDBACK : får
+  WRITTEN_ANSWER ||--o| SELF_ASSESSMENT : får
   SESSION ||--o| ASSESSMENT : gir
   COURSE ||--o| STUDY_PLAN : har
 ```
@@ -238,17 +238,17 @@ src/
   application/   # brukstilfeller, porter, skjema for demofiler
   adapters/
     supabase/    # DataSource mot Postgres, RLS (AD-10)
-    bedrock/     # AiProvider, prompter, skjemaer, modellfordeling (AD-7)
     demo/        # DataSource mot statiske filer og minne (AD-3)
     clock/       # Europe/Oslo og DemoClock (AD-11)
   app/           # Next.js-skjermer og ruter
 scripts/
-  import.ts      # notater -> KI -> database (AD-4)
+  import.ts      # notater + innholdsfil -> database (AD-4)
   export-demo.ts # database -> demofiler (AD-3)
 supabase/
   migrations/    # skjema, RLS og GRANT (AD-10)
 demo-data/       # frosne demofiler
-notater/         # kildenotater per emne og kapittel
+notater/         # kildenotater og innholdsfiler per emne og kapittel (kapittel-<n>.md, kapittel-<n>.innhold.md)
+  _instruksjoner/ # versjonert instruksjon for KI-innholdet (AD-7)
 ```
 
 ## Capability → Architecture Map
@@ -257,25 +257,24 @@ notater/         # kildenotater per emne og kapittel
 | --- | --- | --- |
 | FR-1, FR-2, FR-25: innlogging, sletting, tilgangslås | Supabase Auth, `adapters/supabase` | AD-9, AD-10 |
 | FR-3, FR-6: emner, læringsutbytte | `application`, `adapters/supabase` | AD-5, AD-10 |
-| FR-4, FR-5 [Bør]: innliming og oversetting for emner uten notatfiler | `domain` (tolking), `adapters/bedrock` (oversetting) | AD-2, AD-7, AD-17 |
-| FR-8, FR-11, FR-12, FR-13: import av struktur og notater, sammendrag, feilrapport, spørsmålsbank | `scripts/import.ts`, `adapters/bedrock` | AD-4, AD-6, AD-7, AD-8, AD-14, AD-17, AD-18 |
+| FR-4, FR-5 [Bør]: innliming og oversetting for emner uten notatfiler | `domain` (tolking) | AD-2, AD-7, AD-17 |
+| FR-8, FR-11, FR-12, FR-13: import av struktur og notater, sammendrag, feilrapport, spørsmålsbank | `scripts/import.ts`, `domain` (tolking av innholdsfila) | AD-4, AD-6, AD-7, AD-8, AD-14, AD-17, AD-18 |
 | FR-9, FR-10, FR-20: studieplan, dagens forslag, framdrift | `domain`, `application` | AD-2, AD-8, AD-11, AD-13, AD-15 |
 | FR-14–FR-16: quiz, avkrysning, feilrapport | `domain`, `application` | AD-2, AD-6, AD-13, AD-14, AD-18 |
 | FR-17, FR-18: forklaringsspørsmål (laget i importen) | `scripts/import.ts`, `application` | AD-7, AD-18 |
-| FR-19, FR-21: tilbakemelding og vurdering (synkron KI) | `application`, `adapters/bedrock` | AD-7, AD-16, AD-18 |
+| FR-19, FR-21: modellsvar, selvvurdering og vurdering (uten KI-kall) | `domain`, `application` | AD-7, AD-16, AD-18 |
 | FR-26: demo | `adapters/demo`, `scripts/export-demo.ts` | AD-3 |
 | FR-27, FR-28: gjennomgangsspørsmål og kapittelgjennomgang | `scripts/import.ts`, `domain` (tolking, åpning), `application` | AD-2, AD-6, AD-16, AD-17 |
-| NFR-4, NFR-7: EU og drift | Supabase, Vercel, Bedrock | AD-12 |
+| NFR-4, NFR-7: EU og drift | Supabase, Vercel | AD-7, AD-12 |
 
 ## Åpne spørsmål
 
-1. **Bedrock-pris i EU-profilen:** sjekkes på AWS sin prisside før første KI-kode.
-2. **AWS sine vilkår om trening på data:** bekreftes i AWS sin egen dokumentasjon og lenkes i IBE160-dokumentasjonen.
+Ingen. Spørsmålene om Bedrock-pris og AWS-vilkår falt bort 19.11.2026, da appen sluttet å kalle en KI-leverandør (AD-7).
 
 ## Deferred
 
 - **Push-varsler (FR-22, FR-23):** [Bør] i PRD-en. Avgjøres når del 3 er i rute. Tidsstyring skal da kjøre i Supabase (`pg_cron` og serverfunksjon) med Web Push, og appen må kunne legges til på hjemskjermen (PWA). Vercel Hobby tillater bare to daglige cron-jobber.
-- **Bakgrunnsjobb for KI-generering:** trengs først når notater kan limes inn i appen (FR-8 for andre emner). Til da kjører genereringen i importkommandoen (AD-4).
+- **KI-generering i appen:** trengs først hvis notater skal kunne limes inn i appen (FR-8 for andre emner). Til da lages innholdet i Claude Code (AD-7).
 - **Henting fra himolde.no (FR-7)** og **tale (FR-24):** [Bør] og strekkmål, så de designes ikke nå.
 - **Kolonner i databaseskjemaet:** Koden eier detaljene. Entitetene, nøklene (AD-5) og eierskapet (konvensjonene) er bindende.
 - **Visuelt design og komponentbibliotek:** Avgjøres i UX-arbeidet eller i første story. Tilgjengelighet teller i IBE160-vurderingen.

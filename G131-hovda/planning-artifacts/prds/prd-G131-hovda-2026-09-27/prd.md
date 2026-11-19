@@ -2,7 +2,7 @@
 title: "PRD: Studievenn"
 status: final
 created: 2026-09-27
-updated: 2026-10-25
+updated: 2026-11-19
 ---
 
 # PRD: Studievenn
@@ -13,7 +13,7 @@ PRD-en beskriver *hva* Studievenn skal gjøre i versjonen som leveres 22. novemb
 
 ## 1. Visjon
 
-Studievenn er en responsiv webapp som gjør den korte studietiden sent på kvelden om til en konkret økt som kan fullføres. Brukeren trenger ikke bestemme hva som skal gjøres, for appen sier det: *«I kveld: delkapittel 3.2, deretter quiz.»* Økta består av et KI-generert sammendrag av brukerens egne forelesningsnotater og en quiz på det samme stoffet. Av og til dukker det opp et forklaringsspørsmål som trener til muntlig eksamen.
+Studievenn er en responsiv webapp som gjør den korte studietiden sent på kvelden om til en konkret økt som kan fullføres. Brukeren trenger ikke bestemme hva som skal gjøres, for appen sier det: *«I kveld: delkapittel 3.2, deretter quiz.»* Økta består av et sammendrag av brukerens egne forelesningsnotater, laget på forhånd med KI, og en quiz på det samme stoffet. Av og til dukker det opp et forklaringsspørsmål som trener til muntlig eksamen.
 
 Appen fordeler arbeidet fram mot eksamensdatoen, viser om brukeren ligger foran eller bak planen, og gir etter hver økt en kort, ærlig vurdering av hvordan brukeren ligger an, målt mot emnets læringsutbytte. Belønningen er følelsen av å ha fått noe ut av kvelden: resultatet på quizen, et delkapittel som krysses av, og en indikator som flytter seg nærmere målet.
 
@@ -70,7 +70,7 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 **UJ-3. Kim får et overraskende forklaringsspørsmål.** *(Del 3.)*
 - **Situasjon:** Samme kveld som i UJ-1. Kim har akkurat fått 9 av 10 riktige på quizen til delkapittel 3.2.
 - **Forløp:** I stedet for å avslutte økta spør appen: *«Forklar hvordan et forretningssystem støtter innkjøpsprosessen.»* Kim har så god tid som trengs og skriver svaret med egne ord.
-- **Høydepunkt:** KI-en svarer med hva som var bra og hva som manglet, målt mot læringsutbyttet.
+- **Høydepunkt:** Kim ser modellsvaret med hovedpunktene, målt mot læringsutbyttet, og vurderer selv hvor mye av det svaret fikk med.
 - **Avslutning:** Svaret påvirker ikke om delkapittelet krysses av, men teller med i vurderingen.
 - **Variant:** En lørdag med mer overskudd velger Kim selv å trene på forklaringsspørsmål.
 
@@ -85,12 +85,12 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Forløp:** Eli åpner lenken og velger «Prøv demoen» på forsiden. Uten registrering kommer Eli til en emneliste med IBE430, der kapittel 1–4 allerede er lagt inn. Eli åpner delkapittel 3.2, leser sammendraget og tar quizen. Ett svar er feil, og riktig svar vises med forklaring.
 - **Høydepunkt:** Senere i quizen kommer et nytt spørsmål om det samme temaet, ikke det samme spørsmålet på nytt. Eli ser hva som skiller appen fra en vanlig quiz.
 - **Avslutning:** Eli lukker fanen. Ingenting av det Eli har gjort, lagres eller påvirker utviklerens data.
-- **I november (del 2 og 3):** Demoen åpner med dagens forslag og en framdriftsindikator som viser at den demobesøkende ligger litt bak planen. Etter quizen kommer et ferdiglaget forklaringsspørsmål med en eksempeltilbakemelding, og startsiden viser en eksempelvurdering. Eli ser hele kveldsøkta, ikke bare quizen.
+- **I november (del 2 og 3):** Demoen åpner med dagens forslag og en framdriftsindikator som viser at den demobesøkende ligger litt bak planen. Etter quizen kommer et ferdiglaget forklaringsspørsmål med modellsvar, og startsiden viser en eksempelvurdering. Eli ser hele kveldsøkta, ikke bare quizen.
 
 **UJ-6. Kim tar kapittelgjennomgangen for kapittel 1.** *(Del 2.)*
 - **Situasjon:** Starten av november. Kim har akkurat fått 9 av 10 riktige på quizen til 1.6, og dermed er alle delkapitlene 1.1–1.6 i kapittel 1 gjennomført. Gjennomgangsspørsmålene fra faglæreren ble limt inn da kapittelet ble satt opp.
 - **Forløp:** Appen sier at kapittelgjennomgangen for kapittel 1 er klar. Dagene etter har dagens forslag både delkapitler fra kapittel 2 og noen gjennomgangsspørsmål fra kapittel 1, for eksempel *«Hva er ulempen med en funksjonell organisasjonsstruktur?»*. Kim svarer med egne ord.
-- **Høydepunkt:** KI-en sier hva som var bra og hva som manglet, målt mot læringsutbyttet og notatene fra hele kapittelet. Kim ser sammenhengen mellom delkapitlene, ikke bare hvert delkapittel for seg.
+- **Høydepunkt:** Kim ser modellsvaret, målt mot læringsutbyttet og notatene fra hele kapittelet, og vurderer selv svaret sitt. Kim ser sammenhengen mellom delkapitlene, ikke bare hvert delkapittel for seg.
 - **Avslutning:** Etter noen kvelder er alle de 29 spørsmålene besvart, og kapittelet er merket med fullført gjennomgang i kapittellisten. Svarene teller med i vurderingen når den kommer i del 3.
 
 ## 3. Ordliste
@@ -104,7 +104,7 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Må del 1 / 2 / 3:** De tre trinnene novemberversjonen bygges i (§4). Hvert trinn kan kjøres og testes før neste starter.
 - **Emne:** Et emne brukeren tar, for eksempel IBE430. Har læringsutbytte, eksamensform, eksamensdato og en kapittelstruktur. En bruker har ett eller flere emner.
 - **Kapittel / delkapittel:** Strukturen i pensum. Et emne har kapitler, og et kapittel har delkapitler. Delkapittelet er enheten appen planlegger, oppsummerer og quizer på.
-- **Notat:** Brukerens egne forelesningsnotater til et delkapittel, lagt inn som tekst. Innhold fra forelesningsfoliene kan skrives eller limes inn som en del av notatet. Notatene er det eneste kildematerialet KI-en bruker.
+- **Notat:** Brukerens egne forelesningsnotater til et delkapittel, lagt inn som tekst. Innhold fra forelesningsfoliene kan skrives eller limes inn som en del av notatet. Notatene er det eneste kildematerialet KI-innholdet lages fra.
 - **Læringsutbytte:** Emnets offisielle mål for kunnskap, ferdigheter og generell kompetanse. Styrer sammendrag, spørsmål og vurdering.
 - **Eksamensform:** Hvordan emnet avsluttes, for eksempel 15 minutters muntlig eksamen.
 - **Studieplan:** Hvordan de gjenstående delkapitlene fordeles på studiedagene fram til eksamensdatoen.
@@ -113,7 +113,7 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Fleksibel dag:** Lørdag og søndag. Studieplanen legger bare inn økter på disse dagene når brukeren ligger bak, men brukeren kan alltid starte en økt selv (FR-10).
 - **Dagens forslag:** Det appen foreslår for dagens økt, for eksempel ett delkapittel og quiz, eventuelt med repetisjon.
 - **Økt:** Én gjennomføring av dagens forslag eller et delkapittel brukeren har valgt selv. Består av sammendrag og quiz, av og til med et forklaringsspørsmål, og fra del 2 eventuelt noen gjennomgangsspørsmål (FR-28). Økta starter når brukeren åpner sammendraget eller quizen, og slutter når quizresultatet er vist og et eventuelt forklaringsspørsmål er besvart eller hoppet over. Trening på forklaringsspørsmål som brukeren har valgt selv (FR-18), regnes også som en økt.
-- **Sammendrag:** KI-generert kort tekst om ett delkapittel, laget fra notatene og knyttet til læringsutbyttet.
+- **Sammendrag:** Kort tekst om ett delkapittel, laget på forhånd med KI (Claude Code) fra notatene og knyttet til læringsutbyttet.
 - **Klart delkapittel:** Et delkapittel med notater der både sammendrag og spørsmålsbank er laget (FR-8). Bare klare delkapitler kan åpnes i en økt eller foreslås.
 - **Spørsmålsbank:** Alle quizspørsmålene til et delkapittel.
 - **Quizspørsmål:** Et spørsmål med fasit og forklaring, knyttet til et tema i et delkapittel.
@@ -128,7 +128,8 @@ Reisene bruker en oppdiktet persona: **Kim** er deltidsstudent med fulltidsjobb 
 - **Forklaringsspørsmål:** Et åpent spørsmål i stil med muntlig eksamen («Forklar hvordan …») som brukeren svarer på med egne ord.
 - **Gjennomgangsspørsmål:** Et spørsmål som dekker et helt kapittel, vanligvis oppgitt av faglæreren og limt inn av brukeren (FR-27). Besvares med egne ord.
 - **Kapittelgjennomgang:** Alle gjennomgangsspørsmålene til ett kapittel. Blir tilgjengelig når alle delkapitlene i kapittelet er gjennomført, og fordeles på flere økter (FR-28).
-- **Tilbakemelding:** KI-ens svar på et forklaringsspørsmål eller gjennomgangsspørsmål: hva som var bra og hva som manglet.
+- **Tilbakemelding:** Etter et skrevet svar ser brukeren et modellsvar med hovedpunktene og vurderer selv hvor godt svaret dekket dem («Fikk med det meste», «Fikk med noe» eller «Fikk med lite»).
+- **Innholdsfil:** `notater/<EMNE>/kapittel-<n>.innhold.md`, med KI-innholdet til ett kapittel (sammendrag, quizspørsmål, forklarings- og gjennomgangsspørsmål med modellsvar), laget på forhånd i Claude Code (FR-8).
 - **Vurdering:** Kort tekst per emne om hvordan brukeren ligger an, basert på quizresultater, forklaringsspørsmål og gjennomgangsspørsmål. Oppgir hvor mye den bygger på.
 - **Svakt tema:** Et tema der brukeren har svart feil på minst 2 av de 3 siste quizspørsmålene om temaet, eller som den siste vurderingen peker på som et tema brukeren må jobbe mer med.
 - **Varsel:** Push-varsel på telefonen, også når appen ikke er åpen (FR-22 og FR-23, [Bør]).
@@ -141,10 +142,12 @@ Krav merket [Del 1], [Del 2] eller [Del 3] er **Må**-krav. De skal være med i 
 | Trinn | Måldato i bruk | Innhold | IBE430 lagt inn |
 |---|---|---|---|
 | **[Del 1]** Kjernen | 1.11.2026 (sammen med del 2) | Emneliste, kapittelstruktur, læringsutbytte, notater, sammendrag, quiz, andel gjennomført, demo og tilgangslås | Kapittel 1–4 |
-| **[Del 2]** Innlogging og plan mot eksamen | 1.11.2026 | Kontoer og data per bruker, eksamensdato, studieplan, dagens forslag, foran/bak planen, kapittelgjennomgang med KI-tilbakemelding. Demoen får dagens forslag | + kapittel 5 |
+| **[Del 2]** Innlogging og plan mot eksamen | 1.11.2026 | Kontoer og data per bruker, eksamensdato, studieplan, dagens forslag, foran/bak planen, kapittelgjennomgang med modellsvar. Demoen får dagens forslag | + kapittel 5 |
 | **[Del 3]** Trening til muntlig eksamen og vurdering | 15.11.2026 | Forklaringsspørsmål per delkapittel og vurdering per emne. Demoen får eksempler på begge | + kapittel 6 (hele pensum) |
 
 **Endring 25.10.2026:** Del 1 og del 2 leveres samlet 1.11.2026, fordi appkoden ikke var startet ved måldatoen 18.10. Merkingen [Del 1] og [Del 2] viser fortsatt rekkefølgen kravene bygges i. Samtidig ble det bestemt i arkitekturen at notatfilene i `notater/<EMNE>/` er kilden til kapittelstruktur, notater og gjennomgangsspørsmål, og at en importkommando lager KI-innholdet (FR-4, FR-8, FR-27).
+
+**Endring 19.11.2026:** Appen kaller ingen KI-leverandør. Alt KI-innhold lages på forhånd i Claude Code og ligger i innholdsfiler ved siden av notatfilene, som importen leser (FR-8). Tilbakemelding blir modellsvar og selvvurdering (FR-19), og vurderingen regnes ut med vanlig kode (FR-21). Se `planning-artifacts/sprint-change-proposal-2026-11-19.md`.
 
 Kolonnen «IBE430 lagt inn» er et forventet minimum når trinnet er ferdig, ikke en avhengighet. Notater legges inn når forelesningene har vært, uavhengig av hvilket trinn som er i drift. 22.11.2026 er leveringsfrist og buffer.
 
@@ -179,9 +182,9 @@ Hvem som helst kan åpne demoen fra forsiden uten å lage konto.
 - **Innhold:** Demoen har emnet IBE430 med kapittel 1–4 ferdig lagt inn: kapittelstruktur, læringsutbytte, sammendrag og spørsmålsbank for hvert delkapittel. Innholdet bygger på utviklerens egne notater. Er kapittel 4 ikke klart når del 1 settes i drift, starter demoen med de kapitlene som er klare.
 - **Spørsmålsbanken:** Hvert delkapittel i demoen har minst 20 quizspørsmål, og hvert tema har minst 2, slik at det alltid finnes et nytt spørsmål om samme tema. Når en demobesøkende har brukt opp banken, kan spørsmålene komme igjen i ny rekkefølge.
 - **Tilgjengelig i del 1:** emnelisten, kapittellisten, sammendrag, quiz med samme regler som ellers (FR-14 og FR-15) og framdriftsindikatoren med andel gjennomført (FR-20). En avbrutt quiz kan fortsettes i samme besøk.
-- **Tilgjengelig fra del 2:** dagens forslag og foran/bak planen, beregnet ut fra en fast demo-eksamensdato og en fast demo-dag, slik at demoen alltid viser det samme forslaget. I tillegg en kapittelgjennomgang for hvert av kapitlene 1–3, med 5 gjennomgangsspørsmål per kapittel og en fast eksempeltilbakemelding på hvert, slik at den demobesøkende får et inntrykk av hvordan gjennomgangen virker. Svaret den demobesøkende skriver, vurderes ikke.
-- **Tilgjengelig fra del 3:** minst ett ferdiglaget forklaringsspørsmål per kapittel med en fast eksempeltilbakemelding, og en ferdiglaget eksempelvurdering på startsiden. Svaret den demobesøkende skriver, vurderes ikke. Eksempeltilbakemeldingen vises uansett, tydelig merket som eksempel.
-- **Ikke tilgjengelig:** opprette eller endre emner, lime inn kapittelstruktur, legge inn notater, feilrapporter og alt annet som krever KI-kall eller varig lagring. Disse funksjonene er skjult.
+- **Tilgjengelig fra del 2:** dagens forslag og foran/bak planen, beregnet ut fra en fast demo-eksamensdato og en fast demo-dag, slik at demoen alltid viser det samme forslaget. I tillegg en kapittelgjennomgang for hvert av kapitlene 1–3, med 5 gjennomgangsspørsmål per kapittel og modellsvaret på hvert, slik at den demobesøkende får et inntrykk av hvordan gjennomgangen virker. Svaret og selvvurderingen lagres bare i besøket.
+- **Tilgjengelig fra del 3:** minst ett ferdiglaget forklaringsspørsmål per kapittel med modellsvar, og en eksempelvurdering på startsiden, regnet ut med samme regel som ellers (FR-21) fra demodataene. Svaret og selvvurderingen lagres bare i besøket.
+- **Ikke tilgjengelig:** opprette eller endre emner, lime inn kapittelstruktur, legge inn notater, feilrapporter og alt annet som krever varig lagring. Disse funksjonene er skjult.
 - Demoen gjør ingen KI-kall.
 - Det som skjer i demoen, lagres bare så lenge besøket varer, og påvirker aldri utviklerens eller andre brukeres data. Neste besøk starter likt.
 - Det er tydelig merket at man er i demoen.
@@ -222,15 +225,15 @@ Appen kan hente læringsutbytte og eksamensform fra emnesiden på himolde.no ut 
 
 ### 4.4 Notater
 
-**Beskrivelse:** Brukeren skriver eller limer inn sine egne forelesningsnotater til hvert delkapittel, ett kapittel om gangen utover semesteret. Innhold fra forelesningsfoliene tas med som tekst i notatet. Notatene er det eneste materialet KI-en bruker. Tekst fra pensumboka eller annet opphavsrettsbeskyttet materiale skal ikke legges inn. Realiserer UJ-2.
+**Beskrivelse:** Brukeren skriver eller limer inn sine egne forelesningsnotater til hvert delkapittel, ett kapittel om gangen utover semesteret. Innhold fra forelesningsfoliene tas med som tekst i notatet. Notatene er det eneste materialet KI-innholdet lages fra. Tekst fra pensumboka eller annet opphavsrettsbeskyttet materiale skal ikke legges inn. Realiserer UJ-2.
 
 #### FR-8: Importere notater fra notatfilene [Del 1]
 Utvikleren skriver notatene i `notater/<EMNE>/kapittel-<n>.md` og kjører en importkommando som legger dem inn i appen.
 - Importen lager eller oppdaterer kapitler og delkapitler ut fra overskriftene i filen, og legger inn notatene til hvert delkapittel.
-- For nye eller endrede delkapitler lager importen sammendrag (FR-11), spørsmålsbank (FR-13) og forklaringsspørsmål (FR-17, FR-18), slik at økta kan åpnes med en gang om kvelden.
-- Når notatene endres, lages sammendraget på nytt, og ubrukte spørsmål i banken erstattes.
+- KI-innholdet (sammendrag, quizspørsmål, forklaringsspørsmål og modellsvar) lages på forhånd i Claude Code og ligger i `notater/<EMNE>/kapittel-<n>.innhold.md`. Importen leser og validerer fila og legger innholdet inn, slik at økta kan åpnes med en gang om kvelden. Appen kaller aldri en KI-leverandør.
+- Er notatet endret etter at innholdet ble laget, sier importen at innholdet er utdatert, og det lages på nytt i Claude Code.
 - Et delkapittel uten notater (også plassholderen «Ingen notater ennå») er markert som «mangler notater».
-- Feiler KI-genereringen, beholdes notatene og eventuelt tidligere innhold. Delkapittelet viser status: «innhold lages», «klart» eller «feilet». Neste import prøver på nytt.
+- Er innholdsfila ugyldig, skrives ingenting fra den, og tidligere innhold beholdes. Delkapittelet viser status: «mangler innhold», «klart» eller «utdatert».
 - Innliming og redigering av notater i appen er [Bør] og gjelder emner uten notatfiler.
 - Et delkapittel er ikke klart før både sammendrag og spørsmålsbank er laget. Det kan ikke åpnes i en økt, og dagens forslag (FR-10) velger det aldri.
 
@@ -262,25 +265,26 @@ En bruker kan starte en økt, og fra del 2 viser appen dagens forslag.
 
 ### 4.6 Sammendrag
 
-**Beskrivelse:** Et kort, KI-generert sammendrag av ett delkapittel, laget fra brukerens notater og knyttet til læringsutbyttet. Det er første steg i økta. Realiserer UJ-1 og UJ-5.
+**Beskrivelse:** Et kort sammendrag av ett delkapittel, laget på forhånd med KI, laget fra brukerens notater og knyttet til læringsutbyttet. Det er første steg i økta. Realiserer UJ-1 og UJ-5.
 
 #### FR-11: Vise sammendrag [Del 1]
 En bruker kan lese sammendraget av et delkapittel.
 - Sammendraget er på norsk og bygger bare på brukerens notater.
 - Det er på høyst 600 ord, slik at det kan leses på omtrent 5 minutter.
+- Sammendraget lages på forhånd i Claude Code (FR-8).
 
 #### FR-12: Si fra om feil i sammendraget [Del 1]
 En bruker kan sende en feilrapport på et sammendrag.
-- Sammendraget merkes og lages på nytt ved neste import (FR-8). Til da vises det gamle.
+- Sammendraget merkes. Importen lister merkede sammendrag, som rettes i innholdsfila, og neste import legger inn den rettede versjonen (FR-8). Til da vises det gamle.
 
 ### 4.7 Quiz og spørsmålsbank
 
 **Beskrivelse:** Hvert delkapittel har en spørsmålsbank med quizspørsmål laget fra notatene. En quiz består av spørsmål fra banken. Svarer brukeren feil, vises riktig svar med forklaring, og senere kommer et *nytt* spørsmål om samme tema. Slik trener brukeren på forståelse og ikke på å huske alternativer. Et delkapittel er gjennomført når brukeren får minst 80 % riktige. Realiserer UJ-1 og UJ-5.
 
 #### FR-13: Lage spørsmålsbank [Del 1]
-Appen lager en spørsmålsbank for hvert delkapittel med notater.
+Spørsmålsbanken for hvert delkapittel med notater lages på forhånd i Claude Code og legges inn av importen (FR-8).
 - Hvert quizspørsmål har fasit, en kort forklaring og et tema.
-- Banken lages med 20 spørsmål per delkapittel. Når færre enn 10 spørsmål er ubesvart, fyller neste import (FR-8) den på med nye, slik at brukeren kan ta flere quizer uten å få de samme spørsmålene.
+- Banken lages med 20 spørsmål per delkapittel. Når færre enn 10 spørsmål er ubesvart, sier importen fra, og nye spørsmål legges til i innholdsfila, slik at brukeren kan ta flere quizer uten å få de samme spørsmålene.
 
 #### FR-14: Ta quiz [Del 1]
 En bruker kan ta en quiz på et delkapittel.
@@ -295,12 +299,12 @@ Et delkapittel krysses av som gjennomført når brukeren får minst 80 % riktige
 
 #### FR-16: Si fra om feil quizspørsmål [Del 1]
 En bruker kan sende en feilrapport på et quizspørsmål.
-- Spørsmålet tas ut av spørsmålsbanken med en gang og erstattes med et nytt om samme tema ved neste import (FR-8).
+- Spørsmålet tas ut av spørsmålsbanken med en gang. Importen lister det, og et nytt spørsmål om samme tema legges i innholdsfila (FR-8).
 - Spørsmålet teller ikke med i quizresultatet. Resultatet og 80 %-grensen regnes ut fra de gjenværende spørsmålene (for eksempel 8 av 9).
 
 ### 4.8 Forklaringsspørsmål
 
-**Beskrivelse:** Åpne spørsmål i stil med muntlig eksamen («Forklar hvordan …») som brukeren svarer på med egne ord, uten tidsbegrensning. KI-en sier hva som var bra og hva som manglet, målt mot læringsutbyttet. Spørsmålene dukker opp etter en quiz når appen bestemmer det, som en overraskelse, og brukeren kan også velge dem selv. De påvirker ikke om et delkapittel er gjennomført, men teller med i vurderingen. De er med i Må-kravene fordi muntlig eksamen tester forklaring, og fordi vurderingen ikke kan bli realistisk uten dem. Realiserer UJ-3.
+**Beskrivelse:** Åpne spørsmål i stil med muntlig eksamen («Forklar hvordan …») som brukeren svarer på med egne ord, uten tidsbegrensning. Etterpå ser brukeren et modellsvar, målt mot læringsutbyttet, og vurderer selv svaret sitt. Spørsmålene dukker opp etter en quiz når appen bestemmer det, som en overraskelse, og brukeren kan også velge dem selv. De påvirker ikke om et delkapittel er gjennomført, men teller med i vurderingen. De er med i Må-kravene fordi muntlig eksamen tester forklaring, og fordi vurderingen ikke kan bli realistisk uten dem. Realiserer UJ-3.
 
 #### FR-17: Få forklaringsspørsmål etter quiz [Del 3]
 Etter en quiz kan appen gi brukeren et forklaringsspørsmål fra det samme delkapittelet.
@@ -310,16 +314,16 @@ Etter en quiz kan appen gi brukeren et forklaringsspørsmål fra det samme delka
 #### FR-18: Velge forklaringsspørsmål selv [Del 3]
 En bruker kan velge å trene på forklaringsspørsmål for et emne eller et delkapittel som har notater.
 
-#### FR-19: Svare og få tilbakemelding [Del 2]
-En bruker kan skrive svaret på et forklaringsspørsmål eller et gjennomgangsspørsmål og få en tilbakemelding. Bygges i del 2 for kapittelgjennomgangen (FR-28) og brukes av forklaringsspørsmålene i del 3.
+#### FR-19: Svare og se modellsvar [Del 2]
+En bruker kan skrive svaret på et forklaringsspørsmål eller et gjennomgangsspørsmål og få tilbakemelding i form av et modellsvar og en selvvurdering. Bygges i del 2 for kapittelgjennomgangen (FR-28) og brukes av forklaringsspørsmålene i del 3.
 - Det er ingen tidsbegrensning.
-- Tilbakemeldingen er på norsk og sier hva som var bra og hva som manglet, målt mot læringsutbyttet og notatene. For gjennomgangsspørsmål brukes notatene fra alle delkapitlene i kapittelet.
-- Svaret og tilbakemeldingen lagres og brukes i vurderingen (FR-21) når den kommer i del 3.
-- Svaret lagres før tilbakemeldingen lages. Feiler KI-en, får brukeren beskjed og kan prøve igjen uten å skrive svaret på nytt.
+- Når svaret er lagret, ser brukeren modellsvaret: hovedpunktene et godt svar tar med, på norsk, målt mot læringsutbyttet og notatene. For gjennomgangsspørsmål brukes notatene fra alle delkapitlene i kapittelet.
+- Brukeren vurderer selv svaret sitt: «Fikk med det meste», «Fikk med noe» eller «Fikk med lite». Svaret og selvvurderingen lagres og brukes i vurderingen (FR-21) når den kommer i del 3.
+- Modellsvaret vises først når svaret er lagret, slik at brukeren svarer med egne ord.
 
 ### 4.9 Kapittelgjennomgang
 
-**Beskrivelse:** Når alle delkapitlene i et kapittel er gjennomført, går brukeren gjennom hele kapittelet med gjennomgangsspørsmål, vanligvis de faglæreren har gitt. Det binder delkapitlene sammen, slik muntlig eksamen gjør. Spørsmålene besvares med egne ord og får tilbakemelding (FR-19). Gjennomgangen fordeles på flere kvelder. Realiserer UJ-6.
+**Beskrivelse:** Når alle delkapitlene i et kapittel er gjennomført, går brukeren gjennom hele kapittelet med gjennomgangsspørsmål, vanligvis de faglæreren har gitt. Det binder delkapitlene sammen, slik muntlig eksamen gjør. Spørsmålene besvares med egne ord, og brukeren ser modellsvaret og vurderer svaret sitt (FR-19). Gjennomgangen fordeles på flere kvelder. Realiserer UJ-6.
 
 #### FR-27: Legge inn gjennomgangsspørsmål for et kapittel [Del 2]
 Gjennomgangsspørsmålene til et kapittel står i seksjonen `## Gjennomgangsspørsmål` i notatfilen og legges inn av importen (FR-8). Innliming i appen er [Bør] og gjelder emner uten notatfiler.
@@ -328,7 +332,7 @@ Gjennomgangsspørsmålene til et kapittel står i seksjonen `## Gjennomgangsspø
 - Gjennomgangsspørsmålene til kapittel 1 i IBE430 (se addendum) blir til 29 spørsmål i riktig rekkefølge. Listen brukes som testdata.
 - Brukeren ser resultatet og kan rette, legge til og slette spørsmål før lagring.
 - Spørsmålene hører til kapittelet, ikke til et delkapittel.
-- Har kapittelet ingen innlimte spørsmål når alle delkapitlene er klare, lager KI-en 10 gjennomgangsspørsmål fra notatene i hele kapittelet. De er merket som laget av appen og kan erstattes ved at brukeren limer inn spørsmål.
+- Har kapittelet ingen innlimte spørsmål når alle delkapitlene er klare, lages 10 gjennomgangsspørsmål fra notatene i hele kapittelet i Claude Code og legges i innholdsfila. De er merket som laget med KI og kan erstattes ved at brukeren limer inn spørsmål.
 
 #### FR-28: Ta kapittelgjennomgangen [Del 2]
 Når alle delkapitlene i et kapittel er gjennomført (FR-15), blir kapittelgjennomgangen tilgjengelig.
@@ -350,12 +354,11 @@ Startsiden viser framdriftsindikatoren for det valgte emnet.
 - [Del 2] Den viser også om brukeren ligger foran eller bak studieplanen, og etterslepet eller forspranget i antall delkapitler (FR-9). Ligger brukeren bak, er dette tydelig markert på startsiden sammen med hva som skal til for å komme i rute, for eksempel «2 delkapitler i kveld, så er du i rute fredag» (se tonen i §6).
 
 #### FR-21: Vurdering etter hver økt [Del 3]
-Etter hver økt lager appen en vurdering av hvordan brukeren ligger an i emnet.
-- Vurderingen er en eller to setninger på norsk som sier hva brukeren har god kontroll på og hvilke temaer som trenger mer arbeid, målt mot læringsutbyttet.
-- Den bygger på quizresultater, forklaringsspørsmål og gjennomgangsspørsmål, og sier hva den bygger på (for eksempel «basert på 12 quizer, 3 forklaringsspørsmål og 29 gjennomgangsspørsmål»).
+Etter hver økt regner appen ut en vurdering av hvordan brukeren ligger an i emnet, med vanlig kode og uten KI-kall.
+- Vurderingen er en eller to setninger på norsk etter faste maler, som sier hva brukeren har god kontroll på før hvilke temaer som trenger mer arbeid.
+- Den bygger på quizresultatene per tema og selvvurderingene på forklaringsspørsmål og gjennomgangsspørsmål, og sier hva den bygger på (for eksempel «basert på 12 quizer, 3 forklaringsspørsmål og 29 gjennomgangsspørsmål»).
 - Den vises etter økta og ligger på startsiden til neste vurdering.
 - Svake temaer brukes i dagens forslag (FR-10).
-- Feiler KI-en, beholdes forrige vurdering på startsiden, og ny vurdering lages etter neste økt.
 
 ### 4.11 Varsler [Bør]
 
@@ -382,10 +385,10 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 
 - **NFR-1 Enheter:** Appen og demoen fungerer på mobil, iPad og PC i nyere versjoner av Safari og Chrome, uten at siden må rulles sidelengs.
 - **NFR-2 Språk:** Grensesnittet og alt KI-generert innhold er på norsk bokmål.
-- **NFR-3 Rask start om kvelden:** Startsiden og dagens sammendrag vises på under 3 sekunder, fordi innholdet er laget på forhånd (FR-8). Tilbakemelding på forklarings- og gjennomgangsspørsmål vises på under 20 sekunder.
-- **NFR-4 Personvern:** Data lagres i EU/EØS. KI-leverandøren skal ha vilkår om at dataene ikke brukes til trening. Appen samler ikke inn flere personopplysninger enn e-post og det brukeren selv legger inn. Demoen samler ikke inn personopplysninger.
+- **NFR-3 Rask start om kvelden:** Startsiden og dagens sammendrag vises på under 3 sekunder, fordi innholdet er laget på forhånd (FR-8). Modellsvaret på forklarings- og gjennomgangsspørsmål vises på under 3 sekunder.
+- **NFR-4 Personvern:** Data lagres i EU/EØS. Appen sender ingen data til en KI-leverandør. KI-innholdet lages i Claude Code fra brukerens egne notater, og kontoen som brukes, har bruk av data til trening slått av (bekreftet av Marte 19.11.2026). Appen samler ikke inn flere personopplysninger enn e-post og det brukeren selv legger inn. Demoen samler ikke inn personopplysninger.
 - **NFR-5 Sikkerhet:** Brukerdata er skjermet per bruker (FR-1), og i del 1 bak tilgangslåsen (FR-25). Demoen har aldri tilgang til utviklerens eller andre brukeres data. All trafikk går over HTTPS.
-- **NFR-6 Kostnad:** KI-kostnaden for én bruker er maks 100 kr i måneden, og helst null. Et gratis alternativ velges bare hvis det oppfyller NFR-4. Demoen gjør ingen KI-kall, så antall demobesøk påvirker ikke kostnaden.
+- **NFR-6 Kostnad:** Appen har ingen KI-kostnad i drift. Innholdet lages innenfor utviklerens eksisterende Claude-abonnement. Verken appen eller demoen gjør KI-kall, så antall brukere og demobesøk påvirker ikke kostnaden.
 - **NFR-7 I drift:** Appen og demoen er satt i drift og tilgjengelige på en offentlig adresse fra del 1. Hvert trinn settes i drift når det er ferdig.
 - **NFR-8 Kvalitetssikring:** Kjernelogikken har automatiske tester: tolking av kapittellister og gjennomgangsspørsmål, at kapittelgjennomgangen åpnes når alle delkapitlene er gjennomført, antall gjennomgangsspørsmål i dagens forslag, avkrysning ved 80 %, nytt spørsmål om samme tema, studieplan, foran/bak og størrelsen på dagens forslag. Det samme gjelder demoen og overgangen mellom delene: at demoen aldri skriver til utviklerens data, at demodataene har minst 20 spørsmål per delkapittel og minst 2 per tema, og at data fra del 1 følger med til kontoen i del 2.
 
@@ -418,7 +421,7 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 - **Må del 1 (levert sammen med del 2 1.11, IBE430 kapittel 1–4):** FR-3 (uten eksamensdato), FR-6, FR-8 (import fra notatfilene), FR-10 (velge selv), FR-11 til FR-16, FR-20 (andel gjennomført), FR-25 og FR-26.
   - **Minimum i del 1:** FR-3, FR-6, FR-8, FR-10, FR-11, FR-13, FR-14, FR-15, FR-20, FR-25 og FR-26. Det er nok til at kveldsøkta fungerer fra start til slutt, både for utvikleren og i demoen. FR-6 er med fordi «den kjenner emnet» skal gjelde fra første dag.
   - **Kan flyttes til del 2 hvis det blir trangt:** FR-12 og FR-16.
-- **Må del 2 (1.11, IBE430 kapittel 5):** FR-1, FR-2, FR-3 (eksamensdato og planstart), FR-9, FR-10 (dagens forslag og gjennomgangsspørsmål), FR-19, FR-20 (foran/bak), FR-26 (dagens forslag og kapittelgjennomgang i demoen), FR-27 og FR-28. FR-25 er allerede innloggingen, så den trenger ikke fjernes. Del 2 er det største trinnet, fordi kapittelgjennomgangen krever KI-tilbakemelding (FR-19) allerede her.
+- **Må del 2 (1.11, IBE430 kapittel 5):** FR-1, FR-2, FR-3 (eksamensdato og planstart), FR-9, FR-10 (dagens forslag og gjennomgangsspørsmål), FR-19, FR-20 (foran/bak), FR-26 (dagens forslag og kapittelgjennomgang i demoen), FR-27 og FR-28. FR-25 er allerede innloggingen, så den trenger ikke fjernes. Del 2 er det største trinnet, fordi kapittelgjennomgangen krever modellsvar og selvvurdering (FR-19) allerede her.
   - **Minimum i del 2:** FR-1, FR-3, FR-9, FR-10, FR-19, FR-20, FR-27 (uten KI-genererte spørsmål) og FR-28.
   - **Kan flyttes til del 3 hvis det blir trangt:** FR-2, KI-genererte gjennomgangsspørsmål i FR-27 og demoutvidelsen i FR-26.
 - **Må del 3 (15.11, IBE430 kapittel 6, hele pensum):** FR-10 (repetisjon av svake temaer), FR-17, FR-18, FR-21 og FR-26 (forklaringsspørsmål og vurdering i demoen). FR-19 er allerede bygd i del 2.
@@ -449,7 +452,7 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
   - *Kontrollpunkt før eksamen:* Brukeren noterer én gang i uka fra del 3 er i bruk (15.11) til eksamen om vurderingen stemmer med egen opplevelse. Det gir minst 3 notater, og flertallet sier «stemmer».
 
 **For IBE160**
-- **SM-4 Testbar kjerne:** Når del 1 og 2 er ferdig (1.11), kan appen kjøres og testes med kapittel 1–4 i IBE430: velge emnet, åpne et delkapittel, lese KI-sammendraget og ta en quiz med riktig svar ved feil og nye spørsmål om samme tema. Det samme kan gjøres i demoen. Utvikleren bruker denne versjonen før del 2 starter.
+- **SM-4 Testbar kjerne:** Når del 1 og 2 er ferdig (1.11), kan appen kjøres og testes med kapittel 1–4 i IBE430: velge emnet, åpne et delkapittel, lese sammendraget og ta en quiz med riktig svar ved feil og nye spørsmål om samme tema. Det samme kan gjøres i demoen. Utvikleren bruker denne versjonen før del 2 starter.
 - **SM-5 Alt er i drift:** Alle Må-krav i del 1–3 fungerer i en versjon som er i drift innen 22. november, med alle seks kapitlene i IBE430 lagt inn.
 - **SM-6 Demoen virker for alle:** Hvem som helst, for eksempel faglærer eller sensor, kan kjøre demoen uten å lage konto. Ved levering viser den hele kveldsøkta: dagens forslag, sammendrag, quiz, forklaringsspørsmål og vurdering (FR-26).
 - **SM-7 Dokumentasjon:** Dokumentasjonen viser KI-bruk og kvalitetssikring (tester, gjennomganger og hva som ble rettet) gjennom hele utviklingen, og utviklerens egen bruk fra oktober med hva som ble endret underveis.
@@ -463,6 +466,6 @@ En bruker kan diktere svaret på et forklaringsspørsmål på norsk og se tekste
 ## 11. Åpne spørsmål
 
 1. **Når er innleveringsfristen i IBE160?** Planen bygger på 22.11.2026, men datoen er ikke bekreftet.
-2. **Hvilken KI-leverandør skal appen bruke?** Avgjøres i arkitekturen ut fra EU-lagring, vilkår om trening, kostnad og kvalitet på norsk.
+2. ~~**Hvilken KI-leverandør skal appen bruke?**~~ Avgjort 19.11.2026: ingen. KI-innholdet lages på forhånd i Claude Code (se `planning-artifacts/sprint-change-proposal-2026-11-19.md`).
 3. **Fungerer push-varsler på brukerens telefon?** Gjelder bare hvis FR-22 og FR-23 bygges. Testes da tidlig (se addendum).
 4. **Er norsk talegjenkjenning god nok?** Testes tidlig i prosjektet, slik briefen sier.

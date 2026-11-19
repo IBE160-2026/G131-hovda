@@ -9,6 +9,8 @@ inputDocuments:
 
 # Studievenn – epics og stories
 
+> **Endring 19.11.2026:** Appen kaller ingen KI-leverandør. Alt KI-innhold lages på forhånd i Claude Code og ligger i `notater/<EMNE>/kapittel-<n>.innhold.md`, som importen leser. Tilbakemelding er modellsvar og selvvurdering, og vurderingen regnes ut med vanlig kode. Se `planning-artifacts/sprint-change-proposal-2026-11-19.md`.
+
 ## Oversikt
 
 Dokumentet deler kravene i PRD-en og arkitekturbeslutningene for Studievenn opp i epics og stories som kan implementeres. Det finnes ikke noe eget UX-dokument. UI-kravene kommer fra brukerreisene (PRD §2.3) og «Utseende og tone» (PRD §6).
@@ -24,28 +26,28 @@ Trinnmerking: [D1] = del 1, [D2] = del 2, [D3] = del 3 (alle Må). [Bør] og [St
 - **FR-25 [D1]: Tilgangslås.** Vanlig innlogging med bare utviklerens konto og registrering slått av. Uinnloggede kommer bare til demoen. Data fra del 1 hører allerede til eierens konto.
 - **FR-1 [D2]: Opprette konto og logge inn.** Brukeren ser bare egne data, og forsøk på å hente andres data avvises. Innloggingen huskes i minst 30 dager. Passord kan tilbakestilles via e-post. (AD-9: registrering forblir av til appen åpnes for andre.)
 - **FR-2 [D2]: Slette konto og data.** Etter sletting finnes ingen notater, svar eller vurderinger som kan knyttes til brukeren.
-- **FR-26 [D1, utvides D2/D3]: Demo uten innlogging.** Åpnes med ett trykk fra forsiden og er tydelig merket. IBE430 kap. 1–4 (eller de som er klare) har struktur, læringsutbytte, sammendrag og spørsmålsbank, med minst 20 spørsmål per delkapittel og minst 2 per tema. D1: emneliste, kapittelliste, sammendrag, quiz (FR-14/15) og andel gjennomført, og en avbrutt quiz kan fortsettes i samme besøk. D2: dagens forslag og foran/bak med fast demo-eksamensdato og demo-dag, og kapittelgjennomgang for kap. 1–3 med 5 spørsmål hver og fast eksempeltilbakemelding. D3: minst ett forklaringsspørsmål per kapittel med eksempeltilbakemelding, og en eksempelvurdering. Ingen KI-kall, ingen varig lagring og ingen innsamling av personopplysninger. Funksjoner som oppretter eller endrer data, er skjult. Demodata lages bare med en egen kommando.
+- **FR-26 [D1, utvides D2/D3]: Demo uten innlogging.** Åpnes med ett trykk fra forsiden og er tydelig merket. IBE430 kap. 1–4 (eller de som er klare) har struktur, læringsutbytte, sammendrag og spørsmålsbank, med minst 20 spørsmål per delkapittel og minst 2 per tema. D1: emneliste, kapittelliste, sammendrag, quiz (FR-14/15) og andel gjennomført, og en avbrutt quiz kan fortsettes i samme besøk. D2: dagens forslag og foran/bak med fast demo-eksamensdato og demo-dag, og kapittelgjennomgang for kap. 1–3 med 5 spørsmål hver og modellsvar. D3: minst ett forklaringsspørsmål per kapittel med modellsvar, og en eksempelvurdering. Ingen KI-kall, ingen varig lagring og ingen innsamling av personopplysninger. Funksjoner som oppretter eller endrer data, er skjult. Demodata lages bare med en egen kommando.
 - **FR-3 [D1, eksamensdato D2]: Opprette og velge emne.** Emnekode og navn kan opprettes, endres og slettes. Brukeren kan ha flere emner med hver sin framdrift og velger aktivt emne i emnelisten. Nye emner krever ingen kodeendring. D2: eksamensdato og planstart (standard samme dag, IBE430 = 1.10.2026). Endres eksamensdatoen, beregnes planen på nytt.
 - **FR-4 [Bør]: Lime inn kapittelstruktur** (bare for emner uten notatfiler). Deterministisk tolking: «1.» blir kapittel, «-» eller «1.1» blir delkapittel. Testdata fra addendumet gir 6 kapitler og 21 delkapitler. Resultatet kan redigeres før lagring.
 - **FR-5 [Bør]: Oversette titler til norsk.** Titlene kan rettes, og den engelske originalen tas vare på.
 - **FR-6 [D1]: Læringsutbytte og eksamensform.** Limes inn som tekst. Styrer sammendrag, forklaringsspørsmål, tilbakemelding og vurdering, som viser til minst ett læringsutbytte. Ved muntlig eksamen skal brukeren forklare med egne ord.
 - **FR-7 [Bør]: Hente læringsutbytte fra himolde.no.** Feiler hentingen, kan teksten limes inn selv.
-- **FR-8 [D1]: Importere notater fra notatfilene.** `notater/<EMNE>/kapittel-<n>.md` gir kapitler, delkapitler og notat per delkapittel. Importen lager sammendrag, spørsmålsbank og forklaringsspørsmål for nye eller endrede delkapitler. Endrede notater gir nytt sammendrag, og ubrukte spørsmål erstattes. Delkapitler uten notater (også plassholderen) får status «mangler notater». Feiler KI-en, beholdes notatene og tidligere innhold, statusen blir «innhold lages», «klart» eller «feilet», og neste import prøver på nytt. Et delkapittel er klart først når både sammendrag og spørsmålsbank finnes. Innliming i appen er [Bør].
+- **FR-8 [D1]: Importere notater fra notatfilene.** `notater/<EMNE>/kapittel-<n>.md` gir kapitler, delkapitler og notat per delkapittel. KI-innholdet (sammendrag, spørsmålsbank, forklaringsspørsmål og modellsvar) lages på forhånd i Claude Code og ligger i `notater/<EMNE>/kapittel-<n>.innhold.md`, som importen leser og validerer. Appen kaller aldri en KI-leverandør. Er notatet endret etter at innholdet ble laget, sier importen at innholdet er utdatert. Delkapitler uten notater (også plassholderen) får status «mangler notater». Er innholdsfila ugyldig, skrives ingenting fra den, tidligere innhold beholdes, og statusen blir «mangler innhold», «klart» eller «utdatert». Et delkapittel er klart først når både sammendrag og spørsmålsbank finnes. Innliming i appen er [Bør].
 - **FR-9 [D2]: Studieplan.** Ved planstart registreres G₀, R₀ og D. Planlagt i dag = G₀ + ⌈R₀ × d / D⌉, der d er antall studiedager fra planstart til i går. Forventet i dag = min(planlagt i dag, G₀ + antall ikke-gjennomførte delkapitler med notater). Etterslep = forventet − gjennomførte. Brukeren ligger bak når etterslepet er større enn 0. Da får forslaget +1 delkapittel og forslag også på fleksible dager. Ny eksamensdato gir ny plan.
 - **FR-10 [D1/D2/D3]: Starte økt og dagens forslag.** D1: brukeren velger emne og et klart delkapittel og får sammendrag og quiz. En avbrutt quiz fortsetter der den slapp, med svarene lagret. D2: dagens forslag på startsiden, med start i ett trykk. Antall delkapitler er ⌈R₀/D⌉ (minst 1), +1 når brukeren ligger bak, og maks 3. Er en kapittelgjennomgang klar, legges det til 10, 5 eller 0 gjennomgangsspørsmål (ved 0–1, 2 eller 3 delkapitler). Er ingen nye delkapitler klare, foreslås repetisjon. Brukeren kan fortsatt velge selv. D3: opptil 5 quizspørsmål om svake temaer som repetisjon, som ikke teller i resultatet.
-- **FR-11 [D1]: Vise sammendrag.** På norsk, bare fra brukerens notater, maks 600 ord.
-- **FR-12 [D1, kan flyttes til D2]: Feilrapport på sammendrag.** Sammendraget merkes og lages på nytt ved neste import. Til da vises det gamle.
-- **FR-13 [D1]: Spørsmålsbank.** Hvert spørsmål har fasit, forklaring og tema. Banken har 20 spørsmål per delkapittel. Når færre enn 10 er ubesvart, fyller neste import den på.
+- **FR-11 [D1]: Vise sammendrag.** På norsk, bare fra brukerens notater, maks 600 ord. Laget på forhånd i Claude Code (FR-8).
+- **FR-12 [D1, kan flyttes til D2]: Feilrapport på sammendrag.** Sammendraget merkes. Importen lister det, det rettes i innholdsfila, og neste import legger inn den rettede versjonen. Til da vises det gamle.
+- **FR-13 [D1]: Spørsmålsbank.** Hvert spørsmål har fasit, forklaring og tema. Banken har 20 spørsmål per delkapittel. Banken lages i Claude Code. Når færre enn 10 er ubesvart, sier importen fra, og nye spørsmål legges i innholdsfila.
 - **FR-14 [D1]: Ta quiz.** 10 flervalgsspørsmål med 4 alternativer. Ved feil svar vises riktig svar og forklaring med en gang. Et feilbesvart tema får et nytt spørsmål senere i samme quiz, som erstatter et gjenstående spørsmål. Var feilen på det siste spørsmålet, kommer det nye i neste quiz. Det er aldri samme spørsmål på nytt. Resultatet vises som «8 av 10 riktige».
 - **FR-15 [D1]: Krysse av gjennomført delkapittel.** Minst 80 % riktige gir avkrysning. Under 80 % kan delkapittelet tas på nytt (fra D2 foreslås det igjen).
-- **FR-16 [D1, kan flyttes til D2]: Feilrapport på quizspørsmål.** Spørsmålet tas ut med en gang og erstattes ved neste import. Det teller ikke i resultatet, som da regnes av de gjenværende (for eksempel 8 av 9).
+- **FR-16 [D1, kan flyttes til D2]: Feilrapport på quizspørsmål.** Spørsmålet tas ut med en gang. Importen lister det, og et nytt om samme tema legges i innholdsfila. Det teller ikke i resultatet, som da regnes av de gjenværende (for eksempel 8 av 9).
 - **FR-17 [D3, kan kuttes]: Forklaringsspørsmål etter quiz.** Fra samme delkapittel, ikke i to økter på rad og minst hver tredje økt. Kan hoppes over.
 - **FR-18 [D3]: Velge forklaringsspørsmål selv.** For et emne eller et delkapittel med notater.
-- **FR-19 [D2]: Svare og få tilbakemelding.** Ingen tidsbegrensning. Tilbakemeldingen er på norsk og sier hva som var bra og hva som manglet, målt mot læringsutbyttet og notatene (for gjennomgangsspørsmål notatene i hele kapittelet). Svaret lagres før KI-kallet. Feiler KI-en, får brukeren beskjed og kan prøve igjen uten å skrive svaret på nytt.
-- **FR-27 [D2]: Gjennomgangsspørsmål.** Kommer fra `## Gjennomgangsspørsmål` i notatfilen via importen. Mangler seksjonen, røres ikke eksisterende spørsmål. Deterministisk tolking: «1.» starter et spørsmål, og linjer uten nummer hører til spørsmålet over. Kapittel 1 gir 29 spørsmål (testdata). Spørsmålene hører til kapittelet. Uten innlimte spørsmål lager KI-en 10, merket som laget av appen (KI-genererte spørsmål kan flyttes til D3). Innliming i appen er [Bør].
-- **FR-28 [D2]: Kapittelgjennomgang.** Blir tilgjengelig når alle delkapitlene i kapittelet er gjennomført. Appen sier fra, og den vises i kapittellisten. Spørsmålene kommer ett om gangen i fast rekkefølge, fordelt via dagens forslag eller startet av brukeren selv. Hvert svar får tilbakemelding (FR-19). Et overhoppet spørsmål kommer igjen sist. Når alle er besvart, er gjennomgangen fullført og merket, og den kan tas på nytt. Den påvirker ikke avkrysning, plan eller etterslep, men teller i vurderingen. En avbrutt gjennomgang fortsetter fra neste ubesvarte spørsmål.
+- **FR-19 [D2]: Svare og se modellsvar.** Ingen tidsbegrensning. Når svaret er lagret, ser brukeren modellsvaret på norsk med hovedpunktene, målt mot læringsutbyttet og notatene (for gjennomgangsspørsmål notatene i hele kapittelet). Brukeren vurderer selv svaret: «Fikk med det meste», «Fikk med noe» eller «Fikk med lite». Svar og selvvurdering lagres og brukes i vurderingen.
+- **FR-27 [D2]: Gjennomgangsspørsmål.** Kommer fra `## Gjennomgangsspørsmål` i notatfilen via importen. Mangler seksjonen, røres ikke eksisterende spørsmål. Deterministisk tolking: «1.» starter et spørsmål, og linjer uten nummer hører til spørsmålet over. Kapittel 1 gir 29 spørsmål (testdata). Spørsmålene hører til kapittelet. Uten innlimte spørsmål lages 10 i Claude Code og legges i innholdsfila, merket som laget med KI (KI-genererte spørsmål kan flyttes til D3). Innliming i appen er [Bør].
+- **FR-28 [D2]: Kapittelgjennomgang.** Blir tilgjengelig når alle delkapitlene i kapittelet er gjennomført. Appen sier fra, og den vises i kapittellisten. Spørsmålene kommer ett om gangen i fast rekkefølge, fordelt via dagens forslag eller startet av brukeren selv. Hvert svar får modellsvar og selvvurdering (FR-19). Et overhoppet spørsmål kommer igjen sist. Når alle er besvart, er gjennomgangen fullført og merket, og den kan tas på nytt. Den påvirker ikke avkrysning, plan eller etterslep, men teller i vurderingen. En avbrutt gjennomgang fortsetter fra neste ubesvarte spørsmål.
 - **FR-20 [D1/D2]: Framdriftsindikator.** D1: andel gjennomførte delkapitler og hvor langt det er igjen til målet (90 %, for IBE430 19 av 21). D2: foran eller bak planen med antall delkapitler, og når brukeren ligger bak, en tydelig vei tilbake («2 delkapitler i kveld, så er du i rute fredag»).
-- **FR-21 [D3]: Vurdering etter hver økt.** 1–2 setninger på norsk om hva brukeren har kontroll på og hva som trenger arbeid, målt mot læringsutbyttet. Oppgir hva den bygger på (antall quizer, forklarings- og gjennomgangsspørsmål). Vises etter økta og på startsiden. Svake temaer brukes i FR-10. Feiler KI-en, beholdes forrige vurdering.
+- **FR-21 [D3]: Vurdering etter hver økt.** Regnes ut med vanlig kode fra quizresultater per tema og selvvurderinger. 1–2 setninger på norsk etter faste maler om hva brukeren har kontroll på før det som trenger arbeid. Oppgir hva den bygger på (antall quizer, forklarings- og gjennomgangsspørsmål). Vises etter økta og på startsiden. Svake temaer brukes i FR-10.
 - **FR-22 [Bør]: Påminnelse på studiedager** (push, standard kl. 21:15, kan slås av og på).
 - **FR-23 [Bør]: Varsel når brukeren ligger bak** (daglig til brukeren er i rute, ett samlet varsel).
 - **FR-24 [Strekk]: Svare med tale** (norsk diktering, teksten vises før den sendes).
@@ -54,38 +56,38 @@ Trinnmerking: [D1] = del 1, [D2] = del 2, [D3] = del 3 (alle Må). [Bør] og [St
 
 - **NFR-1 Enheter:** Mobil, iPad og PC i nyere Safari og Chrome, uten sidelengs rulling.
 - **NFR-2 Språk:** Grensesnitt og alt KI-innhold på norsk bokmål.
-- **NFR-3 Rask start:** Startsiden og sammendraget vises på under 3 s (innholdet er laget på forhånd). Tilbakemelding kommer på under 20 s.
-- **NFR-4 Personvern:** Data i EU/EØS. KI-leverandøren trener ikke på dataene. Ingen andre personopplysninger enn e-post og det brukeren legger inn. Demoen samler ingen.
+- **NFR-3 Rask start:** Startsiden og sammendraget vises på under 3 s (innholdet er laget på forhånd). Modellsvaret vises på under 3 s.
+- **NFR-4 Personvern:** Data i EU/EØS. Appen sender ingen data til en KI-leverandør, og Claude-kontoen som lager innholdet, har trening på data slått av (bekreftet 19.11.2026). Ingen andre personopplysninger enn e-post og det brukeren legger inn. Demoen samler ingen.
 - **NFR-5 Sikkerhet:** Data skjermes per bruker (og bak tilgangslåsen i del 1). Demoen har aldri tilgang til brukerdata. All trafikk går over HTTPS.
-- **NFR-6 Kostnad:** KI-kostnad på maks 100 kr i måneden per bruker. Demoen gjør ingen KI-kall.
+- **NFR-6 Kostnad:** Ingen KI-kostnad i drift. Innholdet lages innenfor utviklerens Claude-abonnement. Verken appen eller demoen gjør KI-kall.
 - **NFR-7 I drift:** Appen og demoen ligger på en offentlig adresse fra del 1, og hvert trinn settes i drift når det er ferdig.
 - **NFR-8 Kvalitetssikring:** Automatiske tester av tolking (kapittelliste og gjennomgangsspørsmål), åpning av kapittelgjennomgang, antall gjennomgangsspørsmål i forslaget, 80 %-avkrysning, nytt spørsmål om samme tema, studieplan, foran/bak, størrelsen på forslaget, at demoen aldri skriver til brukerdata, at demodataene har minst 20 spørsmål per delkapittel og minst 2 per tema, og at data fra del 1 følger med til del 2.
 
 ### Tilleggskrav fra arkitekturen
 
-**Oppstart (påvirker story 1.1):** Arkitekturen angir ingen ferdig startmal, men et nytt Next.js 16.4-prosjekt (minst 16.4.1) i TypeScript med kildetreet `src/domain`, `src/application`, `src/adapters/{supabase,bedrock,demo,clock}`, `src/app`, `scripts/`, `supabase/migrations/` og `demo-data/`. Prosjektet trenger også Vitest, GitHub Actions (typesjekk, lint og domenetester ved push), `.env.example` og `vercel.json` med `regions: ["fra1"]`.
+**Oppstart (påvirker story 1.1):** Arkitekturen angir ingen ferdig startmal, men et nytt Next.js 16.4-prosjekt (minst 16.4.1) i TypeScript med kildetreet `src/domain`, `src/application`, `src/adapters/{supabase,demo,clock}`, `src/app`, `scripts/`, `supabase/migrations/` og `demo-data/`. Prosjektet trenger også Vitest, GitHub Actions (typesjekk, lint og domenetester ved push), `.env.example` og `vercel.json` med `regions: ["fra1"]`.
 
 - **AD-1 Ports and adapters:** `src/domain` importerer ingenting utenfra. `src/app` og `scripts` importerer aldri `src/adapters` direkte, og det er én komposisjonsrot per inngangspunkt. `domain` og `application` bruker ingen serverkode, slik at de kan kjøre i nettleseren.
 - **AD-2 Domeneregler:** 80 %-grensen, planformelen, nytt spørsmål om samme tema, størrelsen på forslaget, åpning av kapittelgjennomgang og tolking er rene funksjoner i `src/domain` med tester. `hasNotes()` er eneste definisjon av «har notater» (tom tekst, bare mellomrom og `*Ingen notater ennå.*` gir false).
 - **AD-3 Demo:** Samme brukstilfeller i nettleseren med `DemoDataSource` (frosne filer, minne og `sessionStorage`) og `DemoClock`. Felles skjema for demofilene i `src/application`, validert av både `scripts/export-demo.ts` og demo-adapteren.
-- **AD-4 Import:** Eksplisitt og idempotent kommando. `inputHash` = hash(normalisert notat + kapittelets læringsmål og nøkkelbegreper + promptversjon). `## Råtekst` og `## Rettelser` er aldri med. Importen fyller på banker med færre enn 10 ubesvarte spørsmål og lager erstatninger. `--force <n.m>` tvinger fram ny generering.
+- **AD-4 Import:** Eksplisitt og idempotent kommando. Leser notater fra `kapittel-<n>.md` og KI-innhold fra `kapittel-<n>.innhold.md`. `inputHash` = hash(normalisert notat + kapittelets læringsmål og nøkkelbegreper + instruksjonsversjon). `## Råtekst` og `## Rettelser` er aldri med. Innholdsfila har `inputHash` per delkapittel, og ulik hash gir beskjed om utdatert innhold. Importen sier fra når banker har færre enn 10 ubesvarte spørsmål og når feilrapportert innhold må erstattes. `--force <n.m>` legger inn ett delkapittel på nytt.
 - **AD-5 Identitet:** Kapitler identifiseres av (eier, emnekode, nr.) og delkapitler av (eier, emnekode, «n.m»). Titler er attributter.
-- **AD-6 Spørsmål:** Stabil ID, trekkes tilbake med status og slettes aldri. Bare ubrukte KI-spørsmål trekkes tilbake ved endrede notater. En quiz som er i gang, beholder spørsmålene sine. Brukerens egne spørsmål (`## Spørsmålsbank` i notatfilen) erstattes aldri, og brukerens fasit er autoritativ: KI lager bare tre gale alternativer, en forklaring og et tema.
-- **AD-7 KI-modul:** Porten `AiProvider` med `AnthropicBedrock` i eu-central-1. Versjonerte prompter, skjemavalidering før lagring, modell-ID og promptversjon lagres. Én innstillingsfil for modell og effort per oppgave: Opus 5.5 for FR-19, Sonnet 5.5 for FR-11, 13, 17, 18 og 21, Haiku 5.5 for FR-5. Alle ID-er er `eu.anthropic.claude-…`, og en test avviser andre prefikser. Læringsutbytte, læringsmål og nøkkelbegreper sendes med som kontekst.
-- **AD-8 Versjoner:** Sammendrag og spørsmålsbank har versjoner med status `lages`, `klart` eller `feilet`. Siste klare versjon vises, og en feilet generering tar aldri bort en klar versjon.
+- **AD-6 Spørsmål:** Stabil ID, trekkes tilbake med status og slettes aldri. Bare ubrukte KI-spørsmål trekkes tilbake ved endrede notater. En quiz som er i gang, beholder spørsmålene sine. Brukerens egne spørsmål (`## Spørsmålsbank` i notatfilen) erstattes aldri, og brukerens fasit er autoritativ: Claude Code lager bare tre gale alternativer, en forklaring og et tema.
+- **AD-7 KI-innhold utenfor appen (erstattet 19.11.2026):** Appen kaller aldri en KI-leverandør. Innholdet lages i Claude Code etter den versjonerte instruksjonen `notater/_instruksjoner/innhold.v<n>.md`, med læringsutbytte, læringsmål og nøkkelbegreper som kontekst. Innholdsfila oppgir instruksjonsversjon og modell. Importen validerer hele fila mot et fast skjema i `src/domain` før den skriver, og lagrer modell og instruksjonsversjon på hver versjon.
+- **AD-8 Versjoner:** Sammendrag og spørsmålsbank har versjoner med status `lages`, `klart` eller `feilet`. Siste klare versjon vises, og ugyldig nytt innhold tar aldri bort en klar versjon.
 - **AD-9 Supabase Auth fra dag én:** Bare eierens konto, offentlig registrering av, ingen egen passordmekanisme.
 - **AD-10 RLS:** Alle brukertabeller har eier-FK til `auth.users` med `on delete cascade` og RLS. Endringer gjøres bare med migreringer (`supabase/migrations/`), dev før prod, og hver ny tabell har RLS og `GRANT`.
 - **AD-11 Tid:** All datologikk i Europe/Oslo via `Clock`. Rene datoer for kalenderdager, UTC for tidspunkter.
 - **AD-12 Miljøer:** Supabase dev og prod i Frankfurt, Vercel i fra1, ingen Next-middleware. Import og eksport krever `--target dev|prod` med `.env.dev.local` eller `.env.prod.local`, og prod må bekreftes. `OWNER_EMAIL` brukes til å finne eieren. `export-demo` leser fra prod. Forhåndsvisninger går mot dev, og `main` går mot prod.
 - **AD-13:** Bare `finishQuiz` skriver `subchapter_completion`, én gang, og den angres aldri.
-- **AD-14:** Temaer er egne enheter per delkapittel og opprettes når banken lages. Påfylling bruker den eksisterende temalisten.
+- **AD-14:** Temaer er egne enheter per delkapittel og opprettes når banken lages. Påfylling i innholdsfila bruker den eksisterende temalisten, og importen godtar bare temaer fra listen.
 - **AD-15:** Bare `startPlan` skriver G₀, R₀ og D. Dagens forslag ligger fast til midnatt (Oslo).
-- **AD-16:** Hver økt er en `session`, og alle svar knyttes til den. Bare `endSession` avslutter økta og ber om én vurdering.
+- **AD-16:** Hver økt er en `session`, og alle svar knyttes til den. Bare `endSession` avslutter økta og lager én vurdering, regnet ut i `src/domain`.
 - **AD-17:** Notatfilene eier strukturen (`### n.m Tittel`) og gjennomgangsspørsmålene. Importen validerer hele filen (prefiks og duplikater) før den skriver noe. Spørsmål gjenkjennes på normalisert tekst. Innliming i appen skriver aldri til emner med notatfiler.
-- **AD-18:** Bare FR-19 og FR-21 kaller KI fra appen (synkront på Vercel). En feilrapport merker eller trekker tilbake med en gang, og importen lager erstatningen.
+- **AD-18 (erstattet 19.11.2026):** Ingen KI-kall mens appen er i bruk. Alt KI-innhold kommer fra innholdsfila via importen. FR-19 viser modellsvaret og lagrer selvvurderingen, og FR-21 regnes ut i `src/domain`. En feilrapport merker eller trekker tilbake med en gang, og importen lister det som må rettes i innholdsfila.
 - **Konvensjoner:** Hver entitet har én skriver. Kode bruker engelske navn etter fast ordliste, mens grensesnitt, prompter, commits og dokumentasjon er på norsk. Hemmeligheter ligger i `.env*` og Vercel-miljøvariabler. Ukentlig `supabase db dump` av prod. Små commits.
-- **Avklares før første KI-kode:** Bedrock-pris i EU-profilen, AWS sine vilkår om trening (NFR-4), modelltilgang i eu-central-1. Det krever en AWS-konto med fakturering og IAM-nøkler i Vercel-miljøvariabler.
-- **Notatformat (fra `kapittel-1.md`):** Frontmatter (`emne`, `kapittel`, `tittel`), `## Læringsmål for kapittelet`, delkapitler som `### n.m Tittel`, valgfri `## Spørsmålsbank` (brukerens egne spørsmål), `## Gjennomgangsspørsmål`, `## Rettelser` og `## Råtekst` (de to siste ignoreres av KI og hash).
+- **Notatformat (fra `kapittel-1.md`):** Frontmatter (`emne`, `kapittel`, `tittel`), `## Læringsmål for kapittelet`, delkapitler som `### n.m Tittel`, valgfri `## Spørsmålsbank` (brukerens egne spørsmål), `## Gjennomgangsspørsmål`, `## Rettelser` og `## Råtekst` (de to siste ignoreres av KI-innholdet og hashen).
+- **Innholdsfil (`kapittel-<n>.innhold.md`):** Frontmatter med instruksjonsversjon og modell, og seksjonene `## Sammendrag`, `## Quizspørsmål`, `## Forklaringsspørsmål` og `## Gjennomgangsspørsmål (laget med KI)`, med `### n.m Tittel` og `inputHash` per delkapittel. Hvilke seksjoner som finnes, avhenger av hvilke stories som er bygget.
 
 ### Krav til UX-design
 
@@ -127,7 +129,7 @@ Det finnes ikke noe UX-dokument. Krav fra PRD §2.3 og §6 som påvirker stories
 | FR-16 | Epic 1 | Feilrapport på quizspørsmål |
 | FR-17 | Epic 5 | Forklaringsspørsmål etter quiz |
 | FR-18 | Epic 5 | Velge forklaringsspørsmål selv |
-| FR-19 | Epic 4 | Svar og KI-tilbakemelding |
+| FR-19 | Epic 4 | Svar, modellsvar og selvvurdering |
 | FR-20 | Epic 1 (andel), Epic 3 (foran/bak) | Framdriftsindikator |
 | FR-21 | Epic 5 | Vurdering |
 | FR-22 | Utsatt [Bør] | Påminnelse |
@@ -145,7 +147,7 @@ NFR-ene gjelder alle epics. NFR-7 (i drift) og NFR-8 (tester) innføres i Epic 1
 Rekkefølgen er byggerekkefølgen og prioriteringen. Hver epic kan brukes uten senere epics. Demoen utvides i slutten av hver epic etter Epic 2.
 
 ### Epic 1: Kveldsøkta virker, for eieren
-Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, leser KI-sammendraget og tar quizen. Delkapittelet krysses av ved 80 %, og framdriften vises. Innholdet kommer fra notatfilene via importkommandoen, og appen er i drift på Vercel. Første story setter opp prosjektet (Next.js, lag, Vitest, CI, Supabase dev og prod, deploy).
+Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, leser sammendraget og tar quizen. Delkapittelet krysses av ved 80 %, og framdriften vises. Innholdet kommer fra notatfilene og innholdsfilene via importkommandoen, og appen er i drift på Vercel. Første story setter opp prosjektet (Next.js, lag, Vitest, CI, Supabase dev og prod, deploy).
 **FR:** FR-25, FR-3 (uten eksamensdato), FR-6, FR-8, FR-10 (velge selv), FR-11, FR-13, FR-14, FR-15, FR-20 (andel), FR-12, FR-16 (de to siste kan flyttes)
 
 ### Epic 2: Demoen, så faglærer og sensor kan prøve uten konto
@@ -156,8 +158,8 @@ Hvem som helst åpner «Prøv demoen» fra forsiden og tar kveldsøkta med IBE43
 Eieren legger inn eksamensdato (for IBE430: 10.12.2026), og planen starter samme dag. Appen sier hver kveld hva som skal gjøres, viser om eieren ligger foran eller bak, og hvordan eieren kommer i rute. Demoen får dagens forslag.
 **FR:** FR-3 (eksamensdato og planstart), FR-9, FR-10 (dagens forslag), FR-20 (foran/bak), FR-26 (del 2: forslag)
 
-### Epic 4: Kapittelgjennomgang med KI-tilbakemelding
-Når et kapittel er gjennomført, svarer eieren på gjennomgangsspørsmålene med egne ord og får tilbakemelding målt mot læringsutbyttet. Spørsmålene fordeles på flere kvelder gjennom dagens forslag. Demoen får gjennomgang med eksempeltilbakemeldinger.
+### Epic 4: Kapittelgjennomgang med modellsvar
+Når et kapittel er gjennomført, svarer eieren på gjennomgangsspørsmålene med egne ord, ser modellsvaret målt mot læringsutbyttet og vurderer svaret sitt. Spørsmålene fordeles på flere kvelder gjennom dagens forslag. Demoen får gjennomgang med modellsvar.
 **FR:** FR-27, FR-28, FR-19, FR-10 (gjennomgangsspørsmål i forslaget), FR-26 (del 2: gjennomgang)
 
 ### Epic 5: Trening til muntlig eksamen og vurdering
@@ -173,7 +175,7 @@ FR-4, FR-5 og FR-7 (nye emner uten notatfiler), innliming av notater og gjennomg
 
 ## Epic 1: Kveldsøkta virker, for eieren
 
-Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, leser KI-sammendraget og tar quizen. Delkapittelet krysses av ved 80 %, og framdriften vises. Innholdet kommer fra notatfilene via importkommandoen, og appen er i drift på Vercel.
+Eieren logger inn, velger IBE430, åpner et klart delkapittel i kapittel 1–4, leser sammendraget og tar quizen. Delkapittelet krysses av ved 80 %, og framdriften vises. Innholdet kommer fra notatfilene og innholdsfilene via importkommandoen, og appen er i drift på Vercel.
 
 ### Story 1.1: Prosjektet er satt opp og forsiden er i drift
 
@@ -185,7 +187,7 @@ slik at hver ny funksjon kan bygges, testes og settes i drift med en gang (NFR-7
 
 **Gitt** et tomt repo
 **Når** prosjektet opprettes
-**Så** er det Next.js 16.4 (minst 16.4.1) med TypeScript, og kildetreet `src/domain`, `src/application`, `src/adapters/{supabase,bedrock,demo,clock}`, `src/app`, `scripts/`, `supabase/migrations/` og `demo-data/` finnes
+**Så** er det Next.js 16.4 (minst 16.4.1) med TypeScript, og kildetreet `src/domain`, `src/application`, `src/adapters/{supabase,demo,clock}`, `src/app`, `scripts/`, `supabase/migrations/` og `demo-data/` finnes
 **Og** en lint-regel feiler hvis `src/domain` importerer fra andre lag eller fra rammeverk-, database- eller KI-pakker, eller hvis `src/app` eller `scripts` importerer fra `src/adapters` direkte (AD-1)
 
 **Gitt** prosjektet
@@ -295,60 +297,61 @@ slik at appen viser IBE430 slik jeg har skrevet det (FR-8 uten KI, AD-2, AD-4, A
 **Så** vises kapitler og delkapitler i riktig rekkefølge med norske titler
 **Og** delkapitler uten notater er merket «mangler notater»
 
-### Story 1.5: Importen lager KI-sammendrag, og eieren kan lese dem
+### Story 1.5: Importen legger inn sammendrag, og eieren kan lese dem
 
 Som eier
-vil jeg at importen lager et kort sammendrag av hvert delkapittel fra notatene mine,
+vil jeg at importen legger inn et kort sammendrag av hvert delkapittel, laget på forhånd i Claude Code fra notatene mine,
 slik at jeg kan lese det om kvelden uten å vente (FR-8, FR-11, AD-4, AD-7, AD-8).
 
 **Akseptansekriterier:**
 
-**Gitt** KI-modulen i `src/adapters/bedrock` som implementerer porten `AiProvider` med `AnthropicBedrock` i `eu-central-1`
-**Når** en oppgave kaller KI
-**Så** hentes modell og effort fra én innstillingsfil (sammendrag: `eu.anthropic.claude-sonnet-5-5`, effort satt eksplisitt)
-**Og** en enhetstest feiler hvis en modell-ID i innstillingsfilen ikke starter med `eu.`
-**Og** prompten ligger i en versjonert fil, og svaret valideres mot et skjema før det lagres
+**Gitt** instruksjonen `notater/_instruksjoner/innhold.v1.md`
+**Når** sammendragene for et kapittel lages i Claude Code
+**Så** skrives de til `## Sammendrag` i `kapittel-<n>.innhold.md` med `### n.m Tittel`, `inputHash` fra notatet og høyst 600 ord på norsk bokmål, bare fra notatet, med emnets læringsutbytte og kapittelets læringsmål som kontekst
+**Og** innholdsfila oppgir instruksjonsversjon og modell
 
-**Gitt** et delkapittel med notater og et `inputHash` som er nytt eller endret (hash av normalisert notat, kapittelets læringsmål og nøkkelbegreper og promptversjon)
+**Gitt** et delkapittel med notater og et sammendrag i innholdsfila (`inputHash` = hash av normalisert notat, kapittelets læringsmål og nøkkelbegreper og instruksjonsversjon)
 **Når** importen kjøres
-**Så** lages et sammendrag på norsk bokmål med maks 600 ord, bare fra notatet, med emnets læringsutbytte og kapittelets læringsmål som kontekst
-**Og** sammendraget lagres som en ny versjon med status `klart`, modell-ID, promptversjon og `inputHash`
-**Og** et delkapittel med uendret `inputHash` gir ingen nye KI-kall
-**Og** `--force 1.2` lager sammendraget for 1.2 på nytt
+**Så** lagres sammendraget som en ny versjon med status `klart`, modell, instruksjonsversjon og `inputHash`, hvis teksten er ny eller endret
+**Og** uendret tekst gir ingen ny versjon
+**Og** `--force 1.2` legger inn sammendraget for 1.2 på nytt
 
-**Gitt** at KI-kallet feiler eller svaret ikke passer skjemaet
+**Gitt** en ugyldig innholdsfil (sammendrag over 600 ord, tomt sammendrag, ukjent delkapittel)
 **Når** importen kjører
-**Så** registreres en ny versjon med status `feilet`, en eventuell tidligere `klart`-versjon beholdes, og importen fortsetter med neste delkapittel (AD-8)
-**Og** neste import prøver på nytt
+**Så** skrives ingenting fra innholdsfila, feilene listes, og tidligere versjoner beholdes (AD-8)
+
+**Gitt** et sammendrag med en annen `inputHash` enn notatet har nå
+**Når** importen kjører
+**Så** sier importen at sammendraget er utdatert
 
 **Gitt** et delkapittel med en klar sammendragsversjon
 **Når** eieren åpner delkapittelet
 **Så** vises den siste klare versjonen på under 3 sekunder (NFR-3)
-**Og** kapittellisten viser status «innhold lages», «klart» eller «feilet» per delkapittel
+**Og** kapittellisten viser status «mangler innhold», «klart» eller «utdatert» per delkapittel
 
-### Story 1.6: Importen lager spørsmålsbanken
+### Story 1.6: Importen legger inn spørsmålsbanken
 
 Som eier
-vil jeg at importen lager 20 quizspørsmål per delkapittel, med mine egne spørsmål med,
+vil jeg at importen legger inn 20 quizspørsmål per delkapittel, laget i Claude Code, med mine egne spørsmål med,
 slik at jeg kan ta flere quizer uten å få de samme spørsmålene (FR-13, AD-6, AD-14).
 
 **Akseptansekriterier:**
 
 **Gitt** et delkapittel med notater og nytt eller endret `inputHash`
-**Når** importen lager spørsmålsbanken første gang
-**Så** lages først en temaliste for delkapittelet, og deretter 20 flervalgsspørsmål med fire alternativer, nøyaktig ett riktig, en kort forklaring og ett tema fra listen
+**Når** spørsmålsbanken lages første gang i Claude Code etter instruksjonen
+**Så** lages først en temaliste for delkapittelet, og deretter 20 flervalgsspørsmål med fire alternativer, nøyaktig ett riktig, en kort forklaring og ett tema fra listen, i `## Quizspørsmål` i innholdsfila
 **Og** hvert tema har minst 2 spørsmål
-**Og** skjemaet avviser spørsmål med et tema som ikke er på listen, eller som ikke har nøyaktig fire alternativer og ett riktig
-**Og** banken lagres som en versjon med status, modell-ID og promptversjon (Sonnet 5.5)
+**Og** importens validering av innholdsfila avviser spørsmål med et tema som ikke er på listen, eller som ikke har nøyaktig fire alternativer og ett riktig
+**Og** banken lagres som en versjon med status, modell og instruksjonsversjon fra innholdsfila
 
 **Gitt** tabellen i `## Spørsmålsbank` i notatfilen (kolonnene `#`, `Delkapittel`, `Spørsmål` og `Fasit`)
 **Når** importen leser den
-**Så** blir hvert spørsmål med i banken til sitt delkapittel, med brukerens fasit som riktig alternativ, og KI lager bare tre gale alternativer, forklaring og tema
+**Så** blir hvert spørsmål med i banken til sitt delkapittel, med brukerens fasit som riktig alternativ, og Claude Code lager bare tre gale alternativer, forklaring og tema
 **Og** disse spørsmålene erstattes aldri automatisk
 
 **Gitt** et spørsmål i `## Spørsmålsbank` med fasit «Ja» eller «Nei» (for eksempel spørsmål 2 og 8 i `kapittel-1.md`)
-**Når** importen lager quizspørsmålet
-**Så** skriver KI det om til et flervalgsspørsmål med fire alternativer, der det riktige alternativet er påstanden slik brukerens fasit bekrefter eller avkrefter den
+**Når** quizspørsmålet lages
+**Så** skriver Claude Code det om til et flervalgsspørsmål med fire alternativer, der det riktige alternativet er påstanden slik brukerens fasit bekrefter eller avkrefter den
 **Og** spørsmålet er merket som omskrevet av KI, med originalteksten lagret
 
 **Gitt** at spørsmålsnumre er nevnt under «**Må avklares før bruk:**» i notatfilen
@@ -357,11 +360,12 @@ slik at jeg kan ta flere quizer uten å få de samme spørsmålene (FR-13, AD-6,
 
 **Gitt** at notatet til et delkapittel er endret
 **Når** importen kjøres
-**Så** trekkes bare ubrukte, KI-genererte spørsmål tilbake med status (de slettes ikke), og nye lages med den eksisterende temalisten
+**Så** sier importen at banken er utdatert
+**Og** når nye spørsmål er laget i innholdsfila med den eksisterende temalisten, trekkes bare ubrukte, KI-genererte spørsmål tilbake med status (de slettes ikke)
 
 **Gitt** et delkapittel med færre enn 10 ubesvarte, aktive spørsmål
 **Når** importen kjøres
-**Så** fylles banken på med nye spørsmål om eksisterende temaer
+**Så** sier importen fra, og nye spørsmål om eksisterende temaer legges til i innholdsfila
 
 **Gitt** et delkapittel med både et klart sammendrag og en klar spørsmålsbank
 **Når** kapittellisten vises
@@ -443,12 +447,13 @@ slik at feil innhold blir rettet uten at kvelden stopper (FR-12, FR-16, AD-18). 
 
 **Gitt** et sammendrag
 **Når** eieren melder feil
-**Så** merkes sammendraget, det gamle vises til neste import, og neste import lager det på nytt
+**Så** merkes sammendraget, og det gamle vises til neste import
+**Og** importen lister merkede sammendrag, og neste import legger inn den rettede versjonen fra innholdsfila
 
 **Gitt** et quizspørsmål i en quiz som er i gang
 **Når** eieren melder feil
 **Så** trekkes spørsmålet tilbake fra banken med en gang og teller ikke i resultatet, som regnes av de gjenværende (for eksempel 8 av 9), også for 80 %-grensen
-**Og** neste import lager et nytt spørsmål om samme tema
+**Og** importen lister spørsmålet, og neste import legger inn et nytt spørsmål om samme tema fra innholdsfila
 
 ## Epic 2: Demoen, så faglærer og sensor kan prøve uten konto
 
@@ -492,12 +497,12 @@ slik at jeg forstår hva appen gjør, uten å lage konto (FR-26, UJ-5).
 **Gitt** demoen
 **Når** den besøkende åpner kapittellisten og et delkapittel
 **Så** vises struktur, status og sammendrag fra demofilene med de samme skjermene som i appen
-**Og** opprette eller endre emner, feilrapporter og andre funksjoner som krever lagring eller KI, er skjult
+**Og** opprette eller endre emner, feilrapporter og andre funksjoner som krever varig lagring, er skjult
 
 **Gitt** komposisjonsroten for demoen
 **Når** den testes
-**Så** bruker den bare `DemoDataSource` og `DemoClock`, og importerer verken Supabase- eller Bedrock-adapteren (test i CI for NFR-5 og NFR-8)
-**Og** demoen sender ingen forespørsler til Supabase eller Bedrock
+**Så** bruker den bare `DemoDataSource` og `DemoClock`, og importerer ikke Supabase-adapteren (test i CI for NFR-5 og NFR-8)
+**Og** demoen sender ingen forespørsler til Supabase
 
 ### Story 2.3: Den demobesøkende tar quiz og ser framdriften
 
@@ -637,9 +642,9 @@ slik at jeg ser at appen tar beslutningen for brukeren (FR-26 del 2).
 **Når** startsiden vises igjen
 **Så** oppdateres framdriften i besøket, mens forslaget ligger fast til den faste demo-dagen er slutt (aldri i praksis)
 
-## Epic 4: Kapittelgjennomgang med KI-tilbakemelding
+## Epic 4: Kapittelgjennomgang med modellsvar
 
-Når et kapittel er gjennomført, svarer eieren på gjennomgangsspørsmålene med egne ord og får tilbakemelding målt mot læringsutbyttet. Spørsmålene fordeles på flere kvelder gjennom dagens forslag. Demoen får gjennomgang med eksempeltilbakemeldinger.
+Når et kapittel er gjennomført, svarer eieren på gjennomgangsspørsmålene med egne ord, ser modellsvaret målt mot læringsutbyttet og vurderer svaret sitt. Spørsmålene fordeles på flere kvelder gjennom dagens forslag. Demoen får gjennomgang med modellsvar.
 
 ### Story 4.1: Importen legger inn gjennomgangsspørsmålene
 
@@ -704,32 +709,30 @@ slik at jeg ser sammenhengen i hele kapittelet, slik muntlig eksamen krever (FR-
 **Så** er gjennomgangen fullført og merket i kapittellisten, og eieren kan ta den på nytt
 **Og** gjennomgangen påvirker ikke avkrysning, plan eller etterslep
 
-### Story 4.3: Eieren får KI-tilbakemelding på svarene
+### Story 4.3: Eieren ser modellsvaret og vurderer svaret sitt
 
 Som eier
-vil jeg få vite hva som var bra og hva som manglet i svaret mitt, målt mot læringsutbyttet,
+vil jeg se et modellsvar med hovedpunktene etter at jeg har svart, og vurdere selv hvor mye jeg fikk med,
 slik at jeg øver på å forklare slik sensor spør (FR-19, FR-6, AD-7, AD-18, NFR-3).
 
 **Akseptansekriterier:**
 
 **Gitt** et lagret svar på et gjennomgangsspørsmål
-**Når** eieren ber om tilbakemelding
-**Så** kalles KI synkront fra serverkode på Vercel gjennom `AiProvider`, med modellen for tilbakemelding fra innstillingsfilen (`eu.anthropic.claude-opus-5-5`, effort satt eksplisitt)
-**Og** prompten får emnets læringsutbytte og eksamensform, kapittelets læringsmål og notatene fra alle delkapitlene i kapittelet
-**Og** tilbakemeldingen valideres mot et skjema og lagres med modell-ID og promptversjon
+**Når** eieren har svart
+**Så** vises modellsvaret fra innholdsfila med hovedpunktene og læringsutbyttet det måles mot, med ordlyden (FR-6, UX-4)
+**Og** modellsvaret vises ikke før svaret er lagret
 
-**Gitt** tilbakemeldingen
-**Når** den vises
-**Så** er den på norsk bokmål, kort og vennlig, sier først hva som var bra og så hva som manglet, og viser til minst ett læringsutbytte med ordlyden (FR-6, UX-4)
-**Og** den kommer på under 20 sekunder (NFR-3), med en tydelig ventetilstand imens
+**Gitt** modellsvaret
+**Når** eieren har lest det
+**Så** velger eieren «Fikk med det meste», «Fikk med noe» eller «Fikk med lite», og valget lagres med svaret og økta, slik at vurderingen (FR-21) kan bruke det senere
 
-**Gitt** at KI-kallet feiler eller går over tiden
-**Når** eieren venter på tilbakemelding
-**Så** er svaret allerede lagret, eieren får en norsk feilmelding og kan prøve igjen uten å skrive svaret på nytt
+**Gitt** at et spørsmål mangler modellsvar
+**Når** eieren har svart
+**Så** lagres svaret, og eieren får beskjed om at modellsvaret ikke er laget ennå
 
-**Gitt** en tilbakemelding
-**Når** den er lagret
-**Så** hører den til svaret og økta, slik at vurderingen (FR-21) kan bruke den senere
+**Gitt** et lagret svar
+**Når** modellsvaret hentes
+**Så** vises det på under 3 sekunder (NFR-3), uten KI-kall
 
 ### Story 4.4: Dagens forslag tar med gjennomgangsspørsmål
 
@@ -755,64 +758,65 @@ slik at kapittel 1 med 29 spørsmål tar omtrent tre kvelder uten at planen spre
 ### Story 4.5: Importen lager gjennomgangsspørsmål når kapittelet ikke har noen
 
 Som eier
-vil jeg at appen lager 10 gjennomgangsspørsmål for kapitler uten slike i notatfilen,
+vil jeg at det lages 10 gjennomgangsspørsmål for kapitler uten slike i notatfilen,
 slik at alle kapitler kan få en gjennomgang (FR-27). *Kan flyttes til Epic 5 hvis tiden blir knapp.*
 
 **Akseptansekriterier:**
 
 **Gitt** et kapittel uten `## Gjennomgangsspørsmål` og uten lagrede gjennomgangsspørsmål, der alle delkapitler med notater er klare
 **Når** importen kjøres
-**Så** lager KI 10 gjennomgangsspørsmål fra notatene i hele kapittelet, i stil med testdataene i PRD-addendumet
-**Og** spørsmålene er merket som laget av appen
+**Så** legger importen inn 10 gjennomgangsspørsmål med modellsvar fra `## Gjennomgangsspørsmål (laget med KI)` i innholdsfila, laget i Claude Code fra notatene i hele kapittelet, i stil med testdataene i PRD-addendumet
+**Og** spørsmålene er merket som laget med KI
 
 **Gitt** at eieren senere legger til `## Gjennomgangsspørsmål` i notatfilen
 **Når** importen kjøres
 **Så** erstatter eierens spørsmål de KI-lagde, og de KI-lagde trekkes tilbake med status
 
-### Story 4.6: Demoen viser kapittelgjennomgang med eksempeltilbakemelding
+### Story 4.6: Demoen viser kapittelgjennomgang med modellsvar
 
 Som demobesøkende
-vil jeg prøve en kapittelgjennomgang og se hvordan tilbakemeldingen ser ut,
+vil jeg prøve en kapittelgjennomgang og se hvordan modellsvaret og selvvurderingen ser ut,
 slik at jeg ser at appen trener til muntlig eksamen (FR-26 del 2). *Kan kuttes hvis tiden blir knapp.*
 
 **Akseptansekriterier:**
 
 **Gitt** `export-demo`
 **Når** den kjøres
-**Så** tar den med 5 gjennomgangsspørsmål for hvert av kapitlene 1–3, uten skrivefeil, og en fast eksempeltilbakemelding på hvert
+**Så** tar den med 5 gjennomgangsspørsmål for hvert av kapitlene 1–3, uten skrivefeil, og modellsvaret på hvert
 **Og** valideringen feiler hvis et av kapitlene mangler spørsmål
 
 **Gitt** demoen
 **Når** den demobesøkende åpner kapittelgjennomgangen for kapittel 1–3 og skriver et svar
-**Så** vises eksempeltilbakemeldingen, tydelig merket som eksempel, uten KI-kall
-**Og** svaret vurderes ikke og lagres bare i besøket
+**Så** vises modellsvaret og selvvurderingsvalget, uten KI-kall
+**Og** svaret og valget lagres bare i besøket
 
 ## Epic 5: Trening til muntlig eksamen og vurdering
 
 Eieren trener på forklaringsspørsmål, enten valgt selv eller som overraskelse etter quizen, og får etter hver økt en kort, ærlig vurdering. Svake temaer kommer tilbake som repetisjon. Demoen får eksempler. Minimum er story 5.1–5.3. Story 5.4–5.6 kan kuttes (PRD §9.1).
 
-### Story 5.1: Importen lager forklaringsspørsmål
+### Story 5.1: Importen legger inn forklaringsspørsmål
 
 Som eier
-vil jeg at importen lager forklaringsspørsmål i stil med muntlig eksamen for hvert delkapittel,
+vil jeg at importen legger inn forklaringsspørsmål med modellsvar i stil med muntlig eksamen for hvert delkapittel,
 slik at de er klare når jeg vil trene (FR-17, FR-18, AD-4, AD-7, AD-18).
 
 **Akseptansekriterier:**
 
 **Gitt** et delkapittel med notater og nytt eller endret `inputHash`
 **Når** importen kjøres
-**Så** lager KI 3 åpne forklaringsspørsmål («Forklar hvordan …») fra notatene, med emnets læringsutbytte, eksamensform og kapittelets læringsmål som kontekst
+**Så** legger importen inn 3 åpne forklaringsspørsmål («Forklar hvordan …») med modellsvar fra `## Forklaringsspørsmål` i innholdsfila, laget i Claude Code fra notatene med emnets læringsutbytte, eksamensform og kapittelets læringsmål som kontekst
 **Og** stilen følger gjennomgangsspørsmålene i PRD-addendumet
-**Og** spørsmålene valideres mot et skjema og lagres med modell-ID (Sonnet 5.5) og promptversjon
+**Og** spørsmålene valideres med resten av innholdsfila og lagres med modell og instruksjonsversjon
 
 **Gitt** at notatet endres
 **Når** importen kjøres
-**Så** trekkes ubrukte forklaringsspørsmål tilbake med status og erstattes, mens besvarte spørsmål beholdes
+**Så** sier importen at forklaringsspørsmålene er utdatert
+**Og** når nye er laget i innholdsfila, trekkes ubrukte forklaringsspørsmål tilbake med status og erstattes, mens besvarte spørsmål beholdes
 
 ### Story 5.2: Eieren trener på forklaringsspørsmål selv
 
 Som eier
-vil jeg velge å trene på forklaringsspørsmål for et emne eller et delkapittel og få tilbakemelding,
+vil jeg velge å trene på forklaringsspørsmål for et emne eller et delkapittel og se modellsvaret,
 slik at jeg øver på å forklare med egne ord før muntlig eksamen (FR-18, FR-19, UJ-3).
 
 **Akseptansekriterier:**
@@ -824,7 +828,7 @@ slik at jeg øver på å forklare med egne ord før muntlig eksamen (FR-18, FR-1
 
 **Gitt** et forklaringsspørsmål
 **Når** eieren skriver svaret
-**Så** lagres svaret og får tilbakemelding på samme måte som i story 4.3, men målt mot notatene i delkapittelet
+**Så** lagres svaret, og eieren ser modellsvaret og vurderer svaret sitt på samme måte som i story 4.3, men målt mot notatene i delkapittelet
 **Og** eieren kan ta flere spørsmål i samme økt eller avslutte
 
 **Gitt** forklaringsspørsmålene
@@ -841,12 +845,12 @@ slik at jeg vet hva jeg kan og hva jeg må jobbe mer med (FR-21, AD-16, UX-4).
 
 **Gitt** en økt med quiz, forklaringsspørsmål eller gjennomgangsspørsmål
 **Når** økta avsluttes (quizresultatet er vist og et eventuelt forklaringsspørsmål er besvart eller hoppet over, eller eieren avslutter treningen eller gjennomgangen)
-**Så** avslutter `endSession` økta og ber om nøyaktig én vurdering
+**Så** avslutter `endSession` økta og lager nøyaktig én vurdering
 **Og** ingen annen kode avslutter økter eller lager vurderinger
 
 **Gitt** vurderingen
-**Når** KI lager den (Sonnet 5.5)
-**Så** er den en eller to setninger på norsk bokmål som sier hva eieren har god kontroll på før det som trenger mer arbeid, målt mot læringsutbyttet
+**Når** den regnes ut i `src/domain` fra quizresultater per tema og selvvurderinger, uten KI-kall
+**Så** er den en eller to setninger på norsk bokmål etter faste maler, som sier hva eieren har god kontroll på før det som trenger mer arbeid
 **Og** den sier hva den bygger på (for eksempel «basert på 12 quizer, 3 forklaringsspørsmål og 29 gjennomgangsspørsmål»)
 **Og** den pynter ikke på situasjonen og er ikke nedslående (SM-C3)
 **Og** temaene den peker på, lagres som en liste over temaer fra delkapitlenes temalister
@@ -855,9 +859,9 @@ slik at jeg vet hva jeg kan og hva jeg må jobbe mer med (FR-21, AD-16, UX-4).
 **Når** økta er avsluttet
 **Så** vises vurderingen etter økta og ligger på startsiden til neste vurdering
 
-**Gitt** at KI-kallet feiler
-**Når** økta avsluttes
-**Så** blir forrige vurdering stående på startsiden, og ny vurdering lages etter neste økt
+**Gitt** regelen for vurderingen
+**Når** den testes
+**Så** finnes enhetstester for malene for god kontroll, blandet og mye å jobbe med (NFR-8)
 
 ### Story 5.4: Appen gir et forklaringsspørsmål etter quizen
 
@@ -898,16 +902,16 @@ slik at jeg tetter hullene uten at planen forsinkes (FR-10 del 3). *Kan kuttes.*
 ### Story 5.6: Demoen viser forklaringsspørsmål og en eksempelvurdering
 
 Som demobesøkende
-vil jeg se et forklaringsspørsmål med tilbakemelding og en vurdering,
+vil jeg se et forklaringsspørsmål med modellsvar og en vurdering,
 slik at jeg ser hele kveldsøkta (FR-26 del 3, SM-6). *Kan kuttes.*
 
 **Akseptansekriterier:**
 
 **Gitt** `export-demo`
 **Når** den kjøres
-**Så** tar den med minst ett forklaringsspørsmål per kapittel med en fast eksempeltilbakemelding, og en fast eksempelvurdering
+**Så** tar den med minst ett forklaringsspørsmål per kapittel med modellsvar, og en eksempelvurdering regnet ut med samme regel fra demodataene
 
 **Gitt** demoen
 **Når** den demobesøkende svarer på et forklaringsspørsmål etter quizen
-**Så** vises eksempeltilbakemeldingen, tydelig merket som eksempel, uten KI-kall
+**Så** vises modellsvaret og selvvurderingsvalget, uten KI-kall
 **Og** startsiden viser eksempelvurderingen
