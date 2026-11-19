@@ -17,18 +17,18 @@ describe("normalizeNote", () => {
 });
 
 describe("summaryHashSource", () => {
-  const parts = { noteText: "Notat", learningGoals: "- mål", keyConcepts: "- begrep", promptVersion: "summary.v1" };
+  const parts = { noteText: "Notat", learningGoals: "- mål", keyConcepts: "- begrep", instructionVersion: "innhold.v1" };
 
   it("er lik for notater som bare skiller seg i linjeskift og mellomrom rundt", () => {
     expect(summaryHashSource({ ...parts, noteText: "\r\nNotat\r\n" })).toBe(summaryHashSource(parts));
   });
 
-  it("endres når notat, læringsmål, nøkkelbegreper eller promptversjon endres", () => {
+  it("endres når notat, læringsmål, nøkkelbegreper eller instruksjonsversjon endres", () => {
     const base = summaryHashSource(parts);
     expect(summaryHashSource({ ...parts, noteText: "Notat 2" })).not.toBe(base);
     expect(summaryHashSource({ ...parts, learningGoals: "- nytt mål" })).not.toBe(base);
     expect(summaryHashSource({ ...parts, keyConcepts: "" })).not.toBe(base);
-    expect(summaryHashSource({ ...parts, promptVersion: "summary.v2" })).not.toBe(base);
+    expect(summaryHashSource({ ...parts, instructionVersion: "innhold.v2" })).not.toBe(base);
   });
 
   it("skiller feltene, så tekst som flyttes mellom dem gir annen kilde", () => {

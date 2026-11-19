@@ -1,14 +1,21 @@
 // `npm run import -- --target dev|prod [--force <n.m>] <EMNE> <n>`: legger kapittel, delkapitler og
-// notater fra notatfilen inn i databasen (FR-8) og lager KI-sammendrag for delkapitler med notater
-// (FR-11). Idempotent: uendret innhold gir ingen nye KI-kall. Hele filen valideres før noe skrives,
-// og prod krever bekreftelse. Avslutter med kode 1 ved feil, også når et sammendrag feilet eller
-// AWS-nøklene mangler.
+// notater fra notatfilen inn i databasen (FR-8) og sammendragene fra innholdsfilen
+// `kapittel-<n>.innhold.md` (FR-11). Sammendragene er laget på forhånd i Claude Code, og importen
+// kaller aldri en KI-leverandør (AD-7). Idempotent: uendret innhold gir ingen nye versjoner. Begge
+// filene valideres før noe skrives og før bekreftelsen mot prod. Avslutter med kode 1 ved feil, også
+// når et sammendrag er utdatert. Mangler innholdsfilen, lagres kapitlene, og alt «mangler innhold».
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { importChapter, importMessages, prepareChapterImport, reportImport } from "../src/application/importChapter";
-import { getAiProviderForScript, getDataSourceForScript } from "../src/composition/script";
-import { importUsage, isConfirmed, notesFilePath, parseImportArgs } from "./importArgs";
+import {
+  importChapter,
+  importMessages,
+  prepareChapterImport,
+  reportImport,
+  type InvalidImport,
+} from "../src/application/importChapter";
+import { getDataSourceForScript } from "../src/composition/script";
+import { contentFilePath, importUsage, isConfirmed, notesFilePath, parseImportArgs } from "./importArgs";
 
 /** Spør i terminalen. Gir `null` hvis inndata lukkes uten svar. */
 function ask(question: string): Promise<string | null> {
@@ -26,6 +33,15 @@ function ask(question: string): Promise<string | null> {
   });
 }
 
+/** Leser innholdsfilen. `null` når den ikke finnes, `undefined` når den finnes, men ikke kan leses. */
+function readContentFile(path: string): string | null | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT" ? null : undefined;
+  }
+}
+
 async function main(): Promise<number> {
   const args = parseImportArgs(process.argv.slice(2));
   if (!args.ok) {
@@ -35,6 +51,7 @@ async function main(): Promise<number> {
   }
   const { target, courseCode, chapterNumber, force } = args.value;
   const file = notesFilePath(args.value);
+  const contentFile = contentFilePath(args.value);
 
   let text: string;
   try {
@@ -43,22 +60,30 @@ async function main(): Promise<number> {
     console.error(`Fant ikke notatfilen ${file}.`);
     return 1;
   }
+  const content = readContentFile(resolve(process.cwd(), contentFile));
+  if (content === undefined) {
+    console.error(`Fikk ikke lest innholdsfilen ${contentFile}.`);
+    return 1;
+  }
+  if (content === null) console.log(`Fant ikke innholdsfilen ${contentFile}. Delkapitlene får «mangler innhold».`);
 
-  const prepared = prepareChapterImport(text, { courseCode, chapterNumber }, force);
+  const printInvalid = (invalid: InvalidImport) => {
+    const name = invalid.file === "notes" ? `Notatfilen ${file}` : `Innholdsfilen ${contentFile}`;
+    console.error(`${name} har feil. Ingenting er skrevet.`);
+    for (const error of invalid.errors) console.error(`  ${error}`);
+  };
+
+  const chapterTarget = { courseCode, chapterNumber };
+  const options = { content, force };
+  const prepared = prepareChapterImport(text, chapterTarget, options);
   if (prepared.status === "invalid") {
-    console.error(`Notatfilen ${file} har feil. Ingenting er skrevet.`);
-    for (const error of prepared.errors) console.error(`  ${error}`);
+    printInvalid(prepared);
     return 1;
   }
 
-  // Uten AWS-nøkler lagres kapitlene som før, men uten sammendrag. Avklares før bekreftelsen, så
-  // eieren vet det før svaret.
-  const ai = getAiProviderForScript(target);
-
   if (target === "prod") {
-    if (!ai.ok) console.error(ai.error);
     const answer = await ask(
-      `Du importerer ${courseCode} kapittel ${chapterNumber} til prod. KI-sammendrag koster penger. Skriv ja for å importere til prod: `,
+      `Du importerer ${courseCode} kapittel ${chapterNumber} til prod. Skriv ja for å importere til prod: `,
     );
     if (!isConfirmed(answer)) {
       console.error("Avbrutt. Ingenting er skrevet.");
@@ -72,20 +97,16 @@ async function main(): Promise<number> {
     return 1;
   }
   console.log(`Importerer ${courseCode} kapittel ${chapterNumber} til ${target}.`);
-  const result = await importChapter(source.data, text, { courseCode, chapterNumber }, {
-    ai: ai.ok ? ai.ai : null,
-    force,
-  });
+  const result = await importChapter(source.data, text, chapterTarget, options);
   switch (result.status) {
     case "ok": {
-      const report = reportImport(result, ai.ok ? null : ai.error);
+      const report = reportImport(result);
       for (const line of report.stdout) console.log(line);
       for (const line of report.stderr) console.error(line);
       return report.code;
     }
     case "invalid":
-      console.error(`Notatfilen ${file} har feil. Ingenting er skrevet.`);
-      for (const error of result.errors) console.error(`  ${error}`);
+      printInvalid(result);
       return 1;
     case "courseNotFound":
       console.error(importMessages.courseNotFound(result.courseCode));

@@ -33,7 +33,7 @@ export type SummaryVersion = {
   createdAt: string;
 };
 
-/** En ny versjon fra importen. Importen venter på KI-svaret, så den lagrer bare `klart` eller `feilet`. */
+/** En ny versjon fra importen. Importen lagrer bare `klart`. */
 export type NewSummaryVersion = {
   subchapterId: string;
   modelId: string;

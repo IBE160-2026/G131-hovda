@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isConfirmed, notesFilePath, parseImportArgs } from "./importArgs";
+import { contentFilePath, isConfirmed, notesFilePath, parseCourseChapter, parseImportArgs } from "./importArgs";
 
 describe("parseImportArgs", () => {
   it("tolker miljø, emnekode og kapittelnummer", () => {
@@ -97,5 +97,22 @@ describe("isConfirmed", () => {
     expect(isConfirmed("yes")).toBe(false);
     expect(isConfirmed("")).toBe(false);
     expect(isConfirmed(null)).toBe(false);
+  });
+});
+
+describe("contentFilePath", () => {
+  it("peker på innholdsfilen ved siden av notatfilen", () => {
+    expect(contentFilePath({ courseCode: "IBE430", chapterNumber: 1 })).toBe(
+      "G131-hovda/notater/IBE430/kapittel-1.innhold.md",
+    );
+  });
+});
+
+describe("parseCourseChapter", () => {
+  it("tolker emnekode og kapittelnummer og avviser resten", () => {
+    expect(parseCourseChapter(["ibe430", "1"])).toEqual({ ok: true, value: { courseCode: "IBE430", chapterNumber: 1 } });
+    expect(parseCourseChapter(["IBE430"]).ok).toBe(false);
+    expect(parseCourseChapter(["../x", "1"]).ok).toBe(false);
+    expect(parseCourseChapter(["IBE430", "0"]).ok).toBe(false);
   });
 });

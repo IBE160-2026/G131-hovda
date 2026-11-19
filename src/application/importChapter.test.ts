@@ -107,6 +107,7 @@ describe("importChapter", () => {
     const result = await importChapter(data, sixSubchapters, { courseCode: "IBE430", chapterNumber: 2 });
     expect(result).toEqual({
       status: "invalid",
+      file: "notes",
       errors: ["Linje 3: kapittel er 1 i frontmatter, men filen er kapittel-2.md."],
     });
     expect(data.chapterWrites).toBe(0);

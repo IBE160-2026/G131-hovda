@@ -30,3 +30,6 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
   summary: RLS-lesetesten for `summary_versions` i `rls.dev.test.ts` beviser ingenting så lenge tabellen i `dev` ikke har eierrader.
   evidence: Testen filtrerer bort testkontoens egne rader og venter en tom liste; med tom tabell består den også med `using (true)`. Bør kreve minst én eierrad (telle med service role) etter første import med KI mot `dev`.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5a-v2-importen-legger-inn-sammendrag-fra-innholdsfila.md`
+  summary: Grenen i `scripts/import.ts` der innholdsfila finnes, men ikke kan leses (ikke ENOENT, kode 1), har ingen test.
+  evidence: Verification-gap-review 19.11.2026. Returnerer `readContentFile` `null` for alle feil, blir en ulesbar fil stille til «mangler innhold» med kode 0, og ingen test feiler. Krever en fixturmappe eller en katalog på fil-stien i en spawn-test.

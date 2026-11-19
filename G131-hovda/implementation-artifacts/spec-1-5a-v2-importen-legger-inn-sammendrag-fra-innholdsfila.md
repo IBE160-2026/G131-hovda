@@ -2,7 +2,7 @@
 title: 'Story 1.5a v2: Importen legger inn sammendrag fra innholdsfila'
 type: 'feature'
 created: '2026-11-19'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: 'f212cbd89f46d722018444a4c90831226dfe378e'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -67,16 +67,16 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/adapters/bedrock/`, `src/application/aiProvider.ts`, `src/composition/script.ts` + test, `package.json` -- fjern Bedrock, porten, `getAiProviderForScript` og pakkene (`npm uninstall`)
-- [ ] `src/domain/contentFile.ts` + test -- tolk og valider innholdsfila mot notatfilas delkapitler etter matrisen
-- [ ] `src/domain/summary.ts` -- hash-grunnlaget bruker instruksjonsversjonen
-- [ ] `src/application/importChapter.ts` + tester -- les sammendrag fra innholdsfila, utfall «lagt inn», «uendret», «utdatert», «mangler innhold»; koder etter matrisen
-- [ ] `scripts/importArgs.ts`, `scripts/import.ts` + tester -- `contentFilePath`, les fila (mangler = ingen innhold), valider før prod-bekreftelsen
-- [ ] `scripts/contentHashes.ts`, `package.json` -- `npm run innhold:hash -- IBE430 1` skriver `n.m <inputHash>` for delkapitler med notater, uten database
-- [ ] `G131-hovda/notater/_instruksjoner/innhold.v1.md` -- instruksjonen for sammendrag: kontekst, regler, filformat
-- [ ] `G131-hovda/notater/IBE430/kapittel-1.innhold.md` -- seks sammendrag laget etter instruksjonen, med hash fra `innhold:hash`
-- [ ] `README.md`, `.env.example` -- beskriv innholdsfila og arbeidsflyten; AWS ut
-- [ ] `ARCHITECTURE-SPINE.md` -- ingen endring (allerede oppdatert)
+- [x] `src/adapters/bedrock/`, `src/application/aiProvider.ts`, `src/composition/script.ts` + test, `package.json` -- fjern Bedrock, porten, `getAiProviderForScript` og pakkene (`npm uninstall`)
+- [x] `src/domain/contentFile.ts` + test -- tolk og valider innholdsfila mot notatfilas delkapitler etter matrisen
+- [x] `src/domain/summary.ts` -- hash-grunnlaget bruker instruksjonsversjonen
+- [x] `src/application/importChapter.ts` + tester -- les sammendrag fra innholdsfila, utfall «lagt inn», «uendret», «utdatert», «mangler innhold»; koder etter matrisen
+- [x] `scripts/importArgs.ts`, `scripts/import.ts` + tester -- `contentFilePath`, les fila (mangler = ingen innhold), valider før prod-bekreftelsen
+- [x] `scripts/contentHashes.ts`, `package.json` -- `npm run innhold:hash -- IBE430 1` skriver `n.m <inputHash>` for delkapitler med notater, uten database
+- [x] `G131-hovda/notater/_instruksjoner/innhold.v1.md` -- instruksjonen for sammendrag: kontekst, regler, filformat
+- [x] `G131-hovda/notater/IBE430/kapittel-1.innhold.md` -- seks sammendrag laget etter instruksjonen, med hash fra `innhold:hash`
+- [x] `README.md`, `.env.example` -- beskriv innholdsfila og arbeidsflyten; AWS ut
+- [x] `ARCHITECTURE-SPINE.md` -- ingen endring (allerede oppdatert)
 
 **Acceptance Criteria:**
 - Given koden, when man søker etter `bedrock`, `AiProvider`, `@anthropic-ai` og `AWS_` i `src`, `scripts`, `package.json`, README og `.env.example`, then finnes ingen treff (utenom lint-forbudet).
@@ -111,3 +111,34 @@ Tittelen i `###` trenger ikke stemme med notatfila; nummeret er nøkkelen (AD-5)
 - `npm run innhold:hash -- IBE430 1` -- expected: seks linjer, samme som i innholdsfila
 - `npm run import -- --target dev IBE430 1` to ganger -- expected: seks «lagt inn», så seks «uendret», kode 0
 - `npm run test:dev` -- expected: passerer
+
+## Review Triage Log
+
+| # | Lag | Funn | Dom | Rute | Bevis |
+|---|-----|------|-----|------|-------|
+| 1 | edge | `contentHashes.test.ts`: regexen tåler ikke CRLF | medium | patch | `core.autocrlf=true` og ingen `.gitattributes`. Etter neste checkout har fila CRLF, `.*\n` treffer ikke, og testen feiler. |
+| 2 | blind | `--force` uten innholdsfil sier «Innholdsfilen … har feil» uten å si at fila mangler | low | patch | «Fant ikke innholdsfilen» skrives først etter `prepareChapterImport`. Rettes ved å flytte én linje. |
+| 3 | verif | Ingen test for at endrede nøkkelbegreper gir «utdatert» | low | patch | Alle fixturer har tomme nøkkelbegreper, og `kapittel-1.md` mangler seksjonen. |
+| 4 | verif | Ingen test for ny hash med samme tekst, som skal gi ny versjon | low | patch | Fjernes `ready?.inputHash === inputHash`, består alle testene. |
+| 5 | verif | Ingen test for innholdsfil som finnes, men ikke kan leses | low | defer | Liten gren som er lett å lese. Krever fixturmappe i spawn-test. |
+| 6 | blind | «Alt er uendret» når innhold mangler | false | avvist | Meldingen gjelder databasen, der ingenting er endret. Hver linje sier «mangler innhold», og kode 0 følger matrisen. |
+| 7 | blind | Ukjent `instruksjon` gir «utdatert» i stedet for valideringsfeil | false | avvist | Design Notes: annen instruksjon gjør alt utdatert. `summariesOutdated` nevner instruksjonen. |
+| 8 | blind, edge | `modell` sjekkes ikke for prefikset `claude-code/` | low | avvist | Lite sannsynlig, og en ny sjekk legger til en guard. |
+| 9 | blind, edge | Endret `modell` med samme tekst gir ingen ny versjon | false | avvist | Matrisen: uendret er samme tekst og hash. Modellen er ikke med. |
+| 10 | blind, edge | `####` og innrykkede overskrifter i sammendragsteksten slipper gjennom | low | avvist | Lite sannsynlig. Fiksen er en ny guard. |
+| 11 | blind | 1.4-sammendraget bruker Spørsmålsbank | false | avvist | Rekkefølgen står i 1.4-notatet (`kapittel-1.md` l. 68). Setningen er en sann beskrivelse av notatet. |
+| 12 | blind | Sammendragene omtaler «notatet» og har en løsrevet setning i 1.6 | low | avvist | Stil, ikke feil. 1.6-setningen står i notatet (l. 104). Marte leser sammendragene før prod. |
+| 13 | blind | Emnets læringsutbytte er ikke med i hashen | false | avvist | Hash-grunnlaget er låst i Intent. Instruksjonen sier at eieren limer inn læringsutbyttet ved behov. |
+| 14 | blind, edge | Testene er bundet til de ekte filene, og `import.test.ts` antar at kapittel 2 mangler innholdsfil | low | avvist | Feiler høyt én gang, når innholdet for kapittel 2 lages, og kodekommentaren sier fra. Fixturmappe er mer enn en direkte rettelse. Ført som åpent punkt. |
+| 15 | blind | Dokumentene sier «første linje», mens parseren tar første ikke-tomme linje | false | avvist | Parseren er bare mildere. Ingen feil oppstår. |
+| 16 | blind | Frontmatterfeil kommer i feil rekkefølge, og doble eller ukjente nøkler ignoreres | low | avvist | Kosmetisk eller lite sannsynlig. Fiksen er nye guards. |
+| 17 | edge | Doble frontmatternøkler: første verdi vinner stille | low | avvist | Som 16. |
+| 18 | blind | Døde typer `feilet` og `lages` | low | avvist | Code Map: `dataSource` og adapteren skal være uendret. |
+| 19 | blind | `contentHashes` dupliserer tolkingen | false | avvist | Begge kaller de samme funksjonene, `parseNotesFile` og `checkNotesFileTarget`. |
+| 20 | blind | Review-diffen mangler spec og lockfil, og arkitekturen kan være utdatert | false | avvist | Spec og lockfil ble holdt utenfor med vilje. Lockfila er sjekket og har bare fjernede pakker. `ARCHITECTURE-SPINE.md` merker Bedrock som historikk. |
+| 21 | edge | Mangler `## Sammendrag` helt, gir det «mangler innhold» | low | avvist | Testet med vilje («fil uten sammendrag»), og det samsvarer med raden «mangler innhold». |
+| 22 | edge | Løs tekst før første overskrift kastes stille | low | avvist | Lite sannsynlig. Fiksen er en ny guard. |
+| 23 | edge | Kodeblokker lukkes av kortere eller annen markør | low | avvist | Lite sannsynlig i sammendrag. |
+| 24 | edge | `1.02` tolkes som `1.2` | low | avvist | Lite sannsynlig og harmløst, fordi det treffer riktig delkapittel. |
+| 25 | edge | `innhold:hash` melder alle lesefeil som manglende fil | low | avvist | Samme mønster som notatfila i `import.ts`. Lite sannsynlig. |
+| 26 | edge | Ugyldig notatfil skjuler feil i innholdsfila | low | avvist | Feilene vises ved neste kjøring. Rekkefølgen er bevisst. |

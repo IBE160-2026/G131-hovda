@@ -1,120 +1,91 @@
-// Sammendragene i importen (story 1.5a). Testene bruker en falsk AiProvider, aldri ekte KI.
+/// <reference types="vite/client" />
+// Sammendragene i importen (story 1.5a v2). Sammendragene kommer fra innholdsfilen, aldri fra KI.
 import { describe, expect, it } from "vitest";
-import type { AiProvider, SummaryInput, SummaryResult } from "./aiProvider";
+import innhold1 from "../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
+import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import {
-  anySummaryFailed,
   describeImport,
   importChapter,
   importExitCode,
   importMessages,
   reportImport,
+  type ImportOptions,
 } from "./importChapter";
+import { contentHashes, subchapterInputHash } from "./summaryHash";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
 
-function notesFile(subchapters: [number: string, title: string, note: string][], keyConcepts = "") {
+type Sub = [number: string, title: string, note: string];
+
+function notesFile(subchapters: Sub[], goals = "- mål") {
   const body = subchapters.map(([n, t, note]) => `### ${n} ${t}\n\n${note}\n`).join("\n");
-  const concepts = keyConcepts ? `## Nøkkelbegreper\n\n${keyConcepts}\n\n` : "";
-  return `---\nemne: IBE430\nkapittel: 1\ntittel: "Kapittel én"\n---\n\n## Læringsmål for kapittelet\n\n- mål\n\n${concepts}## Fordelt på delkapitler\n\n${body}\n## Råtekst\n\n### Innliming 1\n\nrå\n`;
+  return `---\nemne: IBE430\nkapittel: 1\ntittel: "Kapittel én"\n---\n\n## Læringsmål for kapittelet\n\n${goals}\n\n## Fordelt på delkapitler\n\n${body}\n## Råtekst\n\n### Innliming 1\n\nrå\n`;
 }
 
-const sixSubchapters = notesFile([
+const six: Sub[] = [
   ["1.1", "En", "Notat en"],
   ["1.2", "To", "Notat to"],
   ["1.3", "Tre", "Notat tre"],
   ["1.4", "Fire", "Notat fire"],
   ["1.5", "Fem", "Notat fem"],
   ["1.6", "Seks", "Notat seks"],
-]);
+];
+const sixSubchapters = notesFile(six);
 
 const target = { courseCode: "ibe430", chapterNumber: 1 };
 
-// Falsk KI: registrerer kallene og svarer med `reply`.
-class FakeAi implements AiProvider {
-  calls: SummaryInput[] = [];
-  summaryPromptVersion = "summary.test1";
-  reply: (input: SummaryInput) => SummaryResult = (input) => ({
-    status: "ok",
-    text: `Sammendrag av ${input.subchapterNumber}.`,
-    modelId: "anthropic.test-modell",
-    promptVersion: this.summaryPromptVersion,
-  });
+const hashOf = (note: string, goals = "- mål") => subchapterInputHash({ learningGoals: goals, keyConcepts: "" }, note);
 
-  async summarize(input: SummaryInput) {
-    this.calls.push(input);
-    return this.reply(input);
-  }
+type Entry = { number: string; text: string; hash: string };
 
-  calledFor() {
-    return this.calls.map((c) => c.subchapterNumber);
-  }
+function contentFile(entries: Entry[], front = "instruksjon: innhold.v1\nmodell: claude-code/test-modell") {
+  const body = entries.map((e) => `### ${e.number} Tittel\n<!-- inputHash: ${e.hash} -->\n${e.text}\n`).join("\n");
+  return `---\nemne: IBE430\nkapittel: 1\n${front}\n---\n\n## Sammendrag\n\n${body}`;
+}
+
+/** Innholdsfil med riktig hash for alle delkapitlene. */
+async function contentFor(subs: Sub[], text = (n: string) => `Sammendrag av ${n}.`) {
+  return contentFile(await Promise.all(subs.map(async ([n, , note]) => ({ number: n, text: text(n), hash: await hashOf(note) }))));
 }
 
 async function setup() {
   const data = new MemoryDataSource();
-  await data.createCourse({
-    code: "IBE430",
-    name: "Virksomhetssystemer",
-    learningOutcomes: "Studenten kan ERP.",
-    examForm: "",
-  });
-  return { data, ai: new FakeAi() };
+  await data.createCourse({ code: "IBE430", name: "Virksomhetssystemer", learningOutcomes: "", examForm: "" });
+  return data;
 }
 
-function outcomes(result: Awaited<ReturnType<typeof importChapter>>) {
-  if (result.status !== "ok") throw new Error(result.status);
-  return result.summaries;
+async function run(data: MemoryDataSource, notes: string, options: ImportOptions) {
+  const result = await importChapter(data, notes, target, options);
+  if (result.status !== "ok") throw new Error(JSON.stringify(result));
+  return result;
 }
 
-function lines(result: Awaited<ReturnType<typeof importChapter>>) {
-  if (result.status !== "ok") throw new Error(result.status);
-  return describeImport(result.chapter, result.report, result.summaries);
-}
+const statuses = (result: Awaited<ReturnType<typeof run>>) => result.summaries.map((s) => s.status);
+const lines = (result: Awaited<ReturnType<typeof run>>) => describeImport(result.chapter, result.report, result.summaries);
 
-describe("importChapter med sammendrag", () => {
-  it("lager én klar versjon per delkapittel med notater ved første import", async () => {
-    const { data, ai } = await setup();
-    const result = await importChapter(data, sixSubchapters, target, { ai });
-    expect(outcomes(result)?.map((o) => o.status)).toEqual(Array(6).fill("created"));
-    expect(ai.calledFor()).toEqual(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"]);
+describe("importChapter med innholdsfil", () => {
+  it("legger inn én klar versjon per delkapittel ved første import", async () => {
+    const data = await setup();
+    const result = await run(data, sixSubchapters, { content: await contentFor(six) });
+    expect(statuses(result)).toEqual(Array(6).fill("created"));
     expect(data.summaryVersions).toHaveLength(6);
-    const first = data.summaryVersions[0];
-    expect(first).toMatchObject({
+    expect(data.summaryVersions[0]).toMatchObject({
       subchapterId: data.chapters[0].subchapters[0].id,
       status: "klart",
       text: "Sammendrag av 1.1.",
-      modelId: "anthropic.test-modell",
-      promptVersion: "summary.test1",
+      modelId: "claude-code/test-modell",
+      promptVersion: "innhold.v1",
+      inputHash: await hashOf("Notat en"),
       error: null,
     });
-    expect(first.inputHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(lines(result)[1]).toBe("  1.1 En: opprettet, sammendrag laget");
+    expect(lines(result)[1]).toBe("  1.1 En: opprettet, sammendrag lagt inn");
+    expect(reportImport(result)).toMatchObject({ stderr: [], code: 0 });
   });
 
-  it("sender notatet og konteksten fra emnet og kapittelet til KI", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, notesFile([["1.2", "To", "Notat to"]], "- begrep"), target, { ai });
-    expect(ai.calls).toEqual([
-      {
-        courseCode: "IBE430",
-        courseName: "Virksomhetssystemer",
-        learningOutcomes: "Studenten kan ERP.",
-        chapterNumber: 1,
-        chapterTitle: "Kapittel én",
-        learningGoals: "- mål",
-        keyConcepts: "- begrep",
-        subchapterNumber: "1.2",
-        subchapterTitle: "To",
-        noteText: "Notat to",
-      },
-    ]);
-  });
-
-  it("gjør ingen KI-kall når notat og kontekst er uendret", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    const result = await importChapter(data, sixSubchapters, target, { ai });
-    expect(ai.calls).toEqual([]);
+  it("lager ingen ny versjon når tekst og hash er uendret", async () => {
+    const data = await setup();
+    const content = await contentFor(six);
+    await run(data, sixSubchapters, { content });
+    const result = await run(data, sixSubchapters, { content });
     expect(data.summaryVersions).toHaveLength(6);
     expect(lines(result)).toEqual([
       "Kapittel 1 Kapittel én: uendret",
@@ -126,273 +97,239 @@ describe("importChapter med sammendrag", () => {
       "  1.6 Seks: uendret, sammendrag uendret",
       importMessages.allUnchanged,
     ]);
+    expect(reportImport(result).code).toBe(0);
   });
 
-  it("lager ny versjon bare for delkapittelet med endret notat, og beholder den gamle", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    const result = await importChapter(data, sixSubchapters.replace("Notat to", "Notat to, utvidet"), target, { ai });
-    expect(ai.calledFor()).toEqual(["1.2"]);
-    expect(outcomes(result)?.[1]).toEqual({ number: "1.2", status: "created" });
+  it("lager ny klar versjon når teksten er rettet med samme hash, og beholder den gamle", async () => {
+    const data = await setup();
+    await run(data, sixSubchapters, { content: await contentFor(six) });
+    const fixed = await contentFor(six, (n) => (n === "1.2" ? "Rettet sammendrag." : `Sammendrag av ${n}.`));
+    const result = await run(data, sixSubchapters, { content: fixed });
+    expect(statuses(result)).toEqual(["unchanged", "created", "unchanged", "unchanged", "unchanged", "unchanged"]);
     const id = data.chapters[0].subchapters[1].id;
-    expect(data.summaryVersions.filter((v) => v.subchapterId === id).map((v) => v.status)).toEqual(["klart", "klart"]);
-  });
-
-  it("lager nye sammendrag for alle når læringsmål eller nøkkelbegreper endres", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    await importChapter(data, sixSubchapters.replace("- mål", "- nytt mål"), target, { ai });
-    expect(ai.calls).toHaveLength(6);
-    ai.calls = [];
-    const withConcepts = sixSubchapters
-      .replace("- mål", "- nytt mål")
-      .replace("## Fordelt på delkapitler", "## Nøkkelbegreper\n\n- begrep\n\n## Fordelt på delkapitler");
-    await importChapter(data, withConcepts, target, { ai });
-    expect(ai.calls).toHaveLength(6);
-  });
-
-  it("lager nye sammendrag når promptversjonen endres", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    ai.summaryPromptVersion = "summary.test2";
-    await importChapter(data, sixSubchapters, target, { ai });
-    expect(ai.calls).toHaveLength(6);
-  });
-
-  it("lager bare det ene delkapittelet på nytt med force", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    const result = await importChapter(data, sixSubchapters, target, { ai, force: "1.2" });
-    expect(ai.calledFor()).toEqual(["1.2"]);
-    expect(outcomes(result)?.map((o) => o.status)).toEqual([
-      "unchanged",
-      "created",
-      "unchanged",
-      "unchanged",
-      "unchanged",
-      "unchanged",
+    expect(data.summaryVersions.filter((v) => v.subchapterId === id).map((v) => v.text)).toEqual([
+      "Sammendrag av 1.2.",
+      "Rettet sammendrag.",
     ]);
   });
 
-  it("skriver ingenting når force gjelder et delkapittel som ikke er i filen", async () => {
-    const { data, ai } = await setup();
-    const result = await importChapter(data, sixSubchapters, target, { ai, force: "1.9" });
-    expect(result).toEqual({
-      status: "invalid",
-      errors: ["--force 1.9: delkapittelet finnes ikke i notatfilen. Ingenting er skrevet."],
-    });
-    expect(data.chapterWrites).toBe(0);
-    expect(ai.calls).toEqual([]);
+  it("sier «sammendrag utdatert», lagrer ingenting og gir kode 1 når notatet er endret", async () => {
+    const data = await setup();
+    const content = await contentFor(six);
+    await run(data, sixSubchapters, { content });
+    const changed = sixSubchapters.replace("Notat to", "Notat to, utvidet");
+    const result = await run(data, changed, { content });
+    expect(statuses(result)).toEqual(["unchanged", "outdated", "unchanged", "unchanged", "unchanged", "unchanged"]);
+    expect(data.summaryVersions).toHaveLength(6);
+    expect(lines(result)[2]).toBe("  1.2 To: oppdatert, sammendrag utdatert");
+    expect(reportImport(result)).toMatchObject({ stderr: [importMessages.summariesOutdated], code: 1 });
   });
 
-  it("gjør ingen KI-kall og lager ingen versjon for delkapitler uten notater", async () => {
-    const { data, ai } = await setup();
+  it("lager ny versjon med ny hash når notatet er endret og teksten er den samme", async () => {
+    const data = await setup();
+    await run(data, sixSubchapters, { content: await contentFor(six) });
+    const changedSix = six.map(([n, t, note]): Sub => [n, t, n === "1.2" ? "Notat to, utvidet" : note]);
+    const result = await run(data, notesFile(changedSix), { content: await contentFor(changedSix) });
+    expect(statuses(result)).toEqual(["unchanged", "created", "unchanged", "unchanged", "unchanged", "unchanged"]);
+    const id = data.chapters[0].subchapters[1].id;
+    const newest = data.summaryVersions.filter((v) => v.subchapterId === id).at(-1);
+    expect(newest).toMatchObject({ text: "Sammendrag av 1.2.", inputHash: await hashOf("Notat to, utvidet") });
+  });
+
+  it("gjør alt utdatert når nøkkelbegrepene endres", async () => {
+    const data = await setup();
+    const content = await contentFor(six);
+    await run(data, sixSubchapters, { content });
+    const withConcepts = sixSubchapters.replace(
+      "## Fordelt på delkapitler",
+      "## Nøkkelbegreper\n\n- begrep\n\n## Fordelt på delkapitler",
+    );
+    const result = await run(data, withConcepts, { content });
+    expect(statuses(result)).toEqual(Array(6).fill("outdated"));
+    expect(data.summaryVersions).toHaveLength(6);
+  });
+
+  it("gjør alt utdatert når læringsmålene endres", async () => {
+    const data = await setup();
+    const result = await run(data, notesFile(six, "- nytt mål"), { content: await contentFor(six) });
+    expect(statuses(result)).toEqual(Array(6).fill("outdated"));
+    expect(data.summaryVersions).toEqual([]);
+  });
+
+  it("gjør alt utdatert når instruksjonen i filen er en annen enn importen kjenner", async () => {
+    const data = await setup();
+    const entries = await Promise.all(six.map(async ([n, , note]) => ({ number: n, text: "Tekst.", hash: await hashOf(note) })));
+    const content = contentFile(entries, "instruksjon: innhold.v2\nmodell: claude-code/test-modell");
+    const result = await run(data, sixSubchapters, { content });
+    expect(statuses(result)).toEqual(Array(6).fill("outdated"));
+    expect(data.summaryVersions).toEqual([]);
+  });
+
+  it("sier «mangler innhold» med kode 0 for delkapitler som ikke er i filen", async () => {
+    const data = await setup();
+    const result = await run(data, sixSubchapters, { content: await contentFor(six.slice(0, 2)) });
+    expect(statuses(result)).toEqual(["created", "created", "missing", "missing", "missing", "missing"]);
+    expect(lines(result)[3]).toBe("  1.3 Tre: opprettet, mangler innhold");
+    expect(reportImport(result)).toMatchObject({ stderr: [], code: 0 });
+  });
+
+  it("sier «mangler innhold» med kode 0 når innholdsfilen ikke finnes", async () => {
+    const data = await setup();
+    const result = await run(data, sixSubchapters, { content: null });
+    expect(statuses(result)).toEqual(Array(6).fill("missing"));
+    expect(data.summaryVersions).toEqual([]);
+    expect(data.chapters[0].subchapters).toHaveLength(6);
+    expect(reportImport(result).code).toBe(0);
+    const again = await run(data, sixSubchapters, {});
+    expect(lines(again).at(-1)).toBe(importMessages.allUnchanged);
+  });
+
+  it("legger inn det ene delkapittelet på nytt med force", async () => {
+    const data = await setup();
+    const content = await contentFor(six);
+    await run(data, sixSubchapters, { content });
+    const result = await run(data, sixSubchapters, { content, force: "1.2" });
+    expect(statuses(result)).toEqual(["unchanged", "created", "unchanged", "unchanged", "unchanged", "unchanged"]);
+    expect(data.summaryVersions).toHaveLength(7);
+  });
+
+  it("skriver ingenting når force gjelder et delkapittel som mangler i innholdsfilen", async () => {
+    const data = await setup();
+    for (const content of [await contentFor(six.slice(0, 1)), null]) {
+      expect(await importChapter(data, sixSubchapters, target, { content, force: "1.2" })).toEqual({
+        status: "invalid",
+        file: "content",
+        errors: [importMessages.forceNoContent("1.2")],
+      });
+    }
+    expect(data.chapterWrites).toBe(0);
+  });
+
+  it("skriver ingenting når force gjelder et delkapittel som ikke er i notatfilen eller uten notater", async () => {
+    const data = await setup();
     const file = notesFile([
       ["1.1", "En", "Notat en"],
       ["1.2", "To", "*Ingen notater ennå.*"],
     ]);
-    const result = await importChapter(data, file, target, { ai });
-    expect(ai.calledFor()).toEqual(["1.1"]);
-    expect(data.summaryVersions).toHaveLength(1);
+    expect(await importChapter(data, file, target, { force: "1.9" })).toEqual({
+      status: "invalid",
+      file: "notes",
+      errors: [importMessages.forceNotFound("1.9")],
+    });
+    expect(await importChapter(data, file, target, { force: "1.2" })).toEqual({
+      status: "invalid",
+      file: "notes",
+      errors: [importMessages.forceNoNotes("1.2")],
+    });
+    expect(data.chapterWrites).toBe(0);
+  });
+
+  it("skriver verken kapitler eller sammendrag når innholdsfilen er ugyldig", async () => {
+    const data = await setup();
+    const content = (await contentFor(six)).replace("Sammendrag av 1.3.", Array(601).fill("ord").join(" "));
+    const result = await importChapter(data, sixSubchapters, target, { content });
+    expect(result.status === "invalid" && result.file).toBe("content");
+    expect(result.status === "invalid" && result.errors).toEqual([
+      expect.stringMatching(/^Linje \d+: delkapittel 1\.3: Sammendraget har 601 ord, mer enn 600\.$/),
+    ]);
+    expect(data.chapterWrites).toBe(0);
+    expect(data.summaryVersions).toEqual([]);
+  });
+
+  it("gir «mangler notater» for delkapitler uten notater", async () => {
+    const data = await setup();
+    const subs: Sub[] = [
+      ["1.1", "En", "Notat en"],
+      ["1.2", "To", "*Ingen notater ennå.*"],
+    ];
+    const result = await run(data, notesFile(subs), { content: await contentFor(subs.slice(0, 1)) });
     expect(lines(result)).toEqual([
       "Kapittel 1 Kapittel én: opprettet",
-      "  1.1 En: opprettet, sammendrag laget",
+      "  1.1 En: opprettet, sammendrag lagt inn",
       "  1.2 To: opprettet, mangler notater",
     ]);
   });
 
-  it("gjør aldri KI-kall for fjernede delkapitler", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    ai.calls = [];
-    ai.summaryPromptVersion = "summary.test2";
+  it("legger aldri inn sammendrag for fjernede delkapitler", async () => {
+    const data = await setup();
+    await run(data, sixSubchapters, { content: await contentFor(six) });
     const withoutSix = sixSubchapters.replace("### 1.6 Seks\n\nNotat seks\n", "");
-    const result = await importChapter(data, withoutSix, target, { ai });
-    expect(ai.calledFor()).toEqual(["1.1", "1.2", "1.3", "1.4", "1.5"]);
+    const result = await run(data, withoutSix, { content: await contentFor(six.slice(0, 5)) });
     expect(lines(result).at(-1)).toBe("  1.6: fjernet");
+    expect(result.summaries.map((s) => s.number)).not.toContain("1.6");
   });
 
-  it("lagrer en feilet versjon når KI feiler, beholder den klare og fortsetter med neste", async () => {
-    const { data, ai } = await setup();
-    await importChapter(data, sixSubchapters, target, { ai });
-    const ready = [...data.summaryVersions];
-    ai.calls = [];
-    ai.summaryPromptVersion = "summary.test2";
-    ai.reply = (input) =>
-      input.subchapterNumber === "1.2"
-        ? { status: "failed", reason: "Bedrock svarte ikke.", modelId: "anthropic.m", promptVersion: "summary.test2" }
-        : { status: "ok", text: "Nytt.", modelId: "anthropic.m", promptVersion: "summary.test2" };
-    const result = await importChapter(data, sixSubchapters, target, { ai });
-    expect(ai.calls).toHaveLength(6);
-    expect(outcomes(result)?.[1]).toEqual({ number: "1.2", status: "failed", reason: "Bedrock svarte ikke." });
-    expect(outcomes(result)?.[2]).toEqual({ number: "1.3", status: "created" });
-    expect(anySummaryFailed(outcomes(result))).toBe(true);
-    expect(data.summaryVersions.slice(0, 6)).toEqual(ready);
-
-    const listed = await data.listSummaryVersions([data.chapters[0].subchapters[1].id]);
-    if (listed.status !== "ok") throw new Error("unavailable");
-    expect(listed.value[0].latest).toMatchObject({ status: "feilet", text: null, error: "Bedrock svarte ikke." });
-    expect(listed.value[0].latestReady).toEqual(ready[1]);
-    expect(lines(result)[2]).toBe("  1.2 To: uendret, sammendrag feilet: Bedrock svarte ikke.");
-  });
-
-  it("lagrer en feilet versjon når svaret er tomt eller over 600 ord", async () => {
-    const { data, ai } = await setup();
-    ai.reply = (input) => ({
-      status: "ok",
-      text: input.subchapterNumber === "1.1" ? "  " : Array(601).fill("ord").join(" "),
-      modelId: "anthropic.m",
-      promptVersion: ai.summaryPromptVersion,
-    });
-    const file = notesFile([
-      ["1.1", "En", "Notat en"],
-      ["1.2", "To", "Notat to"],
-    ]);
-    const result = await importChapter(data, file, target, { ai });
-    expect(outcomes(result)).toEqual([
-      { number: "1.1", status: "failed", reason: "Sammendraget er tomt." },
-      { number: "1.2", status: "failed", reason: "Sammendraget har 601 ord, mer enn 600." },
-    ]);
-    expect(data.summaryVersions.map((v) => v.status)).toEqual(["feilet", "feilet"]);
-  });
-
-  it("gjør nytt KI-kall når siste versjon er feilet med samme hash", async () => {
-    const { data, ai } = await setup();
-    const file = notesFile([["1.1", "En", "Notat en"]]);
-    ai.reply = () => ({ status: "failed", reason: "Nede.", modelId: "anthropic.m", promptVersion: ai.summaryPromptVersion });
-    await importChapter(data, file, target, { ai });
-    ai.reply = () => ({ status: "ok", text: "Nå gikk det.", modelId: "anthropic.m", promptVersion: ai.summaryPromptVersion });
-    const result = await importChapter(data, file, target, { ai });
-    expect(ai.calls).toHaveLength(2);
-    expect(outcomes(result)).toEqual([{ number: "1.1", status: "created" }]);
-    expect(data.summaryVersions[1].inputHash).toBe(data.summaryVersions[0].inputHash);
-  });
-
-  it("gjør et kast fra KI om til en feilet versjon", async () => {
-    const { data, ai } = await setup();
-    ai.reply = () => {
-      throw new Error("boom");
-    };
-    const result = await importChapter(data, notesFile([["1.1", "En", "Notat en"]]), target, { ai });
-    expect(outcomes(result)).toEqual([{ number: "1.1", status: "failed", reason: importMessages.summaryUnexpected }]);
-    expect(data.summaryVersions[0]).toMatchObject({ status: "feilet", error: importMessages.summaryUnexpected });
-  });
-
-  it("sier fra og fortsetter når en versjon ikke kan lagres", async () => {
-    const { data, ai } = await setup();
+  it("sier fra og gir kode 1 når en versjon ikke kan lagres", async () => {
+    const data = await setup();
     data.summaryWritesDown = true;
-    const file = notesFile([
-      ["1.1", "En", "Notat en"],
-      ["1.2", "To", "Notat to"],
-    ]);
-    const result = await importChapter(data, file, target, { ai });
-    expect(ai.calls).toHaveLength(2);
-    expect(outcomes(result)).toEqual([
+    const subs = six.slice(0, 2);
+    const result = await run(data, notesFile(subs), { content: await contentFor(subs) });
+    expect(result.summaries).toEqual([
       { number: "1.1", status: "failed", reason: importMessages.summaryNotSaved },
       { number: "1.2", status: "failed", reason: importMessages.summaryNotSaved },
     ]);
-  });
-
-  it("lager ingen sammendrag uten KI, men lagrer kapitlene", async () => {
-    const { data } = await setup();
-    const result = await importChapter(data, sixSubchapters, target);
-    expect(outcomes(result)).toBeNull();
-    expect(data.summaryVersions).toEqual([]);
-    expect(data.chapters[0].subchapters).toHaveLength(6);
-    expect(lines(result)[1]).toBe("  1.1 En: opprettet");
-    expect(importExitCode(false, outcomes(result))).toBe(1);
-  });
-
-  it("avslutter med kode 1 bare når AWS mangler eller et sammendrag feilet", () => {
-    expect(importExitCode(true, [{ number: "1.1", status: "created" }, { number: "1.2", status: "noNotes" }])).toBe(0);
-    expect(importExitCode(true, [{ number: "1.1", status: "failed", reason: "Nede." }])).toBe(1);
-    expect(importExitCode(false, null)).toBe(1);
-  });
-
-  it("skriver ingenting når force gjelder et delkapittel uten notater", async () => {
-    const { data, ai } = await setup();
-    const file = notesFile([
-      ["1.1", "En", "Notat en"],
-      ["1.2", "To", "*Ingen notater ennå.*"],
-    ]);
-    const result = await importChapter(data, file, target, { ai, force: "1.2" });
-    expect(result).toEqual({
-      status: "invalid",
-      errors: ["--force 1.2: delkapittelet har ingen notater. Ingenting er skrevet."],
-    });
-    expect(data.chapterWrites).toBe(0);
-    expect(ai.calls).toEqual([]);
+    expect(reportImport(result)).toMatchObject({ stderr: [importMessages.summariesFailed], code: 1 });
   });
 
   it("gir feilet for delkapitler med notater når versjonene ikke kan leses", async () => {
-    const { data, ai } = await setup();
+    const data = await setup();
     data.summaryReadsDown = true;
+    const subs: Sub[] = [
+      ["1.1", "En", "Notat en"],
+      ["1.2", "To", "*Ingen notater ennå.*"],
+    ];
+    const result = await run(data, notesFile(subs), { content: await contentFor(subs.slice(0, 1)) });
+    expect(result.summaries).toEqual([
+      { number: "1.1", status: "failed", reason: importMessages.unavailable },
+      { number: "1.2", status: "noNotes" },
+    ]);
+    expect(importExitCode(result.summaries)).toBe(1);
+  });
+});
+
+describe("importExitCode", () => {
+  it("gir 1 bare når et sammendrag er utdatert eller feilet", () => {
+    expect(
+      importExitCode([
+        { number: "1.1", status: "created" },
+        { number: "1.2", status: "unchanged" },
+        { number: "1.3", status: "missing" },
+        { number: "1.4", status: "noNotes" },
+      ]),
+    ).toBe(0);
+    expect(importExitCode([{ number: "1.1", status: "outdated" }])).toBe(1);
+    expect(importExitCode([{ number: "1.1", status: "failed", reason: "Nede." }])).toBe(1);
+  });
+});
+
+describe("contentHashes", () => {
+  it("gir hashen per delkapittel med notater, lik den importen regner", async () => {
     const file = notesFile([
       ["1.1", "En", "Notat en"],
       ["1.2", "To", "*Ingen notater ennå.*"],
     ]);
-    const result = await importChapter(data, file, target, { ai });
-    expect(outcomes(result)).toEqual([
-      { number: "1.1", status: "failed", reason: importMessages.unavailable },
-      { number: "1.2", status: "noNotes" },
-    ]);
-    expect(ai.calls).toEqual([]);
-    expect(importExitCode(true, outcomes(result))).toBe(1);
+    expect(await contentHashes(file, target)).toEqual({
+      ok: true,
+      hashes: [{ number: "1.1", inputHash: await hashOf("Notat en") }],
+    });
+  });
+
+  it("gir feilene når notatfilen er ugyldig eller gjelder et annet kapittel", async () => {
+    expect(await contentHashes(sixSubchapters, { courseCode: "IBE430", chapterNumber: 2 })).toEqual({
+      ok: false,
+      errors: ["Linje 3: kapittel er 1 i frontmatter, men filen er kapittel-2.md."],
+    });
   });
 });
 
-describe("reportImport", () => {
-  const file = notesFile([
-    ["1.1", "En", "Notat en"],
-    ["1.2", "To", "Notat to"],
-  ]);
-
-  async function okResult(ai: FakeAi | null) {
-    const { data } = await setup();
-    const result = await importChapter(data, file, target, { ai });
-    if (result.status !== "ok") throw new Error(result.status);
-    return result;
-  }
-
-  it("sier fra om manglende AWS-nøkler og gir kode 1", async () => {
-    const missing = "Mangler AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY i .env.dev.local. Sammendrag er ikke laget.";
-    expect(reportImport(await okResult(null), missing)).toEqual({
-      stdout: ["Kapittel 1 Kapittel én: opprettet", "  1.1 En: opprettet", "  1.2 To: opprettet"],
-      stderr: [missing],
-      code: 1,
-    });
-  });
-
-  it("sier fra når et sammendrag feilet og gir kode 1", async () => {
-    const ai = new FakeAi();
-    ai.reply = (input) =>
-      input.subchapterNumber === "1.2"
-        ? { status: "failed", reason: "Nede.", modelId: "anthropic.m", promptVersion: ai.summaryPromptVersion }
-        : { status: "ok", text: "Kort.", modelId: "anthropic.m", promptVersion: ai.summaryPromptVersion };
-    expect(reportImport(await okResult(ai), null)).toEqual({
-      stdout: [
-        "Kapittel 1 Kapittel én: opprettet",
-        "  1.1 En: opprettet, sammendrag laget",
-        "  1.2 To: opprettet, sammendrag feilet: Nede.",
-      ],
-      stderr: [importMessages.summariesFailed],
-      code: 1,
-    });
-  });
-
-  it("gir kode 0 og ingen feilmeldinger når alt gikk bra", async () => {
-    expect(reportImport(await okResult(new FakeAi()), null)).toEqual({
-      stdout: [
-        "Kapittel 1 Kapittel én: opprettet",
-        "  1.1 En: opprettet, sammendrag laget",
-        "  1.2 To: opprettet, sammendrag laget",
-      ],
-      stderr: [],
-      code: 0,
-    });
+describe("de ekte filene for IBE430 kapittel 1", () => {
+  it("legger inn seks sammendrag, og andre kjøring gir «sammendrag uendret» for alle", async () => {
+    const data = await setup();
+    const first = await run(data, kapittel1, { content: innhold1 });
+    expect(statuses(first)).toEqual(Array(6).fill("created"));
+    expect(reportImport(first).code).toBe(0);
+    const second = await run(data, kapittel1, { content: innhold1 });
+    expect(statuses(second)).toEqual(Array(6).fill("unchanged"));
+    expect(lines(second).at(-1)).toBe(importMessages.allUnchanged);
   });
 });

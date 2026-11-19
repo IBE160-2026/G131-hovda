@@ -9,20 +9,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { AiProvider } from "@/application/aiProvider";
 import type { DataSource } from "@/application/dataSource";
-import { BedrockAiProvider, createMantleClient } from "@/adapters/bedrock/bedrockAiProvider";
 import { SupabaseDataSource } from "@/adapters/supabase/dataSource";
 
 export type ScriptTarget = "dev" | "prod";
 
 export type ScriptDataSource = { ok: true; data: DataSource } | { ok: false; error: string };
 
-export type ScriptAiProvider = { ok: true; ai: AiProvider } | { ok: false; error: string };
-
 const REQUIRED = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "OWNER_EMAIL"] as const;
-
-const AWS_REQUIRED = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"] as const;
 
 /** Filen med nøkler for miljøet: `.env.dev.local` eller `.env.prod.local` i prosjektroten. */
 export function envFileFor(target: ScriptTarget): string {
@@ -35,7 +29,6 @@ function readEnv<N extends string>(
   target: ScriptTarget,
   root: string,
   required: readonly N[],
-  missingSuffix = "",
 ): EnvResult<N> {
   const file = envFileFor(target);
   let content: string;
@@ -46,7 +39,7 @@ function readEnv<N extends string>(
   }
   const parsed = parseEnv(content);
   const missing = required.filter((name) => !parsed[name]?.trim());
-  if (missing.length > 0) return { ok: false, error: `Mangler ${missing.join(", ")} i ${file}.${missingSuffix}` };
+  if (missing.length > 0) return { ok: false, error: `Mangler ${missing.join(", ")} i ${file}.` };
   return { ok: true, env: Object.fromEntries(required.map((name) => [name, parsed[name]!.trim()])) as Record<N, string> };
 }
 
@@ -84,19 +77,4 @@ export async function getDataSourceForScript(
   if (!owner.id) return { ok: false, error: `Fant ingen bruker med OWNER_EMAIL fra ${envFileFor(target)} i ${target}.` };
 
   return { ok: true, data: new SupabaseDataSource(client, owner.id) };
-}
-
-/**
- * Lager KI-modulen for importen. Leser AWS_ACCESS_KEY_ID og AWS_SECRET_ACCESS_KEY fra
- * `.env.<target>.local` og gir dem direkte til klienten. Region og modell står i KI-modulens
- * innstillingsfil, ikke i env-fila. Lager ingen KI-kall.
- */
-export function getAiProviderForScript(target: ScriptTarget, root: string = process.cwd()): ScriptAiProvider {
-  const env = readEnv(target, root, AWS_REQUIRED, " Sammendrag er ikke laget.");
-  if (!env.ok) return env;
-  const client = createMantleClient({
-    accessKeyId: env.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.env.AWS_SECRET_ACCESS_KEY,
-  });
-  return { ok: true, ai: new BedrockAiProvider(client) };
 }
