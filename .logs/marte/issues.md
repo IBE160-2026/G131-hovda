@@ -41,7 +41,7 @@
 - [ ] 2026-11-18 [story-1-5-spesifikasjon](988-2026-11-18-22-08-13-story-1-5-spesifikasjon.md) — sett opp AWS for Bedrock: konto med fakturering, EU-pris og vilkår om trening, modelltilgang til Sonnet 5.5 i `eu-central-1`, IAM-bruker med bare `bedrock-mantle:CreateInference`; nøklene i `.env.dev.local` og `.env.prod.local`
 - [ ] 2026-11-18 [story-1-5-spesifikasjon](988-2026-11-18-22-08-13-story-1-5-spesifikasjon.md) — spesifiser og bygg 1.5b (status i kapittellisten og lesesiden) etter 1.5a
 - [ ] 2026-11-18 [story-1-5-spesifikasjon](988-2026-11-18-22-08-13-story-1-5-spesifikasjon.md) — PRD (FR-20, SM-2), addendumets «21 delkapitler» og AK for 1.4 i `epics.md` bruker fortsatt gamle tall (21 delkapitler, 5 i kapittel 2)
-- [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — kjør migreringen for 1.5a mot `dev` (`npx supabase db push --remote`), så `npm run test:dev`
+- [x] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — kjør migreringen for 1.5a mot `dev` (`npx supabase db push --remote`), så `npm run test:dev` (løst 2026-11-19: migrert, `npm run test:dev` passerer)
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — med AWS-nøkler: kjør `npm run import -- --target dev IBE430 1` to ganger (seks sammendrag, så «sammendrag uendret»), sjekk at Mantle i `eu-central-1` tilbyr `anthropic.claude-sonnet-5-5`; sett så 1.5 til `done`
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — avklar om `inputHash` skal ta med emnets læringsutbytte og modell-ID (AD-4)
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — `epics.md` og stabeltabellen i ARCHITECTURE-SPINE viser fortsatt `eu.anthropic.…`-ID-er
