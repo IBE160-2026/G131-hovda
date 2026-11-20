@@ -47,10 +47,10 @@
 - [x] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — `epics.md` og stabeltabellen i ARCHITECTURE-SPINE viser fortsatt `eu.anthropic.…`-ID-er (utgått 2026-11-19: KI-radene er fjernet)
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — RLS-lesetesten for `summary_versions` beviser ingenting før eieren har rader i `dev` (se deferred-work.md)
 - [ ] 2026-11-18 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — feilgrenen når `listChapters` feiler etter lagringen i `createSummaries` er utestet
-- [ ] 2026-11-19 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — før merge av PR-en for 1.5a: kjør migreringen mot `prod` (krever ja fra Marte) før første import til `prod`
+- [x] 2026-11-19 [story-1-5-bygg](987-2026-11-18-22-31-17-story-1-5-bygg.md) — før merge av PR-en for 1.5a: kjør migreringen mot `prod` (krever ja fra Marte) før første import til `prod` (løst 2026-11-20: kjørt etter ja fra Marte)
 - [x] 2026-11-19 [correct-course-ki-innhold](986-2026-11-19-13-05-42-correct-course-ki-innhold.md) — bygg Story 1.5a v2 med `bmad-build` (fjern Bedrock, tolking av innholdsfila, instruksjonen `innhold.v1.md`, sammendrag for IBE430 kapittel 1) (løst 2026-11-19: `a63f4f9`)
 - [x] 2026-11-19 [correct-course-ki-innhold](986-2026-11-19-13-05-42-correct-course-ki-innhold.md) — ikke merge PR-en for `story-1-5a-ki-sammendrag` før 1.5a v2 har fjernet Bedrock-koden (løst 2026-11-19: Bedrock er fjernet i `a63f4f9`)
-- [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — les de seks sammendragene i `G131-hovda/notater/IBE430/kapittel-1.innhold.md` før de går til `prod`
-- [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — etter migreringen mot `prod`: kjør `npm run import -- --target prod IBE430 1` (Marte sa ja til importen 19.11)
+- [x] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — les de seks sammendragene i `G131-hovda/notater/IBE430/kapittel-1.innhold.md` før de går til `prod` (løst 2026-11-20: Marte har godkjent dem)
+- [x] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — etter migreringen mot `prod`: kjør `npm run import -- --target prod IBE430 1` (Marte sa ja til importen 19.11) (løst 2026-11-20: seks sammendrag lagt inn i `prod`)
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — `scripts/import.test.ts` og testene med de ekte filene må oppdateres når `kapittel-2.innhold.md` lages eller notatene i kapittel 1 endres
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — grenen for en innholdsfil som ikke kan leses er utestet (se deferred-work.md)
