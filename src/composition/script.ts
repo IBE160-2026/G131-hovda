@@ -3,6 +3,8 @@
 //
 // Scriptene har ingen innlogget økt, så klienten bruker service role-nøkkelen og omgår RLS.
 // Adapteren filtrerer likevel alltid på eier, og eieren finnes bare via OWNER_EMAIL.
+//
+// Env-fila leses uten å lastes inn i process.env, så nøklene gis direkte til klientene.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
@@ -21,7 +23,13 @@ export function envFileFor(target: ScriptTarget): string {
   return `.env.${target}.local`;
 }
 
-function readEnv(target: ScriptTarget, root: string): { ok: true; env: Record<string, string> } | { ok: false; error: string } {
+type EnvResult<N extends string> = { ok: true; env: Record<N, string> } | { ok: false; error: string };
+
+function readEnv<N extends string>(
+  target: ScriptTarget,
+  root: string,
+  required: readonly N[],
+): EnvResult<N> {
   const file = envFileFor(target);
   let content: string;
   try {
@@ -30,9 +38,9 @@ function readEnv(target: ScriptTarget, root: string): { ok: true; env: Record<st
     return { ok: false, error: `Fant ikke ${file}. Se README og .env.example.` };
   }
   const parsed = parseEnv(content);
-  const missing = REQUIRED.filter((name) => !parsed[name]?.trim());
+  const missing = required.filter((name) => !parsed[name]?.trim());
   if (missing.length > 0) return { ok: false, error: `Mangler ${missing.join(", ")} i ${file}.` };
-  return { ok: true, env: Object.fromEntries(REQUIRED.map((name) => [name, parsed[name]!.trim()])) };
+  return { ok: true, env: Object.fromEntries(required.map((name) => [name, parsed[name]!.trim()])) as Record<N, string> };
 }
 
 async function findUserId(client: SupabaseClient, email: string): Promise<{ id: string | null } | { error: string }> {
@@ -52,7 +60,7 @@ export async function getDataSourceForScript(
   target: ScriptTarget,
   root: string = process.cwd(),
 ): Promise<ScriptDataSource> {
-  const env = readEnv(target, root);
+  const env = readEnv(target, root, REQUIRED);
   if (!env.ok) return env;
 
   const client = createClient(env.env.NEXT_PUBLIC_SUPABASE_URL, env.env.SUPABASE_SERVICE_ROLE_KEY, {

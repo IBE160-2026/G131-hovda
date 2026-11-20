@@ -24,3 +24,12 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-4-importen-legger-inn-kapitler-delkapitler-og-notater.md`
   summary: Alle databasefeil blir «unavailable», så importen sier «Fikk ikke kontakt med databasen» også når tabellene mangler.
   evidence: `guarded()` (fra 1.3) kaster Postgres-koden. Kjøres importen mot `prod` før migreringen er pushet, blir meldingen misvisende. For scriptet bør koden/meldingen skrives til stderr.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
+  summary: Story 1.5b: kapittellisten viser status per delkapittel («mangler notater», «innhold lages», «klart», «feilet»), og eieren kan åpne et klart delkapittel og lese siste klare sammendrag på under 3 s (side `/delkapittel/<id>` i `OwnerOnly`, 404 uten klar versjon).
+  evidence: Marte valgte 18.11.2026 å dele story 1.5 fordi specen var på rundt 3 000 tokens. 1.5a (KI-modul, migrering og import) må være ferdig først.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5-importen-lager-ki-sammendrag-og-eieren-kan-lese-dem.md`
+  summary: RLS-lesetesten for `summary_versions` i `rls.dev.test.ts` beviser ingenting så lenge tabellen i `dev` ikke har eierrader.
+  evidence: Testen filtrerer bort testkontoens egne rader og venter en tom liste; med tom tabell består den også med `using (true)`. Bør kreve minst én eierrad (telle med service role) etter første import med KI mot `dev`.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5a-v2-importen-legger-inn-sammendrag-fra-innholdsfila.md`
+  summary: Grenen i `scripts/import.ts` der innholdsfila finnes, men ikke kan leses (ikke ENOENT, kode 1), har ingen test.
+  evidence: Verification-gap-review 19.11.2026. Returnerer `readContentFile` `null` for alle feil, blir en ulesbar fil stille til «mangler innhold» med kode 0, og ingen test feiler. Krever en fixturmappe eller en katalog på fil-stien i en spawn-test.

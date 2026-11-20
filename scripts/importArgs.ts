@@ -1,14 +1,21 @@
-// Tolker argumentene til `npm run import -- --target dev|prod <EMNE> <n>`.
+// Tolker argumentene til `npm run import -- --target dev|prod [--force <n.m>] <EMNE> <n>`.
 import { normalizeCourseCode } from "../src/domain/course";
 
-export type ImportArgs = { target: "dev" | "prod"; courseCode: string; chapterNumber: number };
+export type ImportArgs = {
+  target: "dev" | "prod";
+  courseCode: string;
+  chapterNumber: number;
+  /** «n.m»: legger inn sammendraget for dette delkapittelet på nytt selv om det er uendret. */
+  force?: string;
+};
 
-export const importUsage = "Bruk: npm run import -- --target dev|prod <EMNE> <n>";
+export const importUsage = "Bruk: npm run import -- --target dev|prod [--force <n.m>] <EMNE> <n>";
 
 export type ParsedImportArgs = { ok: true; value: ImportArgs } | { ok: false; error: string };
 
 export function parseImportArgs(argv: string[]): ParsedImportArgs {
   let target: string | undefined;
+  let force: string | undefined;
   const positional: string[] = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -18,6 +25,12 @@ export function parseImportArgs(argv: string[]): ParsedImportArgs {
       if (target === undefined) return { ok: false, error: "--target mangler verdi (dev eller prod)." };
     } else if (arg.startsWith("--target=")) {
       target = arg.slice("--target=".length);
+    } else if (arg === "--force" || arg.startsWith("--force=")) {
+      if (force !== undefined) return { ok: false, error: "--force kan bare brukes én gang." };
+      force = arg === "--force" ? argv[++i] : arg.slice("--force=".length);
+      if (force === undefined || force === "") {
+        return { ok: false, error: "--force mangler delkapittel, for eksempel --force 1.2." };
+      }
     } else if (arg.startsWith("-")) {
       return { ok: false, error: `Ukjent valg: ${arg}.` };
     } else {
@@ -29,10 +42,31 @@ export function parseImportArgs(argv: string[]): ParsedImportArgs {
   if (target !== "dev" && target !== "prod") {
     return { ok: false, error: `--target må være dev eller prod, ikke «${target}».` };
   }
+  const chapter = parseCourseChapter(positional);
+  if (!chapter.ok) return chapter;
+  const { courseCode, chapterNumber } = chapter.value;
+
+  if (force !== undefined) {
+    if (!/^\d+\.\d+$/.test(force)) {
+      return { ok: false, error: `--force må være et delkapittel som 1.2, ikke «${force}».` };
+    }
+    if (Number(force.split(".")[0]) !== chapterNumber) {
+      return { ok: false, error: `--force ${force} hører ikke til kapittel ${chapterNumber}. Ingenting er skrevet.` };
+    }
+  }
+
+  return { ok: true, value: { target, courseCode, chapterNumber, ...(force !== undefined && { force }) } };
+}
+
+export type CourseChapter = Pick<ImportArgs, "courseCode" | "chapterNumber">;
+
+/** Emnekode og kapittelnummer, for eksempel `IBE430 1`. Brukes også av `npm run innhold:hash`. */
+export function parseCourseChapter(
+  positional: string[],
+): { ok: true; value: CourseChapter } | { ok: false; error: string } {
   if (positional.length !== 2) {
     return { ok: false, error: "Oppgi emnekode og kapittelnummer, for eksempel IBE430 1." };
   }
-
   const courseCode = normalizeCourseCode(positional[0]);
   // Emnekoden blir en del av filstien, så bare bokstaver og tall slipper gjennom.
   if (!/^[\p{L}\p{N}]{1,20}$/u.test(courseCode)) {
@@ -41,16 +75,20 @@ export function parseImportArgs(argv: string[]): ParsedImportArgs {
   if (!/^\d+$/.test(positional[1]) || Number(positional[1]) < 1) {
     return { ok: false, error: `Kapittelnummeret må være et helt tall fra 1, ikke «${positional[1]}».` };
   }
-
-  return { ok: true, value: { target, courseCode, chapterNumber: Number(positional[1]) } };
+  return { ok: true, value: { courseCode, chapterNumber: Number(positional[1]) } };
 }
 
 /** Notatfilen relativt til prosjektroten: `G131-hovda/notater/<EMNE>/kapittel-<n>.md`. */
-export function notesFilePath(args: Pick<ImportArgs, "courseCode" | "chapterNumber">): string {
+export function notesFilePath(args: CourseChapter): string {
   return `G131-hovda/notater/${args.courseCode}/kapittel-${args.chapterNumber}.md`;
 }
 
 /** Bare et eksakt «ja» (uansett store/små bokstaver og mellomrom rundt) godkjenner import til prod. */
 export function isConfirmed(answer: string | null): boolean {
   return (answer ?? "").trim().toLowerCase() === "ja";
+}
+
+/** Innholdsfilen relativt til prosjektroten: `G131-hovda/notater/<EMNE>/kapittel-<n>.innhold.md`. */
+export function contentFilePath(args: CourseChapter): string {
+  return `G131-hovda/notater/${args.courseCode}/kapittel-${args.chapterNumber}.innhold.md`;
 }

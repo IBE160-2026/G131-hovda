@@ -8,15 +8,29 @@ import {
   type StoredSubchapter,
 } from "@/domain/chapter";
 import type { CourseInput } from "@/domain/course";
-import type { Chapter, Course, DataSource, SaveChapterReport } from "../dataSource";
+import type {
+  Chapter,
+  Course,
+  DataSource,
+  NewSummaryVersion,
+  SaveChapterReport,
+  SubchapterSummaries,
+  SummaryVersion,
+} from "../dataSource";
 
 type StoredChapter = Omit<Chapter, "subchapters"> & { courseId: string; subchapters: StoredSubchapter[] };
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
   chapters: StoredChapter[] = [];
+  /** Sammendragsversjonene i rekkefølgen de ble lagret. */
+  summaryVersions: SummaryVersion[] = [];
   activeId: string | null = null;
   down = false;
+  /** Feiler bare lagringen av sammendragsversjoner, så testene kan se at importen fortsetter. */
+  summaryWritesDown = false;
+  /** Feiler bare lesingen av sammendragsversjoner, etter at kapittelet er lagret. */
+  summaryReadsDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -60,7 +74,11 @@ export class MemoryDataSource implements DataSource {
   async deleteCourse(id: string) {
     if (this.down) return this.unavailable();
     this.courses = this.courses.filter((c) => c.id !== id);
+    const removedSubIds = new Set(
+      this.chapters.filter((c) => c.courseId === id).flatMap((c) => c.subchapters.map((s) => s.id)),
+    );
     this.chapters = this.chapters.filter((c) => c.courseId !== id);
+    this.summaryVersions = this.summaryVersions.filter((v) => !removedSubIds.has(v.subchapterId));
     if (this.activeId === id) this.activeId = null;
     return { status: "ok" as const, value: undefined };
   }
@@ -144,5 +162,36 @@ export class MemoryDataSource implements DataSource {
       subchapters: steps.map((step) => ({ number: step.number, change: subchapterChangeOf(step) })),
     };
     return { status: "ok" as const, value: report };
+  }
+
+  async listSummaryVersions(subchapterIds: string[]) {
+    if (this.down || this.summaryReadsDown) return this.unavailable();
+    const newestFirst = [...this.summaryVersions].reverse();
+    const value: SubchapterSummaries[] = subchapterIds.map((subchapterId) => {
+      const own = newestFirst.filter((v) => v.subchapterId === subchapterId);
+      return {
+        subchapterId,
+        latest: own[0] ?? null,
+        latestReady: own.find((v) => v.status === "klart") ?? null,
+      };
+    });
+    return { status: "ok" as const, value };
+  }
+
+  async addSummaryVersion(input: NewSummaryVersion) {
+    if (this.down || this.summaryWritesDown) return this.unavailable();
+    const version: SummaryVersion = {
+      id: `s${this.nextId++}`,
+      subchapterId: input.subchapterId,
+      status: input.status,
+      text: input.status === "klart" ? input.text : null,
+      modelId: input.modelId,
+      promptVersion: input.promptVersion,
+      inputHash: input.inputHash,
+      error: input.status === "feilet" ? input.error : null,
+      createdAt: new Date(Date.UTC(2026, 10, 18, 0, 0, this.summaryVersions.length)).toISOString(),
+    };
+    this.summaryVersions.push(version);
+    return { status: "ok" as const, value: version };
   }
 }

@@ -1,4 +1,4 @@
-// Sjekker RLS og GRANT for courses, user_settings, chapters og subchapters mot Supabase-prosjektet dev (AD-10).
+// Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters og summary_versions mot Supabase-prosjektet dev (AD-10).
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -127,13 +127,32 @@ describe("RLS i dev", () => {
     expect(error?.code).toBe("42501");
   });
 
+  it("gir testkontoen ingen av eierens sammendragsversjoner", async () => {
+    const { data, error } = await testUser.from("summary_versions").select("id, owner_id");
+    expect(error).toBeNull();
+    expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+  });
+
+  it("stopper en sammendragsversjon med en annen eier", async () => {
+    const { error } = await testUser.from("summary_versions").insert({
+      owner_id: "00000000-0000-0000-0000-000000000000",
+      subchapter_id: "00000000-0000-0000-0000-000000000000",
+      status: "klart",
+      text: "x",
+      model_id: "anthropic.claude-sonnet-5-5",
+      prompt_version: "summary.v1",
+      input_hash: "h",
+    });
+    expect(error?.code).toBe("42501");
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
     const settings = await anon.from("user_settings").select("owner_id");
     expect(courses.error?.code).toBe("42501");
     expect(settings.error?.code).toBe("42501");
-    for (const table of ["chapters", "subchapters"]) {
+    for (const table of ["chapters", "subchapters", "summary_versions"]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");
     }

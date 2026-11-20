@@ -2,6 +2,7 @@
 // En DataSource gjelder alltid én eier, som komposisjonsroten har verifisert.
 import type { ChapterChange, ChapterInput, SubchapterChange } from "@/domain/chapter";
 import type { CourseInput } from "@/domain/course";
+import type { SummaryStatus } from "@/domain/summary";
 
 export type Course = CourseInput & { id: string };
 
@@ -14,6 +15,37 @@ export type Chapter = Omit<ChapterInput, "subchapters"> & { id: string; subchapt
 export type SaveChapterReport = {
   chapter: ChapterChange;
   subchapters: { number: string; change: SubchapterChange }[];
+};
+
+/** En versjon av sammendraget for et delkapittel (AD-8). Versjoner endres ikke etter at de er lagret. */
+export type SummaryVersion = {
+  id: string;
+  subchapterId: string;
+  status: SummaryStatus;
+  /** Teksten når statusen er `klart`. */
+  text: string | null;
+  modelId: string;
+  promptVersion: string;
+  inputHash: string;
+  /** Årsaken når statusen er `feilet`. */
+  error: string | null;
+  /** ISO-tidspunkt i UTC. */
+  createdAt: string;
+};
+
+/** En ny versjon fra importen. Importen lagrer bare `klart`. */
+export type NewSummaryVersion = {
+  subchapterId: string;
+  modelId: string;
+  promptVersion: string;
+  inputHash: string;
+} & ({ status: "klart"; text: string } | { status: "feilet"; error: string });
+
+/** Siste versjon og siste klare versjon for ett delkapittel. `null` når det ikke finnes noen. */
+export type SubchapterSummaries = {
+  subchapterId: string;
+  latest: SummaryVersion | null;
+  latestReady: SummaryVersion | null;
 };
 
 export type Unavailable = { status: "unavailable" };
@@ -45,4 +77,11 @@ export interface DataSource {
    * rader røres ikke. Bare `importChapter` kaller denne.
    */
   saveChapter(courseId: string, chapter: ChapterInput): Promise<WriteResult<SaveChapterReport>>;
+  /**
+   * Siste versjon og siste klare versjon av sammendraget for hvert av delkapitlene, i samme
+   * rekkefølge som `subchapterIds`. Delkapitler som ikke er eierens, gir ingen versjoner.
+   */
+  listSummaryVersions(subchapterIds: string[]): Promise<ReadResult<SubchapterSummaries[]>>;
+  /** Lagrer en ny versjon av sammendraget. Bare `importChapter` kaller denne. */
+  addSummaryVersion(version: NewSummaryVersion): Promise<WriteResult<SummaryVersion>>;
 }
