@@ -65,3 +65,4 @@
 - [ ] 2026-11-20 [story-1-6a-bygg](981-2026-11-20-22-53-06-story-1-6a-bygg.md) — story 1.6b (utdatert bank, tilbaketrekking, påfylling, «færre enn 10 ubesvarte») etter 1.7, og innholdsfiler og prod-import for kapittel 2–5 (se deferred-work.md)
 - [ ] 2026-11-20 [story-1-6a-bygg](981-2026-11-20-22-53-06-story-1-6a-bygg.md) — `listQuestionBanks` kan bli avkortet av PostgREST max-rows (se deferred-work.md)
 - [x] 2026-11-20 [story-1-6a-bygg](981-2026-11-20-22-53-06-story-1-6a-bygg.md) — kjør `npm run import -- --target prod IBE430 1` (krever ja fra Marte, helst etter at de 120 quizspørsmålene er lest); til da viser kapittel 1 i prod «mangler innhold», men lenkene til sammendragene virker (løst 2026-11-20: seks sammendrag og seks banker lagt inn i `prod`, kode 0)
+- [ ] 2026-11-20 [story-1-7-spesifikasjon](980-2026-11-20-23-25-43-story-1-7-spesifikasjon.md) — bygg story 1.7 i en ny `bmad-build`-økt (specen er godkjent); migreringen mot `dev` krever ja fra Marte
