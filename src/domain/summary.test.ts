@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countWords, normalizeNote, summaryHashSource, validateSummaryText } from "./summary";
+import { countWords, normalizeNote, subchapterStatus, summaryHashSource, validateSummaryText } from "./summary";
 
 describe("normalizeNote", () => {
   it("trimmer, gjør \\r\\n om til \\n og tillater bare én tom linje på rad", () => {
@@ -60,5 +60,27 @@ describe("validateSummaryText", () => {
       ok: false,
       reason: "Sammendraget har 601 ord, mer enn 600.",
     });
+  });
+});
+
+describe("subchapterStatus", () => {
+  const ready = { hasNotes: true, readyInputHash: "h1", currentInputHash: "h1" };
+
+  it("gir «klart» når siste klare versjon har hashen notatet har nå", () => {
+    expect(subchapterStatus(ready)).toBe("klart");
+  });
+
+  it("gir «utdatert» når hashen er endret etter importen", () => {
+    expect(subchapterStatus({ ...ready, currentInputHash: "h2" })).toBe("utdatert");
+  });
+
+  it("gir «mangler innhold» når det ikke finnes noen klar versjon", () => {
+    expect(subchapterStatus({ ...ready, readyInputHash: null })).toBe("mangler innhold");
+  });
+
+  it("gir «mangler notater» før alt annet", () => {
+    expect(subchapterStatus({ ...ready, hasNotes: false })).toBe("mangler notater");
+    expect(subchapterStatus({ hasNotes: false, readyInputHash: null, currentInputHash: "h" })).toBe("mangler notater");
+    expect(subchapterStatus({ hasNotes: false, readyInputHash: "a", currentInputHash: "b" })).toBe("mangler notater");
   });
 });

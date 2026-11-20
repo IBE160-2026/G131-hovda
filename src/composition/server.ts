@@ -1,5 +1,6 @@
 // Komposisjonsroten for Next.js-serveren. Her kobles portene til adapterne (AD-1).
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { cache } from "react";
 import type { Auth, Owner } from "@/application/auth";
 import type { DataSource } from "@/application/dataSource";
@@ -29,8 +30,11 @@ export async function getAuth(): Promise<Auth> {
 // visningen, går det nye tokenet tapt. `refreshPending` sier da fra, så siden kan sende
 // eieren innom fornyingsruten (/auth/forny), som fornyer på nytt med skrivbare cookies.
 // `cache` gjør at layout og side deler ett oppslag per forespørsel.
+// `connection()` utsetter oppslaget til forespørselen. Ellers kjører det i prefetchen av App Shell
+// (Partial Prefetching), der Supabase leser `Date.now()` for å sjekke tokenet, og Next feiler.
 export const getOwnerForRender = cache(
   async (): Promise<{ owner: Owner | null; refreshPending: boolean }> => {
+    await connection();
     const cookieStore = await cookies();
     let refreshPending = false;
     const client = createSupabaseServerClient({

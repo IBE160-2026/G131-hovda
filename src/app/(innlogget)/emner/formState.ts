@@ -16,3 +16,8 @@ export function initialCourseFormState(values: CourseInput = emptyCourse): Cours
 
 export const unavailableMessage = "Noe gikk galt. Prøv igjen senere.";
 export const notFoundMessage = "Fant ikke emnet. Det kan være slettet.";
+
+// Lesesiden for sammendraget.
+export const subchapterNotFoundMessage = "Fant ikke delkapittelet.";
+export const noSummaryMessage = "Dette delkapittelet har ikke noe sammendrag ennå.";
+export const outdatedMessage = "Notatet er endret etter at dette sammendraget ble laget.";

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { Chapter, ReadResult } from "@/application/dataSource";
-import { hasNotes } from "@/domain/hasNotes";
+import { listChapterOverview, type ChapterOverview } from "@/application/chapterOverview";
+import type { ReadResult } from "@/application/dataSource";
+import type { SubchapterStatus } from "@/domain/summary";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../OwnerOnly";
 import { unavailableMessage } from "../emner/formState";
@@ -102,13 +103,34 @@ export async function ActiveCourse() {
           Bytt emne
         </Link>
       </div>
-      <ChapterList chapters={await data.listChapters(course.id)} />
+      <ChapterList courseId={course.id} chapters={await listChapterOverview(data, course.id)} />
     </>
   );
 }
 
-/** Kapitlene i det aktive emnet med delkapitler i rekkefølge. Delkapitlene blir lenker i 1.7. */
-export function ChapterList({ chapters }: { chapters: ReadResult<Chapter[]> }) {
+const statusColors: Record<SubchapterStatus, string> = {
+  klart: "bg-mint",
+  utdatert: "bg-sun",
+  "mangler innhold": "bg-sky",
+  "mangler notater": "bg-sun",
+};
+
+/** Delkapitler med et klart sammendrag, også et utdatert, kan leses. */
+function canRead(status: SubchapterStatus): boolean {
+  return status === "klart" || status === "utdatert";
+}
+
+/**
+ * Kapitlene i det aktive emnet med delkapitler i rekkefølge og status for sammendraget. Delkapitler
+ * med et sammendrag lenker til lesesiden. Økten (quiz) kommer i 1.7.
+ */
+export function ChapterList({
+  courseId,
+  chapters,
+}: {
+  courseId: string;
+  chapters: ReadResult<ChapterOverview[]>;
+}) {
   return (
     <section aria-labelledby="kapitler" className="mt-4 flex flex-col gap-4">
       <h2 id="kapitler" className="text-2xl font-bold">
@@ -133,14 +155,21 @@ export function ChapterList({ chapters }: { chapters: ReadResult<Chapter[]> }) {
                     key={sub.id}
                     className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-sky px-4 py-3"
                   >
-                    <span className="min-w-0 break-words">
-                      <span className="font-semibold">{sub.number}</span> {sub.title}
-                    </span>
-                    {!hasNotes(sub.noteText) && (
-                      <span className="rounded-full bg-sun px-3 py-0.5 text-sm font-semibold">
-                        mangler notater
+                    {canRead(sub.status) ? (
+                      <Link
+                        href={`/emner/${encodeURIComponent(courseId)}/delkapitler/${encodeURIComponent(sub.number)}`}
+                        className={`min-w-0 break-words ${textLink}`}
+                      >
+                        <span>{sub.number}</span> <span className="font-normal">{sub.title}</span>
+                      </Link>
+                    ) : (
+                      <span className="min-w-0 break-words">
+                        <span className="font-semibold">{sub.number}</span> {sub.title}
                       </span>
                     )}
+                    <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${statusColors[sub.status]}`}>
+                      {sub.status}
+                    </span>
                   </li>
                 ))}
               </ol>
