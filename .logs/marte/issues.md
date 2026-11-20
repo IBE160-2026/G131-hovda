@@ -54,3 +54,4 @@
 - [x] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — etter migreringen mot `prod`: kjør `npm run import -- --target prod IBE430 1` (Marte sa ja til importen 19.11) (løst 2026-11-20: seks sammendrag lagt inn i `prod`)
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — `scripts/import.test.ts` og testene med de ekte filene må oppdateres når `kapittel-2.innhold.md` lages eller notatene i kapittel 1 endres
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — grenen for en innholdsfil som ikke kan leses er utestet (se deferred-work.md)
+- [ ] 2026-11-20 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — merge PR #1 for 1.5a v2 (deployer), og kjør `git pull` på `main` etterpå
