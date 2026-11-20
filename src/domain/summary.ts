@@ -64,27 +64,30 @@ export function validateSummaryText(text: string): SummaryValidation {
 }
 
 /**
- * Status for et delkapittel i kapittellisten (FR-11). Gjelder bare sammendraget til spørsmålsbanken
- * kommer i 1.6, og gjennomført kommer i 1.8.
+ * Status for et delkapittel (FR-11, AD-8). I kapittellisten gjelder den både sammendraget og
+ * spørsmålsbanken, på lesesiden bare sammendraget. Gjennomført kommer i 1.8.
  */
 export type SubchapterStatus = "mangler notater" | "mangler innhold" | "utdatert" | "klart";
 
 export type SubchapterStatusInput = {
   /** Svaret fra `hasNotes` for notatet nå. */
   hasNotes: boolean;
-  /** `inputHash` for siste klare versjon, eller `null` når det ikke finnes noen. */
-  readyInputHash: string | null;
+  /**
+   * `inputHash` for siste klare versjon av hver innholdstype (sammendrag, spørsmålsbank), eller
+   * `null` for en type uten klar versjon.
+   */
+  readyInputHashes: (string | null)[];
   /** `inputHash` for notatet og kapittelet nå. */
   currentInputHash: string;
 };
 
 /**
- * Regnes i denne rekkefølgen: mangler notater, mangler innhold (ingen klar versjon), utdatert
- * (klar versjon med annen hash enn notatet har nå), ellers klart.
+ * Regnes i denne rekkefølgen: mangler notater, mangler innhold (en av typene har ingen klar
+ * versjon), utdatert (en klar versjon har annen hash enn notatet har nå), ellers klart.
  */
 export function subchapterStatus(input: SubchapterStatusInput): SubchapterStatus {
   if (!input.hasNotes) return "mangler notater";
-  if (input.readyInputHash === null) return "mangler innhold";
-  if (input.readyInputHash !== input.currentInputHash) return "utdatert";
+  if (input.readyInputHashes.some((hash) => hash === null)) return "mangler innhold";
+  if (input.readyInputHashes.some((hash) => hash !== input.currentInputHash)) return "utdatert";
   return "klart";
 }

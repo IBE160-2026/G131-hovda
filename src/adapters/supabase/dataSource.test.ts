@@ -497,3 +497,143 @@ describe("SupabaseDataSource med sammendragsversjoner", () => {
     ).toEqual({ status: "unavailable" });
   });
 });
+
+describe("SupabaseDataSource med spørsmålsbanker", () => {
+  const bankRow = (id: string, status: string, createdAt: string) => ({
+    id,
+    subchapter_id: "d1",
+    status,
+    model_id: "claude-code/test",
+    prompt_version: "innhold.v2",
+    input_hash: "h",
+    content_hash: "c",
+    error: status === "feilet" ? "Nede." : null,
+    created_at: createdAt,
+  });
+
+  const newBank = {
+    subchapterId: "d1",
+    modelId: "claude-code/test",
+    promptVersion: "innhold.v2",
+    inputHash: "h",
+    contentHash: "c",
+    themes: ["Alfa", "Beta"],
+    questions: [
+      {
+        question: "Hva?",
+        options: ["A", "B", "C", "D"],
+        correctIndex: 1,
+        explanation: "Fordi.",
+        theme: "Beta",
+        sourceNumber: 1,
+        originalText: "Er det slik?",
+      },
+    ],
+  };
+
+  it("gir siste og siste klare bankversjon per delkapittel, filtrert på eier", async () => {
+    const rows = [bankRow("b2", "feilet", "2026-11-20T02:00:00Z"), bankRow("b1", "klart", "2026-11-20T01:00:00Z")];
+    const { client, queries } = fakeClient(() => ({ data: rows }));
+    const result = await new SupabaseDataSource(client, "eier").listQuestionBanks(["d1", "d2"]);
+    expect(result).toEqual({
+      status: "ok",
+      value: [
+        {
+          subchapterId: "d1",
+          latest: expect.objectContaining({ id: "b2", status: "feilet", error: "Nede." }),
+          latestReady: {
+            id: "b1",
+            subchapterId: "d1",
+            status: "klart",
+            modelId: "claude-code/test",
+            promptVersion: "innhold.v2",
+            inputHash: "h",
+            contentHash: "c",
+            error: null,
+            createdAt: "2026-11-20T01:00:00Z",
+          },
+        },
+        { subchapterId: "d2", latest: null, latestReady: null },
+      ],
+    });
+    expect(queries[0].table).toBe("question_bank_versions");
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["order", "created_at", { ascending: false }]);
+    const empty = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(empty.client, "eier").listQuestionBanks([])).toEqual({ status: "ok", value: [] });
+    expect(empty.queries).toHaveLength(0);
+  });
+
+  it("lagrer versjonen som «lages», så temaer og spørsmål, og til slutt «klart»", async () => {
+    const { client, queries } = fakeClient((query) => {
+      if (query.table === "themes") return { data: [{ id: "t1", name: "Alfa" }, { id: "t2", name: "Beta" }] };
+      if (query.table === "quiz_questions") return { data: null };
+      const isUpdate = query.calls.some(([m]) => m === "update");
+      return { data: bankRow("b1", isUpdate ? "klart" : "lages", "2026-11-20T01:00:00Z") };
+    });
+    const result = await new SupabaseDataSource(client, "eier").addQuestionBank(newBank);
+    expect(result).toEqual({ status: "ok", value: expect.objectContaining({ id: "b1", status: "klart" }) });
+    expect(queries.map((q) => q.table)).toEqual(["question_bank_versions", "themes", "quiz_questions", "question_bank_versions"]);
+    expect(queries[0].calls[0]).toEqual([
+      "insert",
+      {
+        owner_id: "eier",
+        subchapter_id: "d1",
+        status: "lages",
+        model_id: "claude-code/test",
+        prompt_version: "innhold.v2",
+        input_hash: "h",
+        content_hash: "c",
+      },
+    ]);
+    expect(queries[1].calls[0]).toEqual([
+      "upsert",
+      [
+        { owner_id: "eier", subchapter_id: "d1", name: "Alfa" },
+        { owner_id: "eier", subchapter_id: "d1", name: "Beta" },
+      ],
+      { onConflict: "owner_id,subchapter_id,name" },
+    ]);
+    expect(queries[2].calls[0]).toEqual([
+      "insert",
+      [
+        {
+          owner_id: "eier",
+          subchapter_id: "d1",
+          bank_version_id: "b1",
+          theme_id: "t2",
+          position: 1,
+          question: "Hva?",
+          options: ["A", "B", "C", "D"],
+          correct_index: 1,
+          explanation: "Fordi.",
+          source_number: 1,
+          rewritten: true,
+          original_text: "Er det slik?",
+        },
+      ],
+    ]);
+    expect(queries[3].calls).toContainEqual(["update", { status: "klart" }]);
+    expect(filtersOnOwner(queries[3])).toBe(true);
+    expect(queries[3].calls).toContainEqual(["eq", "id", "b1"]);
+  });
+
+  it("setter versjonen til «feilet» og gir unavailable når spørsmålene ikke kan lagres", async () => {
+    const { client, queries } = fakeClient((query) => {
+      if (query.table === "themes") return { data: [{ id: "t1", name: "Alfa" }, { id: "t2", name: "Beta" }] };
+      if (query.table === "quiz_questions") return { error: { code: "23514", message: "check" } };
+      return { data: bankRow("b1", "lages", "2026-11-20T01:00:00Z") };
+    });
+    expect(await new SupabaseDataSource(client, "eier").addQuestionBank(newBank)).toEqual({ status: "unavailable" });
+    const last = queries.at(-1)!;
+    expect(last.table).toBe("question_bank_versions");
+    expect(last.calls).toContainEqual(["update", { status: "feilet", error: "Fikk ikke lagret temaene eller spørsmålene." }]);
+    expect(last.calls).toContainEqual(["eq", "id", "b1"]);
+  });
+
+  it("gir unavailable uten flere skrivinger når versjonen ikke kan opprettes", async () => {
+    const { client, queries } = fakeClient(() => ({ error: { code: "", message: "fetch failed" } }));
+    expect(await new SupabaseDataSource(client, "eier").addQuestionBank(newBank)).toEqual({ status: "unavailable" });
+    expect(queries).toHaveLength(1);
+  });
+});

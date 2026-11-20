@@ -35,13 +35,13 @@ npx supabase link --project-ref ddfuxxawkghlqzpvighk   # dev (spør om databasep
 npx supabase db push --remote                          # kjør nye migreringer mot det koblede prosjektet
 ```
 
-For `prod` kobles det til `frykrsmzrbdvijtaivcd` på samme måte, og etter `db push` tilbake til `dev`.
+For `prod` kobles det til `frykrsmzrbdvijtaivcd` på samme måte, og etter `db push` tilbake til `dev`. Kjør migreringen mot `prod` før koden som bruker den, merges til `main` og deployes. Ellers får startsiden i prod feilmeldingen i stedet for kapittellisten.
 
 `npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`.
 
-### Importere notater og sammendrag
+### Importere notater, sammendrag og spørsmålsbanker
 
-Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:
+Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene og spørsmålsbankene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:
 
 ```sh
 npm run import -- --target dev IBE430 1    # kapittel 1 i IBE430 til dev
@@ -56,14 +56,16 @@ Importen leser nøklene fra `.env.dev.local` eller `.env.prod.local` i prosjektr
 - Hele notatfila valideres før noe skrives. Feil gir en norsk melding med linjenummer, kode 1 og ingen endringer. Svikter databasetilkoblingen midt i en import, kan noen endringer alt være lagret. Kjør da importen på nytt, den er idempotent.
 - Importen er idempotent. En ny kjøring med samme fil endrer ingenting og skriver «Alt er uendret». Endrede titler og notater oppdateres.
 - Et delkapittel som er borte fra fila, slettes ikke, men merkes som fjernet og skjules i kapittellisten. Kommer nummeret tilbake, blir det samme delkapittel aktivt igjen.
-- Bare `## Læringsmål for kapittelet`, `## Nøkkelbegreper` og delkapitlene (`### n.m Tittel` under `## Fordelt på delkapitler`) tas med. `## Råtekst`, `## Rettelser`, `## Gjennomgangsspørsmål` og `## Spørsmålsbank` tas aldri med.
-- Appen og importen kaller aldri en KI-leverandør, og importen trenger ingen KI-nøkler. Sammendragene (høyst 600 ord, bare fra notatet) lages på forhånd i Claude Code etter instruksjonen `G131-hovda/notater/_instruksjoner/innhold.v1.md` og skrives i innholdsfila. Instruksjonen beskriver regler, filformat og arbeidsflyt.
+- Bare `## Læringsmål for kapittelet`, `## Nøkkelbegreper` og delkapitlene (`### n.m Tittel` under `## Fordelt på delkapitler`) tas med i notatene. `## Råtekst`, `## Rettelser` og `## Gjennomgangsspørsmål` tas aldri med. Tabellen i `## Spørsmålsbank` leses bare som eierens egne quizspørsmål og inngår ikke i notatene eller hashen.
+- Appen og importen kaller aldri en KI-leverandør, og importen trenger ingen KI-nøkler. Sammendragene (høyst 600 ord, bare fra notatet) og spørsmålsbankene lages på forhånd i Claude Code etter instruksjonen `G131-hovda/notater/_instruksjoner/innhold.v2.md` og skrives i innholdsfila. Instruksjonen beskriver regler, filformat og arbeidsflyt.
+- En spørsmålsbank (`## Quizspørsmål`) har en temaliste og nøyaktig 20 spørsmål per delkapittel, med fire alternativer, nøyaktig ett riktig, en forklaring og et tema fra lista, og minst 2 spørsmål per tema. Eierens egne spørsmål fra `## Spørsmålsbank` regnes med, med fasiten som riktig alternativ. Ja/Nei-spørsmål skrives om til flervalg, og originalteksten lagres. Spørsmål under «**Må avklares før bruk:**» hoppes over, og importen skriver ut hvilke.
+- Banken lagres som en versjon med temaer og spørsmål. Finnes det allerede en klar bank, gir samme bank «spørsmålsbank uendret», og en annen bank i fila gir «spørsmålsbank endret, ikke lagt inn» og kode 1. Erstatning og påfylling av spørsmål kommer senere. Et delkapittel er «klart» i kapittellisten først når både sammendraget og spørsmålsbanken er klare.
 - Hvert delkapittel i innholdsfila har en `inputHash`: en hash av normalisert notat, kapittelets læringsmål og nøkkelbegreper og instruksjonsversjonen. `npm run innhold:hash -- <EMNE> <n>` skriver `n.m <inputHash>` for hvert delkapittel med notater.
 - Hele innholdsfila valideres sammen med notatfila før noe skrives, også før bekreftelsen mot prod. Sammendrag som er tomme eller over 600 ord, ukjente delkapitler, delkapitler uten notater, duplikater, feil `emne` eller `kapittel`, manglende `instruksjon` eller `modell`, ugyldig hash og ukjente `##`-seksjoner gir en norsk melding med linjenummer, kode 1 og ingen endringer.
-- Hver linje i utskriften sier hva som skjedde med sammendraget: «sammendrag lagt inn» (ny klar versjon), «sammendrag uendret» (samme tekst og hash som siste klare versjon), «sammendrag utdatert» eller «mangler innhold».
+- Hver linje i utskriften sier hva som skjedde med sammendraget og spørsmålsbanken: «lagt inn» (ny klar versjon), «uendret», «utdatert» eller «mangler sammendrag» / «mangler spørsmålsbank». Mangler begge, står det «mangler innhold».
 - «Sammendrag utdatert» betyr at hashen i fila er ulik notatets hash nå, fordi notatet, læringsmålene, nøkkelbegrepene eller instruksjonen er endret. Sammendraget lagres ikke, og importen avslutter med kode 1. Lag det på nytt etter instruksjonen og lim inn ny hash.
-- «Mangler innhold» betyr at delkapittelet har notater, men ikke står i innholdsfila, eller at fila ikke finnes. Kapitlene lagres likevel, og koden er 0.
+- «Mangler innhold» betyr at delkapittelet har notater, men ikke står i innholdsfila, eller at fila ikke finnes. Kapitlene lagres likevel, og koden er 0. Det samme gjelder «mangler sammendrag» og «mangler spørsmålsbank».
 - En rettet tekst med samme hash gir en ny versjon. Tidligere klare versjoner tas aldri bort. Hver versjon lagrer modellen (`modell`) og instruksjonsversjonen (`instruksjon`) fra fila.
-- `--force <n.m>` legger inn sammendraget for ett delkapittel på nytt selv om det er uendret. Delkapittelet må høre til kapittelet som importeres, ha notater og stå i innholdsfila.
+- `--force <n.m>` legger inn sammendraget for ett delkapittel på nytt selv om det er uendret. Delkapittelet må høre til kapittelet som importeres, ha notater og stå i innholdsfila. `--force` gjelder bare sammendraget, ikke spørsmålsbanken.
 
 Planleggingen ligger i `G131-hovda/planning-artifacts/`, og kildenotatene for emnene i `G131-hovda/notater/`.

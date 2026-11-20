@@ -13,14 +13,18 @@ import type {
   Chapter,
   Course,
   DataSource,
+  NewQuestionBank,
   NewSummaryVersion,
+  QuestionBankVersion,
   ReadResult,
   SaveChapterReport,
+  SubchapterQuestionBanks,
   SubchapterSummaries,
   SummaryVersion,
   Unavailable,
   WriteResult,
 } from "@/application/dataSource";
+import type { QuestionBankStatus } from "@/domain/questionBank";
 import type { SummaryStatus } from "@/domain/summary";
 
 // Bare den delen av Supabase-klienten som adapteren bruker, så testene kan bruke en falsk klient.
@@ -87,6 +91,38 @@ function toSummaryVersion(row: SummaryVersionRow): SummaryVersion {
     createdAt: row.created_at,
   };
 }
+
+type QuestionBankVersionRow = {
+  id: string;
+  subchapter_id: string;
+  status: QuestionBankStatus;
+  model_id: string;
+  prompt_version: string;
+  input_hash: string;
+  content_hash: string;
+  error: string | null;
+  created_at: string;
+};
+
+const questionBankVersionColumns =
+  "id, subchapter_id, status, model_id, prompt_version, input_hash, content_hash, error, created_at";
+
+function toQuestionBankVersion(row: QuestionBankVersionRow): QuestionBankVersion {
+  return {
+    id: row.id,
+    subchapterId: row.subchapter_id,
+    status: row.status,
+    modelId: row.model_id,
+    promptVersion: row.prompt_version,
+    inputHash: row.input_hash,
+    contentHash: row.content_hash,
+    error: row.error,
+    createdAt: row.created_at,
+  };
+}
+
+/** Lagres på versjonen når temaene eller spørsmålene ikke kunne lagres. */
+const BANK_SAVE_FAILED = "Fikk ikke lagret temaene eller spørsmålene.";
 
 function toChapterFields(row: ChapterRow): StoredChapterFields {
   return { title: row.title, learningGoals: row.learning_goals, keyConcepts: row.key_concepts };
@@ -442,6 +478,114 @@ export class SupabaseDataSource implements DataSource {
         .single();
       if (error || !data) return unavailable;
       return { status: "ok", value: toSummaryVersion(data as SummaryVersionRow) };
+    });
+  }
+
+  listQuestionBanks(subchapterIds: string[]): Promise<ReadResult<SubchapterQuestionBanks[]>> {
+    return guarded(async () => {
+      let rows: QuestionBankVersionRow[] = [];
+      if (subchapterIds.length > 0) {
+        // Nyeste først, som for sammendragene. Bare versjonene, ikke spørsmålene.
+        const { data, error } = await this.client
+          .from("question_bank_versions")
+          .select(questionBankVersionColumns)
+          .eq("owner_id", this.ownerId)
+          .in("subchapter_id", subchapterIds)
+          .order("created_at", { ascending: false });
+        if (error || !data) return unavailable;
+        rows = data as QuestionBankVersionRow[];
+      }
+      return {
+        status: "ok",
+        value: subchapterIds.map((subchapterId) => {
+          const own = rows.filter((r) => r.subchapter_id === subchapterId);
+          const ready = own.find((r) => r.status === "klart");
+          return {
+            subchapterId,
+            latest: own[0] ? toQuestionBankVersion(own[0]) : null,
+            latestReady: ready ? toQuestionBankVersion(ready) : null,
+          };
+        }),
+      };
+    });
+  }
+
+  addQuestionBank(bank: NewQuestionBank): Promise<WriteResult<QuestionBankVersion>> {
+    return guarded(async () => {
+      const created = await this.client
+        .from("question_bank_versions")
+        .insert({
+          owner_id: this.ownerId,
+          subchapter_id: bank.subchapterId,
+          status: "lages",
+          model_id: bank.modelId,
+          prompt_version: bank.promptVersion,
+          input_hash: bank.inputHash,
+          content_hash: bank.contentHash,
+        })
+        .select(questionBankVersionColumns)
+        .single();
+      if (created.error || !created.data) return unavailable;
+      const versionId = (created.data as QuestionBankVersionRow).id;
+
+      // PostgREST har ingen transaksjoner. Feiler noe etter at versjonen finnes, blir den `feilet`
+      // og leses aldri som klar (AD-8).
+      const fail = async (): Promise<Unavailable> => {
+        try {
+          await this.client
+            .from("question_bank_versions")
+            .update({ status: "feilet", error: BANK_SAVE_FAILED })
+            .eq("owner_id", this.ownerId)
+            .eq("id", versionId);
+        } catch {
+          // Versjonen blir stående som `lages`, som heller ikke leses som klar.
+        }
+        return unavailable;
+      };
+
+      try {
+        // Eksisterende temaer med samme navn gjenbrukes (AD-14).
+        const themes = await this.client
+          .from("themes")
+          .upsert(
+            bank.themes.map((name) => ({ owner_id: this.ownerId, subchapter_id: bank.subchapterId, name })),
+            { onConflict: "owner_id,subchapter_id,name" },
+          )
+          .select("id, name");
+        if (themes.error || !themes.data) return await fail();
+        const themeIds = new Map((themes.data as { id: string; name: string }[]).map((t) => [t.name, t.id]));
+        if (bank.themes.some((name) => !themeIds.has(name))) return await fail();
+
+        const questions = await this.client.from("quiz_questions").insert(
+          bank.questions.map((q, i) => ({
+            owner_id: this.ownerId,
+            subchapter_id: bank.subchapterId,
+            bank_version_id: versionId,
+            theme_id: themeIds.get(q.theme),
+            position: i + 1,
+            question: q.question,
+            options: q.options,
+            correct_index: q.correctIndex,
+            explanation: q.explanation,
+            source_number: q.sourceNumber,
+            rewritten: q.originalText !== null,
+            original_text: q.originalText,
+          })),
+        );
+        if (questions.error) return await fail();
+
+        const ready = await this.client
+          .from("question_bank_versions")
+          .update({ status: "klart" })
+          .eq("owner_id", this.ownerId)
+          .eq("id", versionId)
+          .select(questionBankVersionColumns)
+          .single();
+        if (ready.error || !ready.data) return await fail();
+        return { status: "ok", value: toQuestionBankVersion(ready.data as QuestionBankVersionRow) };
+      } catch {
+        return await fail();
+      }
     });
   }
 }

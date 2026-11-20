@@ -7,19 +7,28 @@
  * tas med: `## Læringsmål for kapittelet`, `## Nøkkelbegreper` og `## Fordelt på delkapitler`.
  * Delkapitler er `### n.m Tittel` under `## Fordelt på delkapitler` og slutter ved neste `###`
  * eller `##`. Alt annet (`## Råtekst`, `## Rettelser`, `## Gjennomgangsspørsmål`,
- * `## Spørsmålsbank`, `### Innliming …`) tas aldri med. Overskrifter inne i kodeblokker teller ikke.
+ * `## Spørsmålsbank`, `### Innliming …`) tas aldri med i notatene. Overskrifter inne i kodeblokker
+ * teller ikke.
+ *
+ * Tabellen i `## Spørsmålsbank` (`#`, `Delkapittel`, `Spørsmål`, `Fasit`) leses for seg, til
+ * brukerens egne quizspørsmål (FR-13, AD-6). Spørsmål med nummeret i den fete starten av et punkt
+ * under «**Må avklares før bruk:**» hoppes over. Tall ellers i punktteksten teller ikke.
  */
 import type { ChapterInput, SubchapterInput } from "./chapter";
 import { normalizeCourseCode } from "./course";
+import type { OwnQuestion, OwnQuestions } from "./questionBank";
 
 export const SECTION_LEARNING_GOALS = "Læringsmål for kapittelet";
 export const SECTION_KEY_CONCEPTS = "Nøkkelbegreper";
 export const SECTION_SUBCHAPTERS = "Fordelt på delkapitler";
+export const SECTION_QUESTION_BANK = "Spørsmålsbank";
 
 export type NotesFile = {
   /** `emne` fra frontmatter, normalisert. */
   courseCode: string;
   chapter: ChapterInput;
+  /** Brukerens egne spørsmål fra `## Spørsmålsbank`. Inngår ikke i notatene eller `inputHash`. */
+  ownQuestions: OwnQuestions;
   /** Linjenumrene til `emne` og `kapittel` i frontmatter, for feilmeldinger. */
   lines: { courseCode: number; chapterNumber: number };
 };
@@ -97,6 +106,8 @@ export function parseNotesFile(text: string): NotesFileResult {
   const subchapters: (SubchapterInput & { lines: string[] })[] = [];
   const subchapterLine = new Map<string, number>();
   let subchaptersSection: number | null = null;
+  let bankSection: number | null = null;
+  const bankLines: { text: string; line: number }[] = [];
   let current: Collecting = null;
   let section: string | null = null;
   let fence: { marker: string; line: number } | null = null;
@@ -117,6 +128,15 @@ export function parseNotesFile(text: string): NotesFileResult {
       if (h1 || h2) {
         section = h2 ? h2[1].trim() : null;
         current = null;
+        if (section === SECTION_QUESTION_BANK) {
+          if (bankSection !== null) {
+            errors.push(at(lineNo, `seksjonen «## ${section}» står to ganger (første gang på linje ${bankSection}).`));
+            section = null;
+          } else {
+            bankSection = lineNo;
+          }
+          continue;
+        }
         if (section === SECTION_LEARNING_GOALS || section === SECTION_KEY_CONCEPTS || section === SECTION_SUBCHAPTERS) {
           const first = sectionStart.get(section);
           if (first !== undefined) {
@@ -165,7 +185,8 @@ export function parseNotesFile(text: string): NotesFileResult {
       }
     }
 
-    if (current?.kind === "section") sectionLines.get(current.name)!.push(line);
+    if (section === SECTION_QUESTION_BANK) bankLines.push({ text: line, line: lineNo });
+    else if (current?.kind === "section") sectionLines.get(current.name)!.push(line);
     else if (current?.kind === "subchapter") subchapters[current.index].lines.push(line);
   }
 
@@ -175,6 +196,9 @@ export function parseNotesFile(text: string): NotesFileResult {
   } else if (subchapters.length === 0) {
     errors.push(at(subchaptersSection, `«## ${SECTION_SUBCHAPTERS}» har ingen delkapitler («### n.m Tittel»).`));
   }
+
+  // Har overskriftene feil, sjekkes ikke delkapitlene i tabellen, så de ikke gir følgefeil.
+  const ownQuestions = readQuestionBank(bankLines, errors.length === 0 ? new Set(subchapters.map((s) => s.number)) : null, errors);
 
   if (errors.length > 0 || chapterNumber === null) return { ok: false, errors };
 
@@ -194,8 +218,107 @@ export function parseNotesFile(text: string): NotesFileResult {
           noteText: body.join("\n").trim(),
         })),
       },
+      ownQuestions,
       lines: { courseCode: emne!.line, chapterNumber: kapittel!.line },
     },
+  };
+}
+
+const BANK_COLUMNS = ["#", "Delkapittel", "Spørsmål", "Fasit"];
+const UNCLEAR_MARKER = /^\*\*Må avklares før bruk:?\*\*:?$/;
+const BOLD_BULLET = /^[-*]\s+\*\*(.*?)\*\*/;
+
+function tableCells(text: string): string[] {
+  return text
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((c) => c.trim());
+}
+
+/**
+ * Leser tabellen og listen «Må avklares før bruk» i `## Spørsmålsbank`. Feil legges i `errors`.
+ * Gir spørsmålene som skal med, og numrene som er hoppet over.
+ */
+function readQuestionBank(
+  lines: { text: string; line: number }[],
+  subchapterNumbers: Set<string> | null,
+  errors: string[],
+): OwnQuestions {
+  const all: OwnQuestion[] = [];
+  const firstLine = new Map<number, number>();
+  const unclear: { number: number; line: number }[] = [];
+  let header = false;
+  let inUnclear = false;
+
+  for (const { text, line } of lines) {
+    const trimmed = text.trim();
+    if (trimmed.startsWith("|")) {
+      inUnclear = false;
+      const cells = tableCells(trimmed);
+      if (!header) {
+        header = true;
+        if (cells.join("|") !== BANK_COLUMNS.join("|")) {
+          const names = BANK_COLUMNS.map((c) => `«${c}»`).join(", ");
+          errors.push(at(line, `tabellen i «## ${SECTION_QUESTION_BANK}» må ha kolonnene ${names}.`));
+        }
+        continue;
+      }
+      if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
+      if (cells.length !== BANK_COLUMNS.length) {
+        errors.push(at(line, `raden har ${cells.length} kolonner, men tabellen skal ha ${BANK_COLUMNS.length}.`));
+        continue;
+      }
+      const [nr, sub, question, answer] = cells;
+      if (!/^\d+$/.test(nr) || Number(nr) < 1) {
+        errors.push(at(line, `«#» må være et helt tall fra 1, men er «${nr}».`));
+        continue;
+      }
+      const number = Number(nr);
+      const first = firstLine.get(number);
+      if (first !== undefined) {
+        errors.push(at(line, `spørsmål ${number} står to ganger (første gang på linje ${first}).`));
+        continue;
+      }
+      firstLine.set(number, line);
+      const match = /^(\d+)\.(\d+)$/.exec(sub);
+      const subchapter = match ? `${Number(match[1])}.${Number(match[2])}` : sub;
+      if (subchapterNumbers && !subchapterNumbers.has(subchapter)) {
+        errors.push(at(line, `spørsmål ${number} gjelder delkapittel «${sub}», som ikke finnes i «## ${SECTION_SUBCHAPTERS}».`));
+        continue;
+      }
+      if (question === "" || answer === "") {
+        errors.push(at(line, `spørsmål ${number} mangler ${question === "" ? "spørsmål" : "fasit"}.`));
+        continue;
+      }
+      all.push({ number, subchapter, question, answer, line });
+      continue;
+    }
+    if (UNCLEAR_MARKER.test(trimmed)) {
+      inUnclear = true;
+      continue;
+    }
+    if (!inUnclear || trimmed === "") continue;
+    const bullet = BOLD_BULLET.exec(trimmed);
+    if (!bullet) {
+      // Listen slutter ved første linje som ikke er et punkt eller en innrykket fortsettelse av et.
+      if (!/^[-*]\s/.test(trimmed) && !/^\s+\S/.test(text)) inUnclear = false;
+      continue;
+    }
+    // Delkapittelnumre som «1.2» i den fete starten er ikke spørsmålsnumre.
+    for (const nr of bullet[1].replace(/\d+\.\d+/g, "").match(/\d+/g) ?? []) unclear.push({ number: Number(nr), line });
+  }
+
+  const skipped = new Set<number>();
+  for (const { number, line } of unclear) {
+    if (!firstLine.has(number)) {
+      errors.push(at(line, `«Må avklares før bruk» nevner spørsmål ${number}, som ikke finnes i tabellen.`));
+    } else skipped.add(number);
+  }
+  return {
+    questions: all.filter((q) => !skipped.has(q.number)),
+    skipped: [...skipped].sort((a, b) => a - b),
   };
 }
 

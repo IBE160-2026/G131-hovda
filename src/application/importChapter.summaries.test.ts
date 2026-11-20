@@ -37,7 +37,7 @@ const hashOf = (note: string, goals = "- mål") => subchapterInputHash({ learnin
 
 type Entry = { number: string; text: string; hash: string };
 
-function contentFile(entries: Entry[], front = "instruksjon: innhold.v1\nmodell: claude-code/test-modell") {
+function contentFile(entries: Entry[], front = "instruksjon: innhold.v2\nmodell: claude-code/test-modell") {
   const body = entries.map((e) => `### ${e.number} Tittel\n<!-- inputHash: ${e.hash} -->\n${e.text}\n`).join("\n");
   return `---\nemne: IBE430\nkapittel: 1\n${front}\n---\n\n## Sammendrag\n\n${body}`;
 }
@@ -73,7 +73,7 @@ describe("importChapter med innholdsfil", () => {
       status: "klart",
       text: "Sammendrag av 1.1.",
       modelId: "claude-code/test-modell",
-      promptVersion: "innhold.v1",
+      promptVersion: "innhold.v2",
       inputHash: await hashOf("Notat en"),
       error: null,
     });
@@ -159,7 +159,7 @@ describe("importChapter med innholdsfil", () => {
   it("gjør alt utdatert når instruksjonen i filen er en annen enn importen kjenner", async () => {
     const data = await setup();
     const entries = await Promise.all(six.map(async ([n, , note]) => ({ number: n, text: "Tekst.", hash: await hashOf(note) })));
-    const content = contentFile(entries, "instruksjon: innhold.v2\nmodell: claude-code/test-modell");
+    const content = contentFile(entries, "instruksjon: innhold.v3\nmodell: claude-code/test-modell");
     const result = await run(data, sixSubchapters, { content });
     expect(statuses(result)).toEqual(Array(6).fill("outdated"));
     expect(data.summaryVersions).toEqual([]);
