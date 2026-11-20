@@ -55,4 +55,7 @@
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — `scripts/import.test.ts` og testene med de ekte filene må oppdateres når `kapittel-2.innhold.md` lages eller notatene i kapittel 1 endres
 - [ ] 2026-11-19 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — grenen for en innholdsfil som ikke kan leses er utestet (se deferred-work.md)
 - [x] 2026-11-20 [story-1-5a-v2-bygg](984-2026-11-19-14-16-07-story-1-5a-v2-bygg.md) — merge PR #1 for 1.5a v2 (deployer), og kjør `git pull` på `main` etterpå (løst 2026-11-20: merget som `55f92bf`, lokal `main` oppdatert)
-- [ ] 2026-11-20 [story-1-5b-spesifikasjon](983-2026-11-20-11-29-55-story-1-5b-spesifikasjon.md) — bygg story 1.5b i en ny `bmad-build`-økt (specen er godkjent)
+- [x] 2026-11-20 [story-1-5b-spesifikasjon](983-2026-11-20-11-29-55-story-1-5b-spesifikasjon.md) — bygg story 1.5b i en ny `bmad-build`-økt (specen er godkjent) (løst 2026-11-20: `14efcf3`)
+- [ ] 2026-11-20 [story-1-5b-bygg](982-2026-11-20-16-58-00-story-1-5b-bygg.md) — sjekk `/start` og lesesiden i nettleseren mot `dev` med innlogging (kapittel 1 skal vise «klart» og lenker)
+- [ ] 2026-11-20 [story-1-5b-bygg](982-2026-11-20-16-58-00-story-1-5b-bygg.md) — prøv lesesiden med en fremmed emne-id mot `dev` (RLS skal gi «Fant ikke delkapittelet.»)
+- [ ] 2026-11-20 [story-1-5b-bygg](982-2026-11-20-16-58-00-story-1-5b-bygg.md) — `listSummaryVersions` for et helt emne kan bli avkortet av PostgREST max-rows (se deferred-work.md)
