@@ -33,3 +33,6 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-5a-v2-importen-legger-inn-sammendrag-fra-innholdsfila.md`
   summary: Grenen i `scripts/import.ts` der innholdsfila finnes, men ikke kan leses (ikke ENOENT, kode 1), har ingen test.
   evidence: Verification-gap-review 19.11.2026. Returnerer `readContentFile` `null` for alle feil, blir en ulesbar fil stille til «mangler innhold» med kode 0, og ingen test feiler. Krever en fixturmappe eller en katalog på fil-stien i en spawn-test.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-5b-status-i-kapittellisten-og-lesesiden.md`
+  summary: `listSummaryVersions` for et helt emne kan bli avkortet av PostgREST max-rows, så delkapitler feilaktig viser «mangler innhold».
+  evidence: Uverifisert (antatt middels). Supabase-adapteren henter alle versjonene for alle delkapittel-ID-ene uten paginering. Avgjøres ved å sjekke max-rows i prosjektet og telle `summary_versions`-rader per emne etter gjentatte importer.

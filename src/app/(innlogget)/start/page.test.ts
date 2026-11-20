@@ -7,6 +7,7 @@ vi.mock("./actions", () => ({ logOut: async () => {} }));
 
 const { ActiveCourse } = await import("./page");
 const { unavailableMessage } = await import("../emner/formState");
+const { subchapterInputHash } = await import("@/application/summaryHash");
 
 const course = {
   id: "c1",
@@ -18,12 +19,33 @@ const course = {
 const ok = <T>(value: T) => ({ status: "ok", value });
 
 const listChapters = vi.fn();
+const listSummaryVersions = vi.fn();
 
-async function render(active: unknown, courses: unknown, chapters: unknown = ok([])) {
+/** Siste klare versjon per delkapittel-ID, med `inputHash`. Delkapitler som ikke er med, har ingen. */
+type ReadyHashes = Record<string, string>;
+
+async function render(
+  active: unknown,
+  courses: unknown,
+  chapters: unknown = ok([]),
+  ready: ReadyHashes | { status: "unavailable" } = {},
+) {
   getDataSourceForRender.mockResolvedValue({
     getActiveCourse: async () => active,
     listCourses: async () => courses,
     listChapters: listChapters.mockReset().mockResolvedValue(chapters),
+    listSummaryVersions: listSummaryVersions.mockReset().mockImplementation(async (ids: string[]) =>
+      "status" in ready
+        ? ready
+        : ok(
+            ids.map((subchapterId) => {
+              const version = ready[subchapterId]
+                ? { id: `s-${subchapterId}`, subchapterId, status: "klart", text: "Tekst", inputHash: ready[subchapterId] }
+                : null;
+              return { subchapterId, latest: version, latestReady: version };
+            }),
+          ),
+    ),
   });
   return renderToStaticMarkup(await ActiveCourse());
 }
@@ -109,9 +131,36 @@ describe("kapittellisten på startsiden", () => {
     expect(marked.map((li) => (li.includes("2.3") ? "2.3" : li.includes("2.5") ? "2.5" : "?"))).toEqual(["2.3", "2.5"]);
   });
 
-  it("lager ingen lenker til delkapitlene ennå", async () => {
-    const html = await render(ok(course), ok([course]), ok(chapters));
-    expect(html.match(/<a /g)).toHaveLength(1); // bare «Bytt emne»
+  it("henter alle sammendragsversjonene med ett kall", async () => {
+    await render(ok(course), ok([course]), ok(chapters));
+    expect(listSummaryVersions).toHaveBeenCalledTimes(1);
+    expect(listSummaryVersions).toHaveBeenCalledWith(["d1", "d2", "d3", "d4", "d5"]);
+  });
+
+  /** Statusmerket for delkapittelet med nummeret, og om det er en lenke. */
+  function rowOf(html: string, number: string) {
+    const li = html.split("<li").find((part) => part.includes(`>${number}<`)) ?? "";
+    const status = ["klart", "utdatert", "mangler innhold", "mangler notater"].find((s) => li.includes(`>${s}<`));
+    const link = li.match(/<a [^>]*href="([^"]*)"/)?.[1] ?? null;
+    return { status, link };
+  }
+
+  it("viser status per delkapittel og lenker bare til dem med sammendrag", async () => {
+    const hash = await subchapterInputHash({ learningGoals: "", keyConcepts: "" }, "Notat");
+    const html = await render(ok(course), ok([course]), ok(chapters), { d1: hash, d2: "gammel-hash" });
+    expect(rowOf(html, "1.1")).toEqual({ status: "klart", link: "/emner/c1/delkapitler/1.1" });
+    expect(rowOf(html, "1.2")).toEqual({ status: "utdatert", link: "/emner/c1/delkapitler/1.2" });
+    expect(rowOf(html, "2.2")).toEqual({ status: "mangler innhold", link: null });
+    expect(rowOf(html, "2.3")).toEqual({ status: "mangler notater", link: null });
+    expect(rowOf(html, "2.5")).toEqual({ status: "mangler notater", link: null });
+    expect(html.match(/<a /g)).toHaveLength(3); // «Bytt emne», 1.1 og 1.2
+  });
+
+  it("viser feilmeldingen når sammendragene ikke kan hentes", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapters), { status: "unavailable" });
+    expect(html).toContain(unavailableMessage);
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("Kapittel 1: Organisasjoner");
   });
 
   it("sier fra når ingen kapitler er importert", async () => {

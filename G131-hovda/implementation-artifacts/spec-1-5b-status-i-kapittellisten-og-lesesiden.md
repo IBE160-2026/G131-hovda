@@ -2,8 +2,9 @@
 title: 'Story 1.5b: Status i kapittellisten og lesesiden for sammendraget'
 type: 'feature'
 created: '2026-11-20'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
+baseline_commit: '6d5954aa1e5b3fd7965c010a3c8f333886422e48'
 review_loop_iteration: 0
 context:
   - '{project-root}/G131-hovda/implementation-artifacts/epic-1-context.md'
@@ -64,11 +65,11 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/summary.ts` + test -- `subchapterStatus` (ren) etter rekkefølgen i Always.
-- [ ] `src/domain/summaryMarkdown.ts` + test -- tolk teksten til blokker (avsnitt, liste) med tekst- og fet-segmenter.
-- [ ] `src/application/chapterOverview.ts` + test -- `listChapterOverview(data, courseId)` (kapitler med status per delkapittel) og `getSubchapterSummary(data, courseId, number)` (delkapittel, kapittel, status og siste klare versjon, eller `notFound`). Tester mot `MemoryDataSource` etter matrisen.
-- [ ] `src/app/(innlogget)/start/page.tsx` + test -- `ChapterList` bruker oversikten, viser status og lenker der matrisen sier det.
-- [ ] `src/app/(innlogget)/emner/[id]/delkapitler/[nummer]/page.tsx` + test -- lesesiden med `OwnerOnly`, lenke tilbake til startsiden og Markdown-visning.
+- [x] `src/domain/summary.ts` + test -- `subchapterStatus` (ren) etter rekkefølgen i Always.
+- [x] `src/domain/summaryMarkdown.ts` + test -- tolk teksten til blokker (avsnitt, liste) med tekst- og fet-segmenter.
+- [x] `src/application/chapterOverview.ts` + test -- `listChapterOverview(data, courseId)` (kapitler med status per delkapittel) og `getSubchapterSummary(data, courseId, number)` (delkapittel, kapittel, status og siste klare versjon, eller `notFound`). Tester mot `MemoryDataSource` etter matrisen.
+- [x] `src/app/(innlogget)/start/page.tsx` + test -- `ChapterList` bruker oversikten, viser status og lenker der matrisen sier det.
+- [x] `src/app/(innlogget)/emner/[id]/delkapitler/[nummer]/page.tsx` + test -- lesesiden med `OwnerOnly`, lenke tilbake til startsiden og Markdown-visning.
 
 **Acceptance Criteria:**
 - Given IBE430 kapittel 1 importert mot `dev` med `kapittel-1.innhold.md`, when eieren åpner startsiden, then har 1.1–1.6 «klart», og hvert av dem åpner lesesiden med sammendraget.
@@ -92,3 +93,24 @@ Markdown-tolkingen er bevisst liten: blokker skilles med tomme linjer, en blokk 
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Source | Finding | Verdict | Route | Evidence |
+|---|--------|---------|---------|-------|----------|
+| 1 | blind, edge, verif | Lesesiden viser gammel klar versjon uten merknad når status er «mangler notater» | low | patch | `page.tsx` viser `outdatedMessage` bare for «utdatert»; `getSubchapterSummary` returnerer `latestReady` uansett status. |
+| 2 | verif | Ingen test for at HTML i sammendraget escapes | low | patch | Ingen test inneholder `<`/`&lt;`; fixturen har ingen HTML. |
+| 3 | verif | `<br />` mellom linjer i avsnitt rendres aldri i test | low | patch | Alle avsnitt i `kapittel-1.innhold.md` er én linje. |
+| 4 | blind | `unavailable`-testene nullstiller ikke `summaryReadsDown` før `down` | low | patch | `chapterOverview.test.ts` setter begge flaggene uten å nullstille; `listChapters`-feil alene testes ikke. |
+| 5 | edge | `listSummaryVersions` for hele emnet kan avkortes av PostgREST max-rows (1000) | maybe-false (medium if true) | defer | Adapteren henter alle versjoner uten paginering; avhenger av max-rows i Supabase-oppsettet og antall versjoner. |
+| 6 | blind, edge | Markdown: intro-linje rett før liste, `* `/`1. `-lister, overskrifter, `***` vises som tekst | false | reject | Intent: «Annen tekst vises som den står»; Design Notes definerer regelen. Dagens innhold er rent (test). |
+| 7 | edge | Tom `summary.text` på klar versjon gir «klart» i lista, men «ikke noe sammendrag» på siden | false | reject | `validateSummaryText` avviser tom tekst før lagring. |
+| 8 | edge | Lang `.in()`-URL for mange delkapitler | false | reject | ~14 kapitler × ~6 delkapitler × 37 tegn ≈ 3 kB, godt under grensene. |
+| 9 | edge | Samme delkapittelnummer i to kapitler | false | reject | Nummeret er «n.m» med kapittelnummeret først (AD-5), så det er unikt i emnet. |
+| 10 | edge | Ingen formatsjekk på `nummer` | false | reject | Eksakt sammenligning gir `notFound` for alt annet; ingen feil utfall. |
+| 11 | edge | Ingen `<h1>` i feil-/ikke-funnet-grenene | low | reject | Samme mønster som `emner/[id]/page.tsx`; sjelden og kosmetisk. |
+| 12 | blind | Startsiden skjuler hele lista når sammendragene ikke kan hentes | false | reject | Matrisen krever `unavailableMessage` ved feil i `listSummaryVersions`. |
+| 13 | blind | «utdatert» og «mangler notater» har samme merkefarge | low | reject | Teksten i merket skiller dem; ingen funksjonell skade. |
+| 14 | blind | Statisk sidetittel på lesesiden | low | reject | Kosmetisk; krever `generateMetadata` med nytt datakall. |
+| 15 | blind | Ingen test for `getDataSourceForRender()` = null / fremmed eier | false | reject | `OwnerOnly` håndterer innlogging (testet i `ownerOnlyPages.test.ts`); fremmed id gir tom liste fra RLS, samme vei som «ukjent». |
+| 16 | blind | `** a **` blir fet med mellomrom | low | reject | Sjeldent i innholdet; ufarlig visning. |
+| 17 | blind | Starttesten bygger hashen fra literaler, ikke fixturen | false | reject | Endres fixturen, feiler testen synlig; den passerer ikke stille. |
+| 18 | blind | Ingen rundtur-test for kodede lenker | low | reject | Id er uuid og nummer «n.m»; ingen tegn som trenger koding. |
