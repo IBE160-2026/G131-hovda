@@ -4,13 +4,23 @@ import type { ChapterInput } from "@/domain/chapter";
 import { CONTENT_INSTRUCTION_VERSION } from "@/domain/contentFile";
 import { hasNotes } from "@/domain/hasNotes";
 import { checkNotesFileTarget, parseNotesFile } from "@/domain/notesFile";
+import { questionBankContentSource, type ContentQuestionBank } from "@/domain/questionBank";
 import { summaryHashSource, type SummaryHashParts } from "@/domain/summary";
 
-/** SHA-256 av hash-grunnlaget, som 64 heksadesimale tegn. */
-export async function summaryInputHash(parts: SummaryHashParts): Promise<string> {
-  const bytes = new TextEncoder().encode(summaryHashSource(parts));
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+/** SHA-256 av teksten, som 64 heksadesimale tegn. */
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** SHA-256 av hash-grunnlaget. */
+export function summaryInputHash(parts: SummaryHashParts): Promise<string> {
+  return sha256Hex(summaryHashSource(parts));
+}
+
+/** `contentHash` for en spørsmålsbank: like temaer og spørsmål gir lik hash. */
+export function questionBankContentHash(bank: Pick<ContentQuestionBank, "themes" | "questions">): Promise<string> {
+  return sha256Hex(questionBankContentSource(bank));
 }
 
 /** Hashen for ett delkapittel slik den er nå, med instruksjonsversjonen importen kjenner. */

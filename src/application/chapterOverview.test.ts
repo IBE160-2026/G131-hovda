@@ -16,21 +16,52 @@ async function setup() {
   return { data, courseId: created.value.id };
 }
 
-/** Importerer et lite kapittel med tre delkapitler: med sammendrag, uten sammendrag og uten notater. */
+/** En klar spørsmålsbank med ett tema og to spørsmål. Antallet sjekkes av importen, ikke her. */
+async function addBank(data: MemoryDataSource, subchapterId: string, inputHash: string) {
+  const question = (n: number) => ({
+    question: `Spørsmål ${n}?`,
+    options: ["A", "B", "C", "D"],
+    correctIndex: 0,
+    explanation: "Fordi.",
+    theme: "Tema",
+    sourceNumber: null,
+    originalText: null,
+  });
+  await data.addQuestionBank({
+    subchapterId,
+    modelId: "claude-code/test",
+    promptVersion: "innhold.v2",
+    inputHash,
+    contentHash: "c".repeat(64),
+    themes: ["Tema"],
+    questions: [question(1), question(2)],
+  });
+}
+
+/**
+ * Importerer et lite kapittel med fire delkapitler: med sammendrag og bank, med bare sammendrag,
+ * uten noe og uten notater.
+ */
 async function smallChapter() {
   const { data, courseId } = await setup();
-  const notes = `---\nemne: IBE430\nkapittel: 1\ntittel: "Kapittel én"\n---\n\n## Læringsmål for kapittelet\n\n- mål\n\n## Fordelt på delkapitler\n\n### 1.1 En\n\nNotat en\n\n### 1.2 To\n\nNotat to\n\n### 1.3 Tre\n\n*Ingen notater ennå.*\n`;
+  const notes = `---\nemne: IBE430\nkapittel: 1\ntittel: "Kapittel én"\n---\n\n## Læringsmål for kapittelet\n\n- mål\n\n## Fordelt på delkapitler\n\n### 1.1 En\n\nNotat en\n\n### 1.2 To\n\nNotat to\n\n### 1.3 Tre\n\n*Ingen notater ennå.*\n\n### 1.4 Fire\n\nNotat fire\n`;
   const result = await importChapter(data, notes, target);
   if (result.status !== "ok") throw new Error(JSON.stringify(result));
-  const [sub1] = data.chapters[0].subchapters;
-  await data.addSummaryVersion({
-    subchapterId: sub1.id,
-    status: "klart",
-    text: "Sammendrag av 1.1.",
-    modelId: "claude-code/test",
-    promptVersion: "innhold.v1",
-    inputHash: await subchapterInputHash({ learningGoals: "- mål", keyConcepts: "" }, "Notat en"),
-  });
+  const [sub1, , , sub4] = data.chapters[0].subchapters;
+  for (const [sub, note] of [
+    [sub1, "Notat en"],
+    [sub4, "Notat fire"],
+  ] as const) {
+    await data.addSummaryVersion({
+      subchapterId: sub.id,
+      status: "klart",
+      text: `Sammendrag av ${sub.number}.`,
+      modelId: "claude-code/test",
+      promptVersion: "innhold.v2",
+      inputHash: await subchapterInputHash({ learningGoals: "- mål", keyConcepts: "" }, note),
+    });
+  }
+  await addBank(data, sub1.id, await subchapterInputHash({ learningGoals: "- mål", keyConcepts: "" }, "Notat en"));
   return { data, courseId };
 }
 
@@ -47,7 +78,7 @@ describe("listChapterOverview", () => {
     expect(statuses(overview.value)).toEqual(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"].map((n) => [n, "klart"]));
   });
 
-  it("gir «klart», «mangler innhold» og «mangler notater»", async () => {
+  it("gir «klart» bare med både sammendrag og bank, ellers «mangler innhold» eller «mangler notater»", async () => {
     const { data, courseId } = await smallChapter();
     const overview = await listChapterOverview(data, courseId);
     if (overview.status !== "ok") throw new Error("utilgjengelig");
@@ -55,6 +86,14 @@ describe("listChapterOverview", () => {
       ["1.1", "klart"],
       ["1.2", "mangler innhold"],
       ["1.3", "mangler notater"],
+      ["1.4", "mangler innhold"],
+    ]);
+    // Lenken til lesesiden følger bare sammendraget.
+    expect(overview.value[0].subchapters.map((s) => s.summaryStatus)).toEqual([
+      "klart",
+      "mangler innhold",
+      "mangler notater",
+      "klart",
     ]);
     expect(overview.value[0].title).toBe("Kapittel én");
   });
@@ -67,16 +106,30 @@ describe("listChapterOverview", () => {
     expect(overview.value[0].subchapters[0].status).toBe("utdatert");
   });
 
-  it("henter alle versjonene med ett kall", async () => {
+  it("gir «utdatert» når bare banken har gammel hash", async () => {
+    const { data, courseId } = await smallChapter();
+    data.questionBankVersions[0].inputHash = "0".repeat(64);
+    const overview = await listChapterOverview(data, courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    expect(overview.value[0].subchapters[0].status).toBe("utdatert");
+  });
+
+  it("henter alle sammendragsversjonene med ett kall og alle bankene med ett", async () => {
     const { data, courseId } = await smallChapter();
     let calls = 0;
+    let bankCalls = 0;
     const original = data.listSummaryVersions.bind(data);
+    const originalBanks = data.listQuestionBanks.bind(data);
     data.listSummaryVersions = async (ids) => {
       calls++;
       return original(ids);
     };
+    data.listQuestionBanks = async (ids) => {
+      bankCalls++;
+      return originalBanks(ids);
+    };
     await listChapterOverview(data, courseId);
-    expect(calls).toBe(1);
+    expect([calls, bankCalls]).toEqual([1, 1]);
   });
 
   it("gir tom liste for et ukjent emne", async () => {
@@ -89,6 +142,9 @@ describe("listChapterOverview", () => {
     data.summaryReadsDown = true;
     expect(await listChapterOverview(data, courseId)).toEqual({ status: "unavailable" });
     data.summaryReadsDown = false;
+    data.bankReadsDown = true;
+    expect(await listChapterOverview(data, courseId)).toEqual({ status: "unavailable" });
+    data.bankReadsDown = false;
     data.down = true;
     expect(await listChapterOverview(data, courseId)).toEqual({ status: "unavailable" });
   });
@@ -112,6 +168,13 @@ describe("getSubchapterSummary", () => {
     if (result.status !== "ok") throw new Error(result.status);
     expect(result.summaryStatus).toBe("utdatert");
     expect(result.summary?.text).toBe("Sammendrag av 1.1.");
+  });
+
+  it("gir «klart» for sammendraget selv om spørsmålsbanken mangler", async () => {
+    const { data, courseId } = await smallChapter();
+    const result = await getSubchapterSummary(data, courseId, "1.4");
+    if (result.status !== "ok") throw new Error(result.status);
+    expect(result.summaryStatus).toBe("klart");
   });
 
   it("gir ingen versjon for et delkapittel uten sammendrag", async () => {

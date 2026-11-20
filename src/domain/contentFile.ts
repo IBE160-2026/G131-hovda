@@ -1,23 +1,35 @@
 /**
- * Tolker og validerer en innholdsfil (`notater/<EMNE>/kapittel-<n>.innhold.md`) med sammendrag
- * laget på forhånd i Claude Code (FR-11, AD-4). Ren funksjon uten avhengigheter (AD-2). Hele filen
- * valideres mot notatfilens delkapitler før noe skrives, og feil gir norsk melding med
- * linjenummer (AD-17).
+ * Tolker og validerer en innholdsfil (`notater/<EMNE>/kapittel-<n>.innhold.md`) med sammendrag og
+ * spørsmålsbanker laget på forhånd i Claude Code (FR-11, FR-13, AD-4). Ren funksjon uten
+ * avhengigheter (AD-2). Hele filen valideres mot notatfilens delkapitler før noe skrives, og feil
+ * gir norsk melding med linjenummer (AD-17).
  *
- * Format: frontmatter (`emne`, `kapittel`, `instruksjon`, `modell`) og så `## Sammendrag` med ett
- * `### n.m Tittel` per delkapittel. Første linje med innhold under overskriften er
- * `<!-- inputHash: <64 hex-tegn> -->`, og resten er sammendraget. Nummeret er nøkkelen, tittelen
- * trenger ikke stemme med notatfilen (AD-5). Overskrifter inne i kodeblokker teller ikke.
+ * Format: frontmatter (`emne`, `kapittel`, `instruksjon`, `modell`) og så seksjonene
+ * `## Sammendrag` og `## Quizspørsmål`, hver med ett `### n.m Tittel` per delkapittel. Første linje
+ * med innhold under overskriften er `<!-- inputHash: <64 hex-tegn> -->`. Under `## Sammendrag` er
+ * resten sammendraget. Under `## Quizspørsmål` er resten temalisten og spørsmålene (se
+ * `questionBank.ts`). Nummeret er nøkkelen, tittelen trenger ikke stemme med notatfilen (AD-5).
+ * Overskrifter inne i kodeblokker teller ikke.
  */
 import type { ChapterInput } from "./chapter";
 import { normalizeCourseCode } from "./course";
 import { hasNotes } from "./hasNotes";
+import {
+  noOwnQuestions,
+  parseQuestionBankBody,
+  validateQuestionBank,
+  type ContentQuestionBank,
+  type OwnQuestions,
+} from "./questionBank";
 import { validateSummaryText } from "./summary";
 
 /** Instruksjonsversjonen importen kjenner. Står det noe annet i filen, er alt innholdet utdatert. */
-export const CONTENT_INSTRUCTION_VERSION = "innhold.v1";
+export const CONTENT_INSTRUCTION_VERSION = "innhold.v2";
 
 export const SECTION_SUMMARIES = "Sammendrag";
+export const SECTION_QUIZ_QUESTIONS = "Quizspørsmål";
+
+const SECTIONS = [SECTION_SUMMARIES, SECTION_QUIZ_QUESTIONS];
 
 export type ContentSummary = {
   number: string;
@@ -35,6 +47,7 @@ export type ContentFile = {
   /** `modell` fra frontmatter, lagres som `model_id`. */
   model: string;
   summaries: ContentSummary[];
+  questionBanks: ContentQuestionBank[];
 };
 
 export type ContentFileResult = { ok: true; value: ContentFile } | { ok: false; errors: string[] };
@@ -52,16 +65,17 @@ function unquote(value: string): string {
   return v;
 }
 
-type Entry = { number: string; line: number; body: { text: string; line: number }[] };
+type Entry = { section: string; number: string; line: number; body: { text: string; line: number }[] };
 
 /**
- * Tolker hele innholdsfilen og sjekker den mot notatfilens kapittel og emnet importen gjelder.
- * Gir alle feilene på en gang, med linjenummer.
+ * Tolker hele innholdsfilen og sjekker den mot notatfilens kapittel, brukerens egne spørsmål og
+ * emnet importen gjelder. Gir alle feilene på en gang, med linjenummer.
  */
 export function parseContentFile(
   text: string,
   notes: ChapterInput,
   target: { courseCode: string; chapterNumber: number },
+  own: OwnQuestions = noOwnQuestions,
 ): ContentFileResult {
   const lines = text.replace(/^﻿/, "").split(/\r?\n/);
   const errors: string[] = [];
@@ -110,8 +124,8 @@ export function parseContentFile(
 
   const entries: Entry[] = [];
   const firstLine = new Map<string, number>();
-  let summariesSection: number | null = null;
-  let inSummaries = false;
+  const sectionLine = new Map<string, number>();
+  let section: string | null = null;
   let current: Entry | null = null;
   let fence: { marker: string; line: number } | null = null;
 
@@ -130,29 +144,34 @@ export function parseContentFile(
       const h3 = /^###\s+(.*)$/.exec(line);
       if (h1 || h2) {
         current = null;
+        section = null;
         const name = (h1 ?? h2)![1].trim();
-        if (h2 && name === SECTION_SUMMARIES) {
-          if (summariesSection !== null) {
-            errors.push(at(lineNo, `seksjonen «## ${name}» står to ganger (første gang på linje ${summariesSection}).`));
-            inSummaries = false;
+        if (h2 && SECTIONS.includes(name)) {
+          const first = sectionLine.get(name);
+          if (first !== undefined) {
+            errors.push(at(lineNo, `seksjonen «## ${name}» står to ganger (første gang på linje ${first}).`));
           } else {
-            summariesSection = lineNo;
-            inSummaries = true;
+            sectionLine.set(name, lineNo);
+            section = name;
           }
         } else {
-          inSummaries = false;
           errors.push(
-            at(lineNo, `«${h1 ? "#" : "##"} ${name}» er ikke en kjent seksjon. Bruk «## ${SECTION_SUMMARIES}».`),
+            at(
+              lineNo,
+              `«${h1 ? "#" : "##"} ${name}» er ikke en kjent seksjon. Bruk «## ${SECTION_SUMMARIES}» eller «## ${SECTION_QUIZ_QUESTIONS}».`,
+            ),
           );
         }
         continue;
       }
       if (h3) {
         // Teksten under en avvist overskrift samles her og kastes, så den ikke gir følgefeil.
-        current = { number: "", line: lineNo, body: [] };
+        current = { section: "", number: "", line: lineNo, body: [] };
         const heading = h3[1].trim();
-        if (!inSummaries) {
-          errors.push(at(lineNo, `«### ${heading}» står utenfor «## ${SECTION_SUMMARIES}».`));
+        if (section === null) {
+          errors.push(
+            at(lineNo, `«### ${heading}» står utenfor «## ${SECTION_SUMMARIES}» og «## ${SECTION_QUIZ_QUESTIONS}».`),
+          );
           continue;
         }
         const match = SUBCHAPTER_HEADING.exec(heading);
@@ -161,21 +180,22 @@ export function parseContentFile(
           continue;
         }
         const number = `${Number(match[1])}.${Number(match[2])}`;
-        const first = firstLine.get(number);
+        const key = `${section}:${number}`;
+        const first = firstLine.get(key);
         if (first !== undefined) {
-          errors.push(at(lineNo, `delkapittel ${number} står to ganger (første gang på linje ${first}).`));
+          errors.push(at(lineNo, `delkapittel ${number} står to ganger under «## ${section}» (første gang på linje ${first}).`));
           continue;
         }
-        firstLine.set(number, lineNo);
-        current = { number, line: lineNo, body: [] };
+        firstLine.set(key, lineNo);
+        current = { section, number, line: lineNo, body: [] };
         entries.push(current);
         continue;
       }
     }
 
     if (current) current.body.push({ text: line, line: lineNo });
-    else if (inSummaries && line.trim() !== "") {
-      errors.push(at(lineNo, `tekst under «## ${SECTION_SUMMARIES}» må stå under et delkapittel («### n.m Tittel»).`));
+    else if (section !== null && line.trim() !== "") {
+      errors.push(at(lineNo, `tekst under «## ${section}» må stå under et delkapittel («### n.m Tittel»).`));
     }
   }
 
@@ -183,14 +203,31 @@ export function parseContentFile(
 
   const notesByNumber = new Map(notes.subchapters.map((s) => [s.number, s]));
   const summaries: ContentSummary[] = [];
+  const questionBanks: ContentQuestionBank[] = [];
   for (const entry of entries) {
     const sub = notesByNumber.get(entry.number);
     if (!sub) {
       errors.push(at(entry.line, `delkapittel ${entry.number} finnes ikke i notatfilen for kapittel ${chapterNumber}.`));
       continue;
     }
+    const isQuiz = entry.section === SECTION_QUIZ_QUESTIONS;
     if (!hasNotes(sub.noteText)) {
-      errors.push(at(entry.line, `delkapittel ${entry.number} har ingen notater, så det kan ikke ha sammendrag.`));
+      const what = isQuiz ? "spørsmålsbank" : "sammendrag";
+      errors.push(at(entry.line, `delkapittel ${entry.number} har ingen notater, så det kan ikke ha ${what}.`));
+      continue;
+    }
+    if (isQuiz) {
+      const bank = parseQuestionBankBody(entry.number, entry.line, entry.body);
+      if (!bank.ok) {
+        errors.push(...bank.errors);
+        continue;
+      }
+      const invalid = validateQuestionBank(bank.value, own);
+      if (invalid.length > 0) {
+        errors.push(...invalid);
+        continue;
+      }
+      questionBanks.push(bank.value);
       continue;
     }
     const start = entry.body.findIndex((l) => l.text.trim() !== "");
@@ -221,5 +258,5 @@ export function parseContentFile(
   }
 
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, value: { courseCode, chapterNumber, instruction, model, summaries } };
+  return { ok: true, value: { courseCode, chapterNumber, instruction, model, summaries, questionBanks } };
 }

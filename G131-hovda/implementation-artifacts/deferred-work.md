@@ -36,3 +36,12 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-5b-status-i-kapittellisten-og-lesesiden.md`
   summary: `listSummaryVersions` for et helt emne kan bli avkortet av PostgREST max-rows, så delkapitler feilaktig viser «mangler innhold».
   evidence: Uverifisert (antatt middels). Supabase-adapteren henter alle versjonene for alle delkapittel-ID-ene uten paginering. Avgjøres ved å sjekke max-rows i prosjektet og telle `summary_versions`-rader per emne etter gjentatte importer.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-6a-importen-legger-inn-sporsmalsbanken.md`
+  summary: Story 1.6b: når notatet er endret, sier importen at spørsmålsbanken er utdatert, nye spørsmål med den eksisterende temalisten erstatter bare ubrukte KI-spørsmål (som trekkes tilbake med status), og importen sier fra og fyller på når færre enn 10 aktive spørsmål er ubesvart.
+  evidence: Marte valgte 20.11.2026 å dele story 1.6. «Brukt» og «ubesvart» krever quizer og svar fra 1.7, så 1.6b bør bygges etter 1.7.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-6a-importen-legger-inn-sporsmalsbanken.md`
+  summary: Innholdsfiler (sammendrag og quizspørsmål etter `innhold.v2`) for IBE430 kapittel 2–5, og import mot `prod` for kapittel 1–5 så alle delkapitler med notater er klare i drift.
+  evidence: Siste akseptansekriterium i story 1.6. Marte valgte 20.11.2026 å skille det ut; prod krever hennes ja.
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-6a-importen-legger-inn-sporsmalsbanken.md`
+  summary: `listQuestionBanks` for et helt emne kan bli avkortet av PostgREST max-rows, så delkapitler feilaktig viser «mangler innhold».
+  evidence: Uverifisert (antatt middels). Samme mønster som for `listSummaryVersions`: adapteren henter alle bankversjonene (også `feilet` og `lages`) uten paginering. Avgjøres ved å sjekke max-rows og telle `question_bank_versions` per emne.

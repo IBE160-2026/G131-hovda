@@ -1,9 +1,11 @@
 // `npm run import -- --target dev|prod [--force <n.m>] <EMNE> <n>`: legger kapittel, delkapitler og
-// notater fra notatfilen inn i databasen (FR-8) og sammendragene fra innholdsfilen
-// `kapittel-<n>.innhold.md` (FR-11). Sammendragene er laget på forhånd i Claude Code, og importen
+// notater fra notatfilen inn i databasen (FR-8) og sammendragene og spørsmålsbankene fra innholdsfilen
+// `kapittel-<n>.innhold.md` (FR-11, FR-13). Innholdet er laget på forhånd i Claude Code, og importen
 // kaller aldri en KI-leverandør (AD-7). Idempotent: uendret innhold gir ingen nye versjoner. Begge
 // filene valideres før noe skrives og før bekreftelsen mot prod. Avslutter med kode 1 ved feil, også
-// når et sammendrag er utdatert. Mangler innholdsfilen, lagres kapitlene, og alt «mangler innhold».
+// når innhold er utdatert eller en klar spørsmålsbank er endret. Mangler innholdsfilen, lagres
+// kapitlene, og alt «mangler innhold». Spørsmål i `## Spørsmålsbank` som skal avklares før bruk,
+// hoppes over, og utskriften sier hvilke.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";

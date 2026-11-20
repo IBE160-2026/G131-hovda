@@ -64,23 +64,31 @@ describe("validateSummaryText", () => {
 });
 
 describe("subchapterStatus", () => {
-  const ready = { hasNotes: true, readyInputHash: "h1", currentInputHash: "h1" };
+  const ready = { hasNotes: true, readyInputHashes: ["h1", "h1"], currentInputHash: "h1" };
 
-  it("gir «klart» når siste klare versjon har hashen notatet har nå", () => {
+  it("gir «klart» når siste klare versjon av både sammendrag og bank har hashen notatet har nå", () => {
     expect(subchapterStatus(ready)).toBe("klart");
+    expect(subchapterStatus({ ...ready, readyInputHashes: ["h1"] })).toBe("klart");
   });
 
-  it("gir «utdatert» når hashen er endret etter importen", () => {
+  it("gir «utdatert» når hashen er endret etter importen for en av dem", () => {
     expect(subchapterStatus({ ...ready, currentInputHash: "h2" })).toBe("utdatert");
+    expect(subchapterStatus({ ...ready, readyInputHashes: ["h1", "h0"] })).toBe("utdatert");
   });
 
-  it("gir «mangler innhold» når det ikke finnes noen klar versjon", () => {
-    expect(subchapterStatus({ ...ready, readyInputHash: null })).toBe("mangler innhold");
+  it("gir «mangler innhold» når en av dem ikke har noen klar versjon, også før «utdatert»", () => {
+    expect(subchapterStatus({ ...ready, readyInputHashes: ["h1", null] })).toBe("mangler innhold");
+    expect(subchapterStatus({ ...ready, readyInputHashes: [null, "h1"] })).toBe("mangler innhold");
+    expect(subchapterStatus({ ...ready, readyInputHashes: ["h0", null] })).toBe("mangler innhold");
   });
 
   it("gir «mangler notater» før alt annet", () => {
     expect(subchapterStatus({ ...ready, hasNotes: false })).toBe("mangler notater");
-    expect(subchapterStatus({ hasNotes: false, readyInputHash: null, currentInputHash: "h" })).toBe("mangler notater");
-    expect(subchapterStatus({ hasNotes: false, readyInputHash: "a", currentInputHash: "b" })).toBe("mangler notater");
+    expect(subchapterStatus({ hasNotes: false, readyInputHashes: [null, null], currentInputHash: "h" })).toBe(
+      "mangler notater",
+    );
+    expect(subchapterStatus({ hasNotes: false, readyInputHashes: ["a", "a"], currentInputHash: "b" })).toBe(
+      "mangler notater",
+    );
   });
 });

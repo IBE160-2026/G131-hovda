@@ -115,14 +115,17 @@ const statusColors: Record<SubchapterStatus, string> = {
   "mangler notater": "bg-sun",
 };
 
-/** Delkapitler med et klart sammendrag, også et utdatert, kan leses. */
-function canRead(status: SubchapterStatus): boolean {
-  return status === "klart" || status === "utdatert";
+/**
+ * Delkapitler med et klart sammendrag, også et utdatert, kan leses, selv om spørsmålsbanken mangler.
+ * Gjelder `summaryStatus`, ikke den samlede statusen.
+ */
+function canRead(summaryStatus: SubchapterStatus): boolean {
+  return summaryStatus === "klart" || summaryStatus === "utdatert";
 }
 
 /**
- * Kapitlene i det aktive emnet med delkapitler i rekkefølge og status for sammendraget. Delkapitler
- * med et sammendrag lenker til lesesiden. Økten (quiz) kommer i 1.7.
+ * Kapitlene i det aktive emnet med delkapitler i rekkefølge og samlet status for sammendraget og
+ * spørsmålsbanken. Delkapitler med et sammendrag lenker til lesesiden. Økten (quiz) kommer i 1.7.
  */
 export function ChapterList({
   courseId,
@@ -155,7 +158,7 @@ export function ChapterList({
                     key={sub.id}
                     className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-sky px-4 py-3"
                   >
-                    {canRead(sub.status) ? (
+                    {canRead(sub.summaryStatus) ? (
                       <Link
                         href={`/emner/${encodeURIComponent(courseId)}/delkapitler/${encodeURIComponent(sub.number)}`}
                         className={`min-w-0 break-words ${textLink}`}

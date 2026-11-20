@@ -220,3 +220,62 @@ describe("checkNotesFileTarget", () => {
     ]);
   });
 });
+
+describe("## Spørsmålsbank", () => {
+  const bankFile = (body: string) =>
+    `---\nemne: IBE430\nkapittel: 1\ntittel: T\n---\n\n## Fordelt på delkapitler\n\n### 1.1 En\nNotat.\n\n## Spørsmålsbank\n\n${body}\n`;
+  const table = "| # | Delkapittel | Spørsmål | Fasit |\n|---|---|---|---|\n";
+
+  it("tar med spørsmålene i kapittel 1 og hopper over dem som skal avklares før bruk", () => {
+    const { ownQuestions } = parsed(kapittel1);
+    expect(ownQuestions.skipped).toEqual([2, 4, 6, 7, 8]);
+    expect(ownQuestions.questions.map((q) => [q.number, q.subchapter])).toEqual([
+      [1, "1.1"],
+      [3, "1.6"],
+      [5, "1.2"],
+    ]);
+    expect(ownQuestions.questions[1]).toMatchObject({ question: "Hvilket regnskap er en bedrift lovpålagt å føre?", answer: "Finansregnskap." });
+  });
+
+  it("leser alle de ekte filene, og kapittel 5 har ingen egne spørsmål", () => {
+    expect(parsed(kapittel2).ownQuestions.skipped).toEqual([5, 7, 8]);
+    expect(parsed(kapittel3).ownQuestions.questions).toHaveLength(8);
+    expect(parsed(kapittel4).ownQuestions.questions).toHaveLength(4);
+    expect(parsed(kapittel5).ownQuestions).toEqual({ questions: [], skipped: [] });
+  });
+
+  it("påvirker ikke notatene", () => {
+    const without = parsed(kapittel1.replace("## Spørsmålsbank", "## Noe annet"));
+    expect(parsed(kapittel1).chapter).toEqual(without.chapter);
+  });
+
+  it("teller bare tall i den fete starten av et punkt", () => {
+    const text = bankFile(
+      `${table}| 1 | 1.1 | A? | Ja. |\n| 2 | 1.1 | B? | B. |\n\n**Må avklares før bruk:**\n- **Spørsmål 1:** ser ut til å motsi spørsmål 2.`,
+    );
+    expect(parsed(text).ownQuestions).toEqual({
+      questions: [{ number: 2, subchapter: "1.1", question: "B?", answer: "B.", line: 17 }],
+      skipped: [1],
+    });
+  });
+
+  it("teller ikke delkapittelnumre og fortsetter listen over innrykkede linjer", () => {
+    const text = bankFile(
+      `${table}| 1 | 1.1 | A? | A. |\n| 2 | 1.1 | B? | B. |\n| 3 | 1.1 | C? | C. |\n\n**Må avklares før bruk:**\n- **Spørsmål 3 (1.1):** uklart,\n  fortsetter her.\n- **Spørsmål 2:** også uklart.`,
+    );
+    expect(parsed(text).ownQuestions.skipped).toEqual([2, 3]);
+  });
+
+  it("avviser feil kolonner, ukjent delkapittel, doble numre, tom fasit og ukjent nummer i avklaringslisten", () => {
+    const text = bankFile(
+      `| # | Spørsmål | Fasit |\n|---|---|---|\n| 1 | 1.9 | A? | A. |\n| 1 | 1.1 | B? | B. |\n| 2 | 1.1 | C? |  |\n\n**Må avklares før bruk:**\n- **Spørsmål 7** finnes ikke.`,
+    );
+    expect(errorsOf(text)).toEqual([
+      "Linje 14: tabellen i «## Spørsmålsbank» må ha kolonnene «#», «Delkapittel», «Spørsmål», «Fasit».",
+      "Linje 16: spørsmål 1 gjelder delkapittel «1.9», som ikke finnes i «## Fordelt på delkapitler».",
+      "Linje 17: spørsmål 1 står to ganger (første gang på linje 16).",
+      "Linje 18: spørsmål 2 mangler fasit.",
+      "Linje 21: «Må avklares før bruk» nevner spørsmål 7, som ikke finnes i tabellen.",
+    ]);
+  });
+});

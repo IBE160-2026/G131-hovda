@@ -17,8 +17,12 @@ describe("npm run innhold:hash", () => {
     const lines = result.stdout.trim().split("\n");
     expect(lines.map((l) => l.split(" ")[0])).toEqual(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"]);
     const content = readFileSync("G131-hovda/notater/IBE430/kapittel-1.innhold.md", "utf8");
-    const inFile = [...content.matchAll(/^### (\d+\.\d+) [^\r\n]*\r?\n<!-- inputHash: ([0-9a-f]{64}) -->\r?$/gm)].map((m) => `${m[1]} ${m[2]}`);
-    expect(lines).toEqual(inFile);
+    const hashesIn = (section: string) =>
+      [...section.matchAll(/^### (\d+\.\d+) [^\r\n]*\r?\n<!-- inputHash: ([0-9a-f]{64}) -->\r?$/gm)].map((m) => `${m[1]} ${m[2]}`);
+    // Begge seksjonene bruker samme hash per delkapittel.
+    const [summaries, quiz] = content.split(/^## Quizspørsmål\r?$/m);
+    expect(lines).toEqual(hashesIn(summaries));
+    expect(lines).toEqual(hashesIn(quiz));
   }, 20000);
 
   it("viser bruken og gir kode 1 med feil argumenter", () => {

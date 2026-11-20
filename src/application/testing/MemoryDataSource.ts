@@ -12,13 +12,27 @@ import type {
   Chapter,
   Course,
   DataSource,
+  NewQuestionBank,
+  NewQuizQuestion,
   NewSummaryVersion,
+  QuestionBankVersion,
   SaveChapterReport,
+  SubchapterQuestionBanks,
   SubchapterSummaries,
   SummaryVersion,
 } from "../dataSource";
 
 type StoredChapter = Omit<Chapter, "subchapters"> & { courseId: string; subchapters: StoredSubchapter[] };
+
+type StoredTheme = { id: string; subchapterId: string; name: string };
+
+type StoredQuizQuestion = Omit<NewQuizQuestion, "theme"> & {
+  id: string;
+  subchapterId: string;
+  bankVersionId: string;
+  themeId: string;
+  status: "aktiv" | "trukket";
+};
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
@@ -31,6 +45,14 @@ export class MemoryDataSource implements DataSource {
   summaryWritesDown = false;
   /** Feiler bare lesingen av sammendragsversjoner, etter at kapittelet er lagret. */
   summaryReadsDown = false;
+  /** Bankversjonene i rekkefølgen de ble lagret, og temaene og spørsmålene som hører til. */
+  questionBankVersions: QuestionBankVersion[] = [];
+  themes: StoredTheme[] = [];
+  quizQuestions: StoredQuizQuestion[] = [];
+  /** Feiler lesingen av bankversjoner. */
+  bankReadsDown = false;
+  /** Feiler lagringen av spørsmålene etter at versjonen er opprettet, så den blir `feilet`. */
+  bankQuestionWritesDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -79,6 +101,9 @@ export class MemoryDataSource implements DataSource {
     );
     this.chapters = this.chapters.filter((c) => c.courseId !== id);
     this.summaryVersions = this.summaryVersions.filter((v) => !removedSubIds.has(v.subchapterId));
+    this.questionBankVersions = this.questionBankVersions.filter((v) => !removedSubIds.has(v.subchapterId));
+    this.themes = this.themes.filter((t) => !removedSubIds.has(t.subchapterId));
+    this.quizQuestions = this.quizQuestions.filter((q) => !removedSubIds.has(q.subchapterId));
     if (this.activeId === id) this.activeId = null;
     return { status: "ok" as const, value: undefined };
   }
@@ -193,5 +218,63 @@ export class MemoryDataSource implements DataSource {
     };
     this.summaryVersions.push(version);
     return { status: "ok" as const, value: version };
+  }
+
+  async listQuestionBanks(subchapterIds: string[]) {
+    if (this.down || this.bankReadsDown) return this.unavailable();
+    const newestFirst = [...this.questionBankVersions].reverse();
+    const value: SubchapterQuestionBanks[] = subchapterIds.map((subchapterId) => {
+      const own = newestFirst.filter((v) => v.subchapterId === subchapterId);
+      return {
+        subchapterId,
+        latest: own[0] ?? null,
+        latestReady: own.find((v) => v.status === "klart") ?? null,
+      };
+    });
+    return { status: "ok" as const, value };
+  }
+
+  async addQuestionBank(bank: NewQuestionBank) {
+    if (this.down) return this.unavailable();
+    const version: QuestionBankVersion = {
+      id: `b${this.nextId++}`,
+      subchapterId: bank.subchapterId,
+      status: "lages",
+      modelId: bank.modelId,
+      promptVersion: bank.promptVersion,
+      inputHash: bank.inputHash,
+      contentHash: bank.contentHash,
+      error: null,
+      createdAt: new Date(Date.UTC(2026, 10, 20, 0, 0, this.questionBankVersions.length)).toISOString(),
+    };
+    this.questionBankVersions.push(version);
+
+    const themeIds = new Map<string, string>();
+    for (const name of bank.themes) {
+      let theme = this.themes.find((t) => t.subchapterId === bank.subchapterId && t.name === name);
+      if (!theme) {
+        theme = { id: `t${this.nextId++}`, subchapterId: bank.subchapterId, name };
+        this.themes.push(theme);
+      }
+      themeIds.set(name, theme.id);
+    }
+    if (this.bankQuestionWritesDown) {
+      version.status = "feilet";
+      // Samme tekst som Supabase-adapteren lagrer.
+      version.error = "Fikk ikke lagret temaene eller spørsmålene.";
+      return this.unavailable();
+    }
+    for (const { theme, ...question } of bank.questions) {
+      this.quizQuestions.push({
+        ...question,
+        id: `q${this.nextId++}`,
+        subchapterId: bank.subchapterId,
+        bankVersionId: version.id,
+        themeId: themeIds.get(theme)!,
+        status: "aktiv",
+      });
+    }
+    version.status = "klart";
+    return { status: "ok" as const, value: { ...version } };
   }
 }

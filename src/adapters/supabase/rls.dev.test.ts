@@ -1,4 +1,5 @@
-// Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters og summary_versions mot Supabase-prosjektet dev (AD-10).
+// Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
+// question_bank_versions, themes og quiz_questions mot Supabase-prosjektet dev (AD-10).
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -146,13 +147,49 @@ describe("RLS i dev", () => {
     expect(error?.code).toBe("42501");
   });
 
+  it("gir testkontoen ingen av eierens bankversjoner, temaer eller quizspørsmål", async () => {
+    for (const table of ["question_bank_versions", "themes", "quiz_questions"]) {
+      const { data, error } = await testUser.from(table).select("id, owner_id");
+      expect(error).toBeNull();
+      expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+    }
+  });
+
+  it("stopper en bankversjon og et tema med en annen eier", async () => {
+    const other = "00000000-0000-0000-0000-000000000000";
+    const version = await testUser.from("question_bank_versions").insert({
+      owner_id: other,
+      subchapter_id: other,
+      status: "lages",
+      model_id: "claude-code/test",
+      prompt_version: "innhold.v2",
+      input_hash: "h",
+      content_hash: "c",
+    });
+    expect(version.error?.code).toBe("42501");
+    const theme = await testUser.from("themes").insert({ owner_id: other, subchapter_id: other, name: "Tema" });
+    expect(theme.error?.code).toBe("42501");
+    const question = await testUser.from("quiz_questions").insert({
+      owner_id: other,
+      subchapter_id: other,
+      bank_version_id: other,
+      theme_id: other,
+      position: 1,
+      question: "Hva?",
+      options: ["A", "B", "C", "D"],
+      correct_index: 0,
+      explanation: "Fordi.",
+    });
+    expect(question.error?.code).toBe("42501");
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
     const settings = await anon.from("user_settings").select("owner_id");
     expect(courses.error?.code).toBe("42501");
     expect(settings.error?.code).toBe("42501");
-    for (const table of ["chapters", "subchapters", "summary_versions"]) {
+    for (const table of ["chapters", "subchapters", "summary_versions", "question_bank_versions", "themes", "quiz_questions"]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");
     }

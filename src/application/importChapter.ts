@@ -1,13 +1,15 @@
-// Brukstilfellet for import av ett kapittel fra en notatfil (FR-8), med sammendrag fra
-// innholdsfilen (FR-11). Sammendragene er laget på forhånd i Claude Code, og importen kaller aldri
-// en KI-leverandør (AD-7). Eneste sted som skriver kapitler, delkapitler og sammendragsversjoner.
+// Brukstilfellet for import av ett kapittel fra en notatfil (FR-8), med sammendrag (FR-11) og
+// spørsmålsbanker (FR-13) fra innholdsfilen. Innholdet er laget på forhånd i Claude Code, og importen
+// kaller aldri en KI-leverandør (AD-7). Eneste sted som skriver kapitler, delkapitler,
+// sammendragsversjoner og spørsmålsbanker.
 import type { ChapterChange, ChapterInput, SubchapterChange } from "@/domain/chapter";
 import { CONTENT_INSTRUCTION_VERSION, parseContentFile, type ContentFile } from "@/domain/contentFile";
 import { normalizeCourseCode } from "@/domain/course";
 import { hasNotes } from "@/domain/hasNotes";
 import { checkNotesFileTarget, parseNotesFile } from "@/domain/notesFile";
-import type { Course, DataSource, SaveChapterReport } from "./dataSource";
-import { subchapterInputHash } from "./summaryHash";
+import type { OwnQuestions } from "@/domain/questionBank";
+import type { Chapter, Course, DataSource, SaveChapterReport } from "./dataSource";
+import { questionBankContentHash, subchapterInputHash } from "./summaryHash";
 
 export type ChapterImportTarget = { courseCode: string; chapterNumber: number };
 
@@ -27,16 +29,37 @@ export type SummaryOutcome =
   | { number: string; status: "failed"; reason: string }
   | { number: string; status: "noNotes" };
 
+/**
+ * Hva som skjedde med spørsmålsbanken for ett aktivt delkapittel. `changed`: en klar bank finnes, og
+ * filen har en annen. Erstatning og påfylling kommer i 1.6b, så ingenting skrives.
+ */
+export type QuestionBankOutcome = SummaryOutcome | { number: string; status: "changed" };
+
 /** `file` sier om feilene er i notatfilen eller innholdsfilen. */
 export type InvalidImport = { status: "invalid"; file: "notes" | "content"; errors: string[] };
 
-export type PreparedImport = { status: "ok"; chapter: ChapterInput; content: ContentFile | null } | InvalidImport;
+export type PreparedImport =
+  | { status: "ok"; chapter: ChapterInput; content: ContentFile | null; ownQuestions: OwnQuestions }
+  | InvalidImport;
 
 export type ImportChapterResult =
-  | { status: "ok"; chapter: ChapterInput; report: SaveChapterReport; summaries: SummaryOutcome[] }
+  | {
+      status: "ok";
+      chapter: ChapterInput;
+      report: SaveChapterReport;
+      summaries: SummaryOutcome[];
+      questionBanks: QuestionBankOutcome[];
+      /** Numrene i `## Spørsmålsbank` som er hoppet over («Må avklares før bruk»). */
+      skippedQuestions: number[];
+    }
   | InvalidImport
   | { status: "courseNotFound"; courseCode: string }
   | { status: "unavailable" };
+
+/** «2, 4 og 8». */
+function listNumbers(numbers: number[]): string {
+  return numbers.length <= 1 ? numbers.join("") : `${numbers.slice(0, -1).join(", ")} og ${numbers.at(-1)}`;
+}
 
 export const importMessages = {
   courseNotFound: (code: string) => `Fant ikke emnet ${code}. Opprett det i appen først.`,
@@ -52,6 +75,16 @@ export const importMessages = {
   summariesOutdated:
     "Ett eller flere sammendrag er utdatert, fordi notatet, læringsmålene, nøkkelbegrepene eller instruksjonen er endret. " +
     "Lag dem på nytt etter instruksjonen, hent ny hash med `npm run innhold:hash` og kjør importen igjen.",
+  bankNotSaved: "Fikk ikke lagret spørsmålsbanken i databasen.",
+  banksFailed: "En eller flere spørsmålsbanker ble ikke lagret. Kjør importen på nytt for å prøve igjen.",
+  banksOutdated:
+    "En eller flere spørsmålsbanker er utdatert, fordi notatet, læringsmålene, nøkkelbegrepene eller instruksjonen er endret. " +
+    "Hent ny hash med `npm run innhold:hash` og kjør importen igjen.",
+  banksChanged:
+    "En eller flere spørsmålsbanker finnes fra før og er endret i innholdsfilen. " +
+    "Å erstatte eller fylle på spørsmål kommer i en senere story, så ingenting er skrevet for dem.",
+  skippedQuestions: (numbers: number[]) =>
+    `Hopper over spørsmål ${listNumbers(numbers)} fra «## Spørsmålsbank» (må avklares før bruk).`,
 } as const;
 
 /**
@@ -68,7 +101,7 @@ export function prepareChapterImport(
   if (!parsed.ok) return { status: "invalid", file: "notes", errors: parsed.errors };
   const targetErrors = checkNotesFileTarget(parsed.value, target);
   if (targetErrors.length > 0) return { status: "invalid", file: "notes", errors: targetErrors };
-  const chapter = parsed.value.chapter;
+  const { chapter, ownQuestions } = parsed.value;
   const { force } = options;
   if (force !== undefined) {
     const forced = chapter.subchapters.find((s) => s.number === force);
@@ -80,20 +113,20 @@ export function prepareChapterImport(
 
   let content: ContentFile | null = null;
   if (options.content != null) {
-    const read = parseContentFile(options.content, chapter, target);
+    const read = parseContentFile(options.content, chapter, target, ownQuestions);
     if (!read.ok) return { status: "invalid", file: "content", errors: read.errors };
     content = read.value;
   }
   if (force !== undefined && !content?.summaries.some((s) => s.number === force)) {
     return { status: "invalid", file: "content", errors: [importMessages.forceNoContent(force)] };
   }
-  return { status: "ok", chapter, content };
+  return { status: "ok", chapter, content, ownQuestions };
 }
 
 /**
  * Validerer begge filene, finner emnet og lagrer kapittelet idempotent. Ved feil i en av filene
- * eller manglende emne skrives ingenting. Deretter legges sammendragene fra innholdsfilen inn for
- * aktive delkapitler med notater. Et utdatert sammendrag lagres ikke.
+ * eller manglende emne skrives ingenting. Deretter legges sammendragene og spørsmålsbankene fra
+ * innholdsfilen inn for aktive delkapitler med notater. Utdatert innhold lagres ikke.
  */
 export async function importChapter(
   data: DataSource,
@@ -113,12 +146,32 @@ export async function importChapter(
   const saved = await data.saveChapter(course.id, prepared.chapter);
   if (saved.status !== "ok") return { status: "unavailable" };
 
-  const summaries = await createSummaries(data, course, prepared.chapter, prepared.content, options.force);
-  return { status: "ok", chapter: prepared.chapter, report: saved.value, summaries };
+  const chapter = await findSavedChapter(data, course, prepared.chapter);
+  const summaries = chapter
+    ? await createSummaries(data, chapter, prepared.chapter, prepared.content, options.force)
+    : allUnavailable(prepared.chapter);
+  const questionBanks = chapter
+    ? await createQuestionBanks(data, chapter, prepared.chapter, prepared.content)
+    : allUnavailable(prepared.chapter);
+  return {
+    status: "ok",
+    chapter: prepared.chapter,
+    report: saved.value,
+    summaries,
+    questionBanks,
+    skippedQuestions: prepared.ownQuestions.skipped,
+  };
+}
+
+/** Kapittelet slik det er lagret nå, eller `null` når det ikke kan leses. */
+async function findSavedChapter(data: DataSource, course: Course, input: ChapterInput): Promise<Chapter | null> {
+  const listed = await data.listChapters(course.id);
+  if (listed.status !== "ok") return null;
+  return listed.value.find((c) => c.number === input.number) ?? null;
 }
 
 /** Når kapitlene eller versjonene ikke kan leses, feiler alle delkapitler med notater. */
-function allUnavailable(chapter: ChapterInput): SummaryOutcome[] {
+function allUnavailable(chapter: Pick<ChapterInput, "subchapters">): SummaryOutcome[] {
   return chapter.subchapters.map((s) =>
     hasNotes(s.noteText)
       ? { number: s.number, status: "failed", reason: importMessages.unavailable }
@@ -128,16 +181,11 @@ function allUnavailable(chapter: ChapterInput): SummaryOutcome[] {
 
 async function createSummaries(
   data: DataSource,
-  course: Course,
+  chapter: Chapter,
   input: ChapterInput,
   content: ContentFile | null,
   force: string | undefined,
 ): Promise<SummaryOutcome[]> {
-  const listed = await data.listChapters(course.id);
-  if (listed.status !== "ok") return allUnavailable(input);
-  const chapter = listed.value.find((c) => c.number === input.number);
-  if (!chapter) return allUnavailable(input);
-
   // Bare aktive delkapitler er med i listChapters, så fjernede får aldri nye versjoner.
   const withNotes = chapter.subchapters.filter((s) => hasNotes(s.noteText));
   const versions = await data.listSummaryVersions(withNotes.map((s) => s.id));
@@ -187,9 +235,81 @@ async function createSummaries(
   return outcomes;
 }
 
-/** Kode 1 når et sammendrag er utdatert eller ikke ble lagret, ellers 0. «Mangler innhold» gir 0. */
-export function importExitCode(summaries: SummaryOutcome[]): 0 | 1 {
-  return summaries.some((s) => s.status === "failed" || s.status === "outdated") ? 1 : 0;
+/**
+ * Legger inn spørsmålsbanken fra innholdsfilen for delkapitler som ikke har en klar bank. Finnes en
+ * klar bank, er utfallet «uendret» når hash og innhold er like, og ellers «endret» uten at noe
+ * skrives. En klar bank tas aldri bort.
+ */
+async function createQuestionBanks(
+  data: DataSource,
+  chapter: Chapter,
+  input: ChapterInput,
+  content: ContentFile | null,
+): Promise<QuestionBankOutcome[]> {
+  const withNotes = chapter.subchapters.filter((s) => hasNotes(s.noteText));
+  const versions = await data.listQuestionBanks(withNotes.map((s) => s.id));
+  if (versions.status !== "ok") return allUnavailable(input);
+  const readyById = new Map(versions.value.map((v) => [v.subchapterId, v.latestReady]));
+  const fromFile = new Map((content?.questionBanks ?? []).map((b) => [b.number, b]));
+  const notesByNumber = new Map(input.subchapters.map((s) => [s.number, s.noteText]));
+  const knownInstruction = content?.instruction === CONTENT_INSTRUCTION_VERSION;
+
+  const outcomes: QuestionBankOutcome[] = [];
+  for (const sub of chapter.subchapters) {
+    if (!hasNotes(sub.noteText)) {
+      outcomes.push({ number: sub.number, status: "noNotes" });
+      continue;
+    }
+    const bank = fromFile.get(sub.number);
+    if (!content || !bank) {
+      outcomes.push({ number: sub.number, status: "missing" });
+      continue;
+    }
+    const inputHash = await subchapterInputHash(input, notesByNumber.get(sub.number) ?? sub.noteText);
+    if (!knownInstruction || bank.inputHash !== inputHash) {
+      outcomes.push({ number: sub.number, status: "outdated" });
+      continue;
+    }
+    const contentHash = await questionBankContentHash(bank);
+    const ready = readyById.get(sub.id) ?? null;
+    if (ready) {
+      const same = ready.inputHash === inputHash && ready.contentHash === contentHash;
+      outcomes.push({ number: sub.number, status: same ? "unchanged" : "changed" });
+      continue;
+    }
+    const stored = await data.addQuestionBank({
+      subchapterId: sub.id,
+      modelId: content.model,
+      promptVersion: content.instruction,
+      inputHash,
+      contentHash,
+      themes: bank.themes,
+      questions: bank.questions.map((q) => ({
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        theme: q.theme,
+        sourceNumber: q.source,
+        originalText: q.original,
+      })),
+    });
+    outcomes.push(
+      stored.status === "ok"
+        ? { number: sub.number, status: "created" }
+        : { number: sub.number, status: "failed", reason: importMessages.bankNotSaved },
+    );
+  }
+  return outcomes;
+}
+
+/**
+ * Kode 1 når et sammendrag eller en spørsmålsbank er utdatert, endret eller ikke ble lagret, ellers
+ * 0. «Mangler innhold» gir 0.
+ */
+export function importExitCode(summaries: SummaryOutcome[], questionBanks: QuestionBankOutcome[] = []): 0 | 1 {
+  const bad = (s: QuestionBankOutcome) => s.status === "failed" || s.status === "outdated" || s.status === "changed";
+  return summaries.some(bad) || questionBanks.some(bad) ? 1 : 0;
 }
 
 const changeLabel: Record<ChapterChange | SubchapterChange, string> = {
@@ -209,7 +329,7 @@ function summaryLabel(outcome: SummaryOutcome): string {
     case "outdated":
       return "sammendrag utdatert";
     case "missing":
-      return "mangler innhold";
+      return "mangler sammendrag";
     case "failed":
       return `sammendrag feilet: ${outcome.reason}`;
     case "noNotes":
@@ -217,28 +337,61 @@ function summaryLabel(outcome: SummaryOutcome): string {
   }
 }
 
+function questionBankLabel(outcome: QuestionBankOutcome): string {
+  switch (outcome.status) {
+    case "created":
+      return "spørsmålsbank lagt inn";
+    case "unchanged":
+      return "spørsmålsbank uendret";
+    case "outdated":
+      return "spørsmålsbank utdatert";
+    case "changed":
+      return "spørsmålsbank endret, ikke lagt inn";
+    case "missing":
+      return "mangler spørsmålsbank";
+    case "failed":
+      return `spørsmålsbank feilet: ${outcome.reason}`;
+    case "noNotes":
+      return "mangler notater";
+  }
+}
+
+/** Det som står etter endringen i linjen for et delkapittel, eller `""`. */
+function contentLabel(summary?: SummaryOutcome, bank?: QuestionBankOutcome): string {
+  if (!summary && !bank) return "";
+  if (summary?.status === "noNotes" || bank?.status === "noNotes") return ", mangler notater";
+  if (summary?.status === "missing" && (!bank || bank.status === "missing")) return ", mangler innhold";
+  return [summary && summaryLabel(summary), bank && questionBankLabel(bank)]
+    .filter((label) => label)
+    .map((label) => `, ${label}`)
+    .join("");
+}
+
 /**
  * Norsk sammendrag av importen, én linje per kapittel og delkapittel. Linjen for et aktivt
- * delkapittel sier også hva som skjedde med sammendraget.
+ * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken.
  */
 export function describeImport(
   chapter: ChapterInput,
   report: SaveChapterReport,
   summaries: SummaryOutcome[] = [],
+  questionBanks: QuestionBankOutcome[] = [],
 ): string[] {
   const titles = new Map(chapter.subchapters.map((s) => [s.number, s.title]));
-  const outcomes = new Map(summaries.map((s) => [s.number, s]));
+  const summaryByNumber = new Map(summaries.map((s) => [s.number, s]));
+  const bankByNumber = new Map(questionBanks.map((s) => [s.number, s]));
   const lines = [`Kapittel ${chapter.number} ${chapter.title}: ${changeLabel[report.chapter]}`];
   for (const sub of report.subchapters) {
     const title = titles.get(sub.number);
-    const outcome = outcomes.get(sub.number);
-    const summary = outcome ? `, ${summaryLabel(outcome)}` : "";
-    lines.push(`  ${sub.number}${title ? ` ${title}` : ""}: ${changeLabel[sub.change]}${summary}`);
+    const content = contentLabel(summaryByNumber.get(sub.number), bankByNumber.get(sub.number));
+    lines.push(`  ${sub.number}${title ? ` ${title}` : ""}: ${changeLabel[sub.change]}${content}`);
   }
+  const quiet = (s: QuestionBankOutcome) => s.status === "unchanged" || s.status === "missing" || s.status === "noNotes";
   const allUnchanged =
     report.chapter === "unchanged" &&
     report.subchapters.every((s) => s.change === "unchanged") &&
-    summaries.every((s) => s.status === "unchanged" || s.status === "missing" || s.status === "noNotes");
+    summaries.every(quiet) &&
+    questionBanks.every(quiet);
   if (allUnchanged) lines.push(importMessages.allUnchanged);
   return lines;
 }
@@ -247,12 +400,14 @@ export type ImportReport = { stdout: string[]; stderr: string[]; code: 0 | 1 };
 
 /** Det kommandoen skriver ut etter en vellykket lagring, og koden den avslutter med. */
 export function reportImport(result: Extract<ImportChapterResult, { status: "ok" }>): ImportReport {
+  const { summaries, questionBanks } = result;
+  const stdout = describeImport(result.chapter, result.report, summaries, questionBanks);
+  if (result.skippedQuestions.length > 0) stdout.push(importMessages.skippedQuestions(result.skippedQuestions));
   const stderr: string[] = [];
-  if (result.summaries.some((s) => s.status === "outdated")) stderr.push(importMessages.summariesOutdated);
-  if (result.summaries.some((s) => s.status === "failed")) stderr.push(importMessages.summariesFailed);
-  return {
-    stdout: describeImport(result.chapter, result.report, result.summaries),
-    stderr,
-    code: importExitCode(result.summaries),
-  };
+  if (summaries.some((s) => s.status === "outdated")) stderr.push(importMessages.summariesOutdated);
+  if (summaries.some((s) => s.status === "failed")) stderr.push(importMessages.summariesFailed);
+  if (questionBanks.some((s) => s.status === "outdated")) stderr.push(importMessages.banksOutdated);
+  if (questionBanks.some((s) => s.status === "changed")) stderr.push(importMessages.banksChanged);
+  if (questionBanks.some((s) => s.status === "failed")) stderr.push(importMessages.banksFailed);
+  return { stdout, stderr, code: importExitCode(summaries, questionBanks) };
 }
