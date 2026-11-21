@@ -12,8 +12,12 @@ vi.mock("@/composition/server", () => ({ getDataSourceForRender, getDataSource: 
 
 const { QuizContent } = await import("./page");
 const {
+  alreadyCompletedMessage,
+  belowThresholdMessage,
   chooseAnswerMessage,
+  completedMessage,
   correctAnswerMessage,
+  newQuizLabel,
   quizNotReadyMessage,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
@@ -113,6 +117,55 @@ describe("quizsiden", () => {
     expect(html).toContain("Tilbake til sammendraget");
     // Uten parameter vises startsiden for en ny quiz.
     expect(await render(data, courseId, "1.1")).toContain("Start quizen");
+  });
+
+  it("sier at delkapittelet er krysset av ved 8 av 10, uten tilbud om ny quiz", async () => {
+    const { data, courseId, quizId } = await quizWith([...Array(8).fill(true), false, false]);
+    const html = await render(data, courseId, "1.1", { resultat: quizId });
+    expect(html).toContain("8 av 10 riktige");
+    expect(html).toContain(completedMessage);
+    expect(html).not.toContain(alreadyCompletedMessage);
+    expect(html).not.toContain(belowThresholdMessage);
+    expect(html).not.toContain(newQuizLabel);
+  });
+
+  it("tilbyr sammendraget og en ny quiz under 80 %, uten avkrysning", async () => {
+    const { data, courseId, quizId } = await quizWith([...Array(7).fill(true), false, false, false]);
+    const html = await render(data, courseId, "1.1", { resultat: quizId });
+    expect(html).toContain("7 av 10 riktige");
+    expect(html).toContain(belowThresholdMessage);
+    expect(html).toContain(`${newQuizLabel}</button>`);
+    expect(html).toContain(`href="/emner/${courseId}/delkapitler/1.1"`);
+    expect(html).toContain("Les sammendraget igjen");
+    expect(html).not.toContain(completedMessage);
+    expect(html).not.toContain(alreadyCompletedMessage);
+  });
+
+  it("sier at delkapittelet alt er gjennomført, også med tilbudet under 80 %", async () => {
+    const { data, courseId } = await quizWith(Array(10).fill(true));
+    // En ny quiz på samme delkapittel med 3 riktige.
+    const again = await startQuiz(data, courseId, "1.1");
+    if (again.status !== "ok") throw new Error(again.status);
+    for (let i = 0; i < 10; i++) {
+      const item = data.quizItems
+        .filter((x) => x.quizId === again.quizId && x.status === "aktiv" && x.answeredAt === null)
+        .sort((a, b) => a.position - b.position)[0];
+      const correct = data.quizQuestions.find((q) => q.id === item.questionId)!.correctIndex;
+      await answerQuiz(data, courseId, "1.1", again.quizId, item.position, i < 3 ? correct : (correct + 1) % 4);
+    }
+    const html = await render(data, courseId, "1.1", { resultat: again.quizId });
+    expect(html).toContain("3 av 10 riktige");
+    expect(html).toContain(alreadyCompletedMessage);
+    expect(html).toContain(belowThresholdMessage);
+    expect(html).not.toContain(completedMessage);
+  });
+
+  it("viser feilmeldingen når avkrysningene ikke kan leses", async () => {
+    const { data, courseId, quizId } = await quizWith(Array(10).fill(true));
+    data.completionReadsDown = true;
+    const html = await render(data, courseId, "1.1", { resultat: quizId });
+    expect(html).toContain(unavailableMessage);
+    expect(html).toContain('role="alert"');
   });
 
   it("viser «Se resultatet» når alle er besvart, men resultatet ikke ble lagret", async () => {

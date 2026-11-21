@@ -72,3 +72,8 @@
 - [ ] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — tilbakemeldingen etter et svar varsles ikke for skjermleser (gjelder hele appen; avvist som lite i review)
 - [x] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — merge PR #6, og sjekk «Ta quizen» i prod etter deploy (merget 2026-11-21 som `39f29c8`; prod-sjekken står i eget punkt)
 - [x] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — sjekk «Ta quizen» på 1.1 i prod etter deploy av `39f29c8` (løst 2026-11-21: Marte testet i prod, alt fungerer)
+- [x] 2026-11-21 [story-1-8-spesifikasjon](978-2026-11-21-20-33-57-story-1-8-spesifikasjon.md) — bygg story 1.8 i en ny `bmad-build`-økt (specen er godkjent); migreringen mot `dev` og `prod` krever ja fra Marte (løst 2026-11-21: `7fb8067`, migreringen er i `dev`; prod står i eget punkt)
+- [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — manuell sjekk mot `dev`: én quiz under og én over 80 % på 1.1; startsiden skal vise «1 av 6 gjennomført, mål 6»
+- [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — før merge av 1.8 til `main`: kjør `20261121140000_subchapter_completions.sql` mot `prod` (krever ja fra Marte); ellers feiler quizavslutning og startside i prod (løst 2026-11-21: kjørt mot `prod`)
+- [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — quizer ≥ 80 % fra 1.7 før migreringen har ingen avkrysning (bevisst, ingen backfill)
+- [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — merge PR #7, og sjekk avkrysning og framdrift på startsiden i prod etter deploy

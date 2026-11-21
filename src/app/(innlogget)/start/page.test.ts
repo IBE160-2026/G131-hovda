@@ -6,7 +6,7 @@ vi.mock("@/composition/server", () => ({ getDataSourceForRender }));
 vi.mock("./actions", () => ({ logOut: async () => {} }));
 
 const { ActiveCourse } = await import("./page");
-const { unavailableMessage } = await import("../emner/formState");
+const { completedBadge, goalReachedMessage, unavailableMessage } = await import("../emner/formState");
 const { subchapterInputHash } = await import("@/application/summaryHash");
 
 const course = {
@@ -21,6 +21,7 @@ const ok = <T>(value: T) => ({ status: "ok", value });
 const listChapters = vi.fn();
 const listSummaryVersions = vi.fn();
 const listQuestionBanks = vi.fn();
+const listCompletions = vi.fn();
 
 /** Siste klare versjon per delkapittel-ID, med `inputHash`. Delkapitler som ikke er med, har ingen. */
 type ReadyHashes = Record<string, string>;
@@ -45,6 +46,8 @@ async function render(
   ready: ReadyHashes | { status: "unavailable" } = {},
   // Spørsmålsbankene har de samme klare hashene som sammendragene hvis ikke annet er oppgitt.
   banks: ReadyHashes | { status: "unavailable" } = ready,
+  // Delkapitlene som er krysset av, eller at avkrysningene ikke kan leses.
+  completed: string[] | { status: "unavailable" } = [],
 ) {
   getDataSourceForRender.mockResolvedValue({
     getActiveCourse: async () => active,
@@ -52,6 +55,15 @@ async function render(
     listChapters: listChapters.mockReset().mockResolvedValue(chapters),
     listSummaryVersions: listSummaryVersions.mockReset().mockImplementation(async (ids: string[]) => versions(ready, ids)),
     listQuestionBanks: listQuestionBanks.mockReset().mockImplementation(async (ids: string[]) => versions(banks, ids)),
+    listCompletions: listCompletions.mockReset().mockImplementation(async (ids: string[]) =>
+      "status" in completed
+        ? completed
+        : ok(
+            ids
+              .filter((id) => completed.includes(id))
+              .map((subchapterId) => ({ subchapterId, quizId: `z-${subchapterId}`, completedAt: "2026-11-21T10:00:00Z" })),
+          ),
+    ),
   });
   return renderToStaticMarkup(await ActiveCourse());
 }
@@ -194,5 +206,77 @@ describe("kapittellisten på startsiden", () => {
     expect(html).toContain("Bytt emne");
     expect(html).toContain(unavailableMessage);
     expect(html).toContain('role="alert"');
+  });
+});
+
+/** `n` delkapitler d1, d2, … i ett kapittel, alle med notater. */
+function chapterWith(n: number) {
+  return [
+    {
+      id: "k1",
+      number: 1,
+      title: "Organisasjoner",
+      learningGoals: "",
+      keyConcepts: "",
+      subchapters: Array.from({ length: n }, (_, i) => ({
+        id: `d${i + 1}`,
+        number: `1.${i + 1}`,
+        title: `Del ${i + 1}`,
+        noteText: "Notat",
+      })),
+    },
+  ];
+}
+
+const ids = (n: number) => Array.from({ length: n }, (_, i) => `d${i + 1}`);
+
+describe("framdriften på startsiden", () => {
+  beforeEach(() => getDataSourceForRender.mockReset());
+
+  it("viser «5 av 19 gjennomført, mål 18» og «13 igjen til målet» øverst i emnekortet", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapterWith(19)), {}, {}, ids(5));
+    expect(html).toContain("5 av 19 gjennomført, mål 18");
+    expect(html).toContain("13 igjen til målet");
+    expect(html).not.toContain(goalReachedMessage);
+    expect(html.indexOf("gjennomført, mål")).toBeLessThan(html.indexOf("Aktivt emne"));
+    expect(html).toMatch(/<progress aria-labelledby="framdrift-tekst" value="5" max="19"/);
+    expect(html).toContain('id="framdrift-tekst"');
+    expect(listCompletions).toHaveBeenCalledTimes(1);
+    expect(listCompletions).toHaveBeenCalledWith(ids(19));
+  });
+
+  it("regner målet fra antallet delkapitler som finnes", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapterWith(6)), {}, {}, ids(1));
+    expect(html).toContain("1 av 6 gjennomført, mål 6");
+    expect(html).toContain("5 igjen til målet");
+  });
+
+  it("sier «Målet er nådd!» når nok er gjennomført", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapterWith(19)), {}, {}, ids(18));
+    expect(html).toContain("18 av 19 gjennomført, mål 18");
+    expect(html).toContain(goalReachedMessage);
+    expect(html).not.toContain("igjen til målet");
+  });
+
+  it("viser ingen framdrift når emnet ikke har delkapitler", async () => {
+    const html = await render(ok(course), ok([course]), ok([]));
+    expect(html).not.toContain("<progress");
+    expect(html).not.toContain("gjennomført, mål");
+  });
+
+  it("merker gjennomførte delkapitler med «gjennomført» ved siden av statusen", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapters), {}, {}, ["d1", "d4"]);
+    const rows = html.split("<li").filter((li) => li.includes("rounded-xl border"));
+    const marked = rows.filter((li) => li.includes(`>${completedBadge}<`));
+    expect(marked.map((li) => li.match(/>(\d\.\d)</)?.[1])).toEqual(["1.1", "2.3"]);
+    expect(html).toContain("2 av 5 gjennomført, mål 5");
+  });
+
+  it("viser feilmeldingen og ingen framdrift når avkrysningene ikke kan leses", async () => {
+    const html = await render(ok(course), ok([course]), ok(chapters), {}, {}, { status: "unavailable" });
+    expect(html).toContain(unavailableMessage);
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("<progress");
+    expect(html).not.toContain("Kapittel 1: Organisasjoner");
   });
 });

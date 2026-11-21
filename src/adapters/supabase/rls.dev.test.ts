@@ -1,5 +1,5 @@
 // Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
-// question_bank_versions, themes, quiz_questions, sessions, quizzes og quiz_items mot
+// question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items og subchapter_completions mot
 // Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data.
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
@@ -281,16 +281,132 @@ describe("RLS i dev", () => {
     ]);
     expect(items[0]).toMatchObject({ chosenIndex: 0, correct: false, answeredAt: expect.any(String) });
 
-    expect(await data.saveQuizResult(quiz.id, 8, null)).toEqual({ status: "ok", value: true });
-    expect(await data.saveQuizResult(quiz.id, 10, null)).toEqual({ status: "ok", value: false });
+    expect(await data.saveQuizResult(quiz.id, { correctCount: 7, carryThemeId: null, completes: false })).toEqual({
+      status: "ok",
+      value: true,
+    });
+    expect(await data.saveQuizResult(quiz.id, { correctCount: 10, carryThemeId: null, completes: true })).toEqual({
+      status: "ok",
+      value: false,
+    });
+    // Under 80 %: ingen avkrysning, heller ikke av det andre kallet, som ikke endret noe.
+    expect(await data.listCompletions([subchapterId])).toEqual({ status: "ok", value: [] });
     // Resultatet er fryst også for en direkte endring.
     const changed = await testUser.from("quizzes").update({ correct_count: 10 }).eq("id", quiz.id);
     expect(changed.error?.code).toBe("23514");
     const finished = await data.listQuizzes(subchapterId);
     if (finished.status !== "ok") throw new Error("quizene kunne ikke leses");
-    expect(finished.value[0]).toMatchObject({ status: "ferdig", correctCount: 8, total: 10 });
+    expect(finished.value[0]).toMatchObject({ status: "ferdig", correctCount: 7, total: 10 });
 
     await testUser.from("sessions").delete().eq("id", quiz.sessionId);
+  });
+
+  it("gir testkontoen ingen av eierens avkrysninger", async () => {
+    const { data, error } = await testUser.from("subchapter_completions").select("id, owner_id");
+    expect(error).toBeNull();
+    expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+  });
+
+  it("stopper en avkrysning med en annen eier", async () => {
+    const other = "00000000-0000-0000-0000-000000000000";
+    const { error } = await testUser
+      .from("subchapter_completions")
+      .insert({ owner_id: other, subchapter_id: other, quiz_id: other });
+    expect(error?.code).toBe("42501");
+  });
+
+  it("krysser av med finish_quiz, lar avkrysningen stå og sletter den bare med emnet", async () => {
+    const code = `FQ${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const course = await testUser.from("courses").insert({ code, name: "Avkrysning" }).select("id").single();
+    expect(course.error).toBeNull();
+    const courseId = course.data!.id;
+    createdIds.push(courseId);
+    const chapter = await testUser
+      .from("chapters")
+      .insert({ course_id: courseId, number: 1, title: "Kapittel" })
+      .select("id")
+      .single();
+    expect(chapter.error).toBeNull();
+    const sub = await testUser
+      .from("subchapters")
+      .insert({ chapter_id: chapter.data!.id, number: "1.1", position: 1, title: "Del", note_text: "Notat" })
+      .select("id")
+      .single();
+    expect(sub.error).toBeNull();
+    const subchapterId = sub.data!.id;
+
+    const data = new SupabaseDataSource(testUser, testUserId);
+    const bank = await data.addQuestionBank({
+      subchapterId,
+      modelId: "claude-code/test",
+      promptVersion: "innhold.v2",
+      inputHash: "h",
+      contentHash: "c",
+      themes: ["Alfa"],
+      questions: Array.from({ length: 10 }, (_, i) => ({
+        question: `Spørsmål ${i + 1}?`,
+        options: ["A", "B", "C", "D"],
+        correctIndex: 0,
+        explanation: "Fordi.",
+        theme: "Alfa",
+        sourceNumber: null,
+        originalText: null,
+      })),
+    });
+    expect(bank.status).toBe("ok");
+    const questions = await data.listQuizBank(subchapterId);
+    if (questions.status !== "ok") throw new Error("banken kunne ikke leses");
+    const questionIds = questions.value.map((q) => q.id);
+
+    // Første quiz: 8 av 10 krysser av, med quizens id.
+    const first = await data.createQuiz({ subchapterId, questionIds });
+    if (first.status !== "ok") throw new Error(`quizen ble ikke laget: ${first.status}`);
+    expect(await data.saveQuizResult(first.value.id, { correctCount: 8, carryThemeId: null, completes: true })).toEqual({
+      status: "ok",
+      value: true,
+    });
+    const completed = await data.listCompletions([subchapterId]);
+    if (completed.status !== "ok") throw new Error("avkrysningene kunne ikke leses");
+    expect(completed.value).toEqual([{ subchapterId, quizId: first.value.id, completedAt: expect.any(String) }]);
+    const quizRow = await testUser.from("quizzes").select("finished_at").eq("id", first.value.id).single();
+    expect(new Date(completed.value[0].completedAt).getTime()).toBe(new Date(quizRow.data!.finished_at).getTime());
+
+    // Andre quiz med 10 av 10: ingen ny rad, og tidspunkt og quiz-ID er uendret.
+    const second = await data.createQuiz({ subchapterId, questionIds });
+    if (second.status !== "ok") throw new Error(`quizen ble ikke laget: ${second.status}`);
+    expect(await data.saveQuizResult(second.value.id, { correctCount: 10, carryThemeId: null, completes: true })).toEqual({
+      status: "ok",
+      value: true,
+    });
+    expect(await data.listCompletions([subchapterId])).toEqual(completed);
+
+    // Avkrysningen kan verken endres eller slettes av den innloggede.
+    const id = completed.value[0];
+    const updated = await testUser
+      .from("subchapter_completions")
+      .update({ quiz_id: second.value.id })
+      .eq("subchapter_id", subchapterId)
+      .select("id");
+    expect(updated.error?.code).toBe("42501");
+    const deleted = await testUser.from("subchapter_completions").delete().eq("subchapter_id", subchapterId).select("id");
+    expect(deleted.error?.code).toBe("42501");
+    expect(await data.listCompletions([subchapterId])).toEqual({ status: "ok", value: [id] });
+
+    // Uinnloggede kan ikke kalle funksjonen.
+    const anonCall = await newClient().rpc("finish_quiz", {
+      p_quiz_id: first.value.id,
+      p_correct_count: 10,
+      p_carry_theme_id: null,
+      p_completes: true,
+    });
+    expect(anonCall.error?.code).toBe("42501");
+
+    // Raden forsvinner med emnet (cascade via delkapittelet).
+    const removed = await testUser.from("courses").delete().eq("id", courseId);
+    expect(removed.error).toBeNull();
+    const after = await testUser.from("subchapter_completions").select("id").eq("subchapter_id", subchapterId);
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual([]);
   });
 
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
@@ -309,6 +425,7 @@ describe("RLS i dev", () => {
       "sessions",
       "quizzes",
       "quiz_items",
+      "subchapter_completions",
     ]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");

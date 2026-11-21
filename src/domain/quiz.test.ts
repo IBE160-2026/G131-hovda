@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseReplacement,
+  isCompleted,
   QUIZ_LENGTH,
   quizOutcome,
   quizResultText,
@@ -189,5 +190,23 @@ describe("quizOutcome", () => {
 describe("quizResultText", () => {
   it("gir «8 av 10 riktige»", () => {
     expect(quizResultText(8, 10)).toBe("8 av 10 riktige");
+  });
+});
+
+describe("isCompleted", () => {
+  it("krysser av ved minst 80 % riktige", () => {
+    expect(isCompleted(8, 10)).toBe(true);
+    expect(isCompleted(10, 10)).toBe(true);
+    expect(isCompleted(7, 10)).toBe(false);
+    expect(isCompleted(0, 10)).toBe(false);
+  });
+
+  it("regner av spørsmålene som teller, så 8 av 9 er nok", () => {
+    expect(isCompleted(8, 9)).toBe(true);
+    expect(isCompleted(7, 9)).toBe(false);
+  });
+
+  it("krysser ikke av uten spørsmål som teller", () => {
+    expect(isCompleted(0, 0)).toBe(false);
   });
 });

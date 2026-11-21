@@ -28,3 +28,24 @@ export const tooFewQuestionsMessage = "Spørsmålsbanken har for få spørsmål 
 export const chooseAnswerMessage = "Velg et svar før du går videre.";
 export const correctAnswerMessage = "Riktig!";
 export const wrongAnswerMessage = "Ikke riktig.";
+
+// Avkrysningen under quizresultatet.
+export const completedMessage = "Delkapittelet er krysset av som gjennomført.";
+export const alreadyCompletedMessage = "Delkapittelet er alt gjennomført.";
+export const belowThresholdMessage =
+  "Under 80 % riktige denne gangen. Les sammendraget igjen, og ta en ny quiz når du er klar.";
+export const newQuizLabel = "Ta en ny quiz";
+
+// Framdriften på startsiden.
+export const completedBadge = "gjennomført";
+export const goalReachedMessage = "Målet er nådd!";
+
+/** «5 av 19 gjennomført, mål 18». */
+export function progressText(completed: number, total: number, goal: number): string {
+  return `${completed} av ${total} gjennomført, mål ${goal}`;
+}
+
+/** «13 igjen til målet». */
+export function remainingText(remaining: number): string {
+  return `${remaining} igjen til målet`;
+}

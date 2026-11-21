@@ -4,8 +4,12 @@ import { getQuiz, type QuizItemView } from "@/application/quiz";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../../../../../OwnerOnly";
 import {
+  alreadyCompletedMessage,
+  belowThresholdMessage,
   chooseAnswerMessage,
+  completedMessage,
   correctAnswerMessage,
+  newQuizLabel,
   quizNotReadyMessage,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
@@ -21,7 +25,10 @@ export const metadata: Metadata = {
 
 type Props = PageProps<"/emner/[id]/delkapitler/[nummer]/quiz">;
 
-/** Quizen på et delkapittel (FR-10, FR-14). `nummer` er «n.m» (AD-5). */
+/**
+ * Quizen på et delkapittel (FR-10, FR-14). `nummer` er «n.m» (AD-5). Under resultatet står det om
+ * delkapittelet ble krysset av, og under 80 % får eieren tilbud om sammendraget og en ny quiz (FR-15).
+ */
 export default function QuizPage({ params, searchParams }: Props) {
   return (
     <OwnerOnly>
@@ -183,12 +190,30 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
                 Resultat
               </h2>
               <p className="text-3xl font-bold">{result.resultText}</p>
+              {result.completedBy === "this" && <p className="text-lg font-semibold">{completedMessage}</p>}
+              {result.completedBy === "earlier" && <p className="text-lg">{alreadyCompletedMessage}</p>}
             </section>
-            <p>
-              <Link href={summaryPath} className={textLink}>
-                Tilbake til sammendraget
-              </Link>
-            </p>
+            {result.passed ? (
+              <p>
+                <Link href={summaryPath} className={textLink}>
+                  Tilbake til sammendraget
+                </Link>
+              </p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <p className="max-w-prose text-lg">{belowThresholdMessage}</p>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                  <form action={startQuizAction.bind(null, id, nummer)}>
+                    <button type="submit" className={primaryButton}>
+                      {newQuizLabel}
+                    </button>
+                  </form>
+                  <Link href={summaryPath} className={textLink}>
+                    Les sammendraget igjen
+                  </Link>
+                </div>
+              </div>
+            )}
           </>
         )}
       </article>

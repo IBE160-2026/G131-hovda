@@ -20,9 +20,11 @@ import type {
   Quiz,
   QuizItem,
   QuizQuestion,
+  QuizResultInput,
   QuizStatus,
   ReadResult,
   SaveChapterReport,
+  SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
   SummaryVersion,
@@ -30,7 +32,6 @@ import type {
   WriteResult,
 } from "@/application/dataSource";
 import type { QuestionBankStatus } from "@/domain/questionBank";
-import { QUIZ_LENGTH } from "@/domain/quiz";
 import type { SummaryStatus } from "@/domain/summary";
 
 // Bare den delen av Supabase-klienten som adapteren bruker, så testene kan bruke en falsk klient.
@@ -172,6 +173,8 @@ type QuizRow = {
   finished_at: string | null;
   quiz_items: QuizItemRow[];
 };
+
+type CompletionRow = { subchapter_id: string; quiz_id: string; completed_at: string };
 
 // Elementene og spørsmålene hentes med quizen i én spørring. FK-navnene sier hvilken kobling som menes.
 const quizColumns =
@@ -766,24 +769,39 @@ export class SupabaseDataSource implements DataSource {
     });
   }
 
-  saveQuizResult(quizId: string, correctCount: number, carryThemeId: string | null): Promise<WriteResult<boolean>> {
+  saveQuizResult(quizId: string, result: QuizResultInput): Promise<WriteResult<boolean>> {
     return guarded(async () => {
-      const { data, error } = await this.client
-        .from("quizzes")
-        .update({
-          status: "ferdig",
-          correct_count: correctCount,
-          total: QUIZ_LENGTH,
-          carry_theme_id: carryThemeId,
-          finished_at: new Date().toISOString(),
-        })
-        .eq("owner_id", this.ownerId)
-        .eq("id", quizId)
-        .eq("status", "pågår")
-        .select("id");
+      // Resultatet fryses og delkapittelet krysses av i én transaksjon (finish_quiz), så det aldri
+      // finnes en ferdig quiz over 80 % uten avkrysning. Totalen (10) settes i funksjonen.
+      const { data, error } = await this.client.rpc("finish_quiz", {
+        p_quiz_id: quizId,
+        p_correct_count: result.correctCount,
+        p_carry_theme_id: result.carryThemeId,
+        p_completes: result.completes,
+      });
       if (isInvalidId(error)) return { status: "ok", value: false };
+      if (error || typeof data !== "boolean") return unavailable;
+      return { status: "ok", value: data };
+    });
+  }
+
+  listCompletions(subchapterIds: string[]): Promise<ReadResult<SubchapterCompletion[]>> {
+    return guarded(async () => {
+      if (subchapterIds.length === 0) return { status: "ok", value: [] };
+      const { data, error } = await this.client
+        .from("subchapter_completions")
+        .select("subchapter_id, quiz_id, completed_at")
+        .eq("owner_id", this.ownerId)
+        .in("subchapter_id", subchapterIds);
       if (error || !data) return unavailable;
-      return { status: "ok", value: (data as unknown[]).length > 0 };
+      const byId = new Map((data as CompletionRow[]).map((r) => [r.subchapter_id, r]));
+      return {
+        status: "ok",
+        value: subchapterIds.flatMap((id) => {
+          const row = byId.get(id);
+          return row ? [{ subchapterId: row.subchapter_id, quizId: row.quiz_id, completedAt: row.completed_at }] : [];
+        }),
+      };
     });
   }
 }

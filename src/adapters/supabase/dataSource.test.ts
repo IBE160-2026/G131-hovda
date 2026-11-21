@@ -814,17 +814,46 @@ describe("SupabaseDataSource med quizer", () => {
     });
   });
 
-  it("lagrer resultatet av 10 bare på en quiz som er i gang", async () => {
-    const { client, queries } = fakeClient(() => ({ data: [{ id: "z1" }] }));
-    expect(await new SupabaseDataSource(client, "eier").saveQuizResult("z1", 8, "t1")).toEqual({ status: "ok", value: true });
-    expect(queries[0].calls[0]).toEqual([
-      "update",
-      { status: "ferdig", correct_count: 8, total: 10, carry_theme_id: "t1", finished_at: expect.any(String) },
+  it("lagrer resultatet og avkrysningen i én transaksjon med finish_quiz", async () => {
+    const { client, queries } = fakeClient(() => ({ data: true }));
+    expect(
+      await new SupabaseDataSource(client, "eier").saveQuizResult("z1", { correctCount: 8, carryThemeId: "t1", completes: true }),
+    ).toEqual({ status: "ok", value: true });
+    expect(queries.map((q) => [q.table, q.calls])).toEqual([
+      ["rpc:finish_quiz", [["rpc", { p_quiz_id: "z1", p_correct_count: 8, p_carry_theme_id: "t1", p_completes: true }]]],
     ]);
+  });
+
+  it("lagrer ingenting når quizen alt er ferdig eller id-en er ugyldig", async () => {
+    const result = { correctCount: 7, carryThemeId: null, completes: false };
+    const done = fakeClient(() => ({ data: false }));
+    expect(await new SupabaseDataSource(done.client, "eier").saveQuizResult("z1", result)).toEqual({ status: "ok", value: false });
+    const invalid = fakeClient(() => ({ error: { code: "22P02" } }));
+    expect(await new SupabaseDataSource(invalid.client, "eier").saveQuizResult("abc", result)).toEqual({
+      status: "ok",
+      value: false,
+    });
+  });
+
+  it("gir avkrysningene i rekkefølgen til delkapitlene, filtrert på eier", async () => {
+    const rows = [
+      { subchapter_id: "d3", quiz_id: "z3", completed_at: "2026-11-21T03:00:00Z" },
+      { subchapter_id: "d1", quiz_id: "z1", completed_at: "2026-11-21T01:00:00Z" },
+    ];
+    const { client, queries } = fakeClient(() => ({ data: rows }));
+    expect(await new SupabaseDataSource(client, "eier").listCompletions(["d1", "d2", "d3"])).toEqual({
+      status: "ok",
+      value: [
+        { subchapterId: "d1", quizId: "z1", completedAt: "2026-11-21T01:00:00Z" },
+        { subchapterId: "d3", quizId: "z3", completedAt: "2026-11-21T03:00:00Z" },
+      ],
+    });
+    expect(queries[0].table).toBe("subchapter_completions");
     expect(filtersOnOwner(queries[0])).toBe(true);
-    expect(queries[0].calls).toContainEqual(["eq", "status", "pågår"]);
-    const done = fakeClient(() => ({ data: [] }));
-    expect(await new SupabaseDataSource(done.client, "eier").saveQuizResult("z1", 8, null)).toEqual({ status: "ok", value: false });
+    expect(queries[0].calls).toContainEqual(["in", "subchapter_id", ["d1", "d2", "d3"]]);
+    const empty = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(empty.client, "eier").listCompletions([])).toEqual({ status: "ok", value: [] });
+    expect(empty.queries).toHaveLength(0);
   });
 
   it("gir unavailable når quizene ikke kan leses eller skrives", async () => {
@@ -835,6 +864,9 @@ describe("SupabaseDataSource med quizer", () => {
     expect(await data.createQuiz({ subchapterId: "d1", questionIds: ["q1"] })).toEqual({ status: "unavailable" });
     expect(await data.answerQuizItem("i1", 0, true)).toEqual({ status: "unavailable" });
     expect(await data.replaceQuizItem("i1", "q2")).toEqual({ status: "unavailable" });
-    expect(await data.saveQuizResult("z1", 8, null)).toEqual({ status: "unavailable" });
+    expect(await data.saveQuizResult("z1", { correctCount: 8, carryThemeId: null, completes: true })).toEqual({
+      status: "unavailable",
+    });
+    expect(await data.listCompletions(["d1"])).toEqual({ status: "unavailable" });
   });
 });

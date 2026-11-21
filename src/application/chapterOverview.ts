@@ -6,9 +6,14 @@ import { subchapterInputHash } from "./summaryHash";
 
 /**
  * `status` gjelder både sammendraget og spørsmålsbanken. `summaryStatus` gjelder bare sammendraget
- * og avgjør om delkapittelet lenker til lesesiden.
+ * og avgjør om delkapittelet lenker til lesesiden. `completed` kommer fra avkrysningen (AD-13), aldri
+ * fra quizresultatene, og påvirkes ikke av at notatet er endret.
  */
-export type SubchapterOverview = Subchapter & { status: SubchapterStatus; summaryStatus: SubchapterStatus };
+export type SubchapterOverview = Subchapter & {
+  status: SubchapterStatus;
+  summaryStatus: SubchapterStatus;
+  completed: boolean;
+};
 
 export type ChapterOverview = Omit<Chapter, "subchapters"> & { subchapters: SubchapterOverview[] };
 
@@ -28,7 +33,7 @@ async function statusOf(chapter: Chapter, sub: Subchapter, readyInputHashes: (st
 /**
  * Kapitlene i emnet med status per delkapittel. Klart betyr at både sammendraget og
  * spørsmålsbanken har en klar versjon med hashen notatet har nå (AD-8). Henter alle
- * sammendragsversjonene med ett kall og alle bankversjonene med ett.
+ * sammendragsversjonene, alle bankversjonene og alle avkrysningene med ett kall hver.
  */
 export async function listChapterOverview(
   data: DataSource,
@@ -38,9 +43,15 @@ export async function listChapterOverview(
   if (chapters.status !== "ok") return chapters;
 
   const ids = chapters.value.flatMap((c) => c.subchapters.map((s) => s.id));
-  const [summaries, banks] = await Promise.all([data.listSummaryVersions(ids), data.listQuestionBanks(ids)]);
+  const [summaries, banks, completions] = await Promise.all([
+    data.listSummaryVersions(ids),
+    data.listQuestionBanks(ids),
+    data.listCompletions(ids),
+  ]);
   if (summaries.status !== "ok") return summaries;
   if (banks.status !== "ok") return banks;
+  if (completions.status !== "ok") return completions;
+  const completedIds = new Set(completions.value.map((c) => c.subchapterId));
   const summaryById = new Map(summaries.value.map((s) => [s.subchapterId, s.latestReady?.inputHash ?? null]));
   const bankById = new Map(banks.value.map((b) => [b.subchapterId, b.latestReady?.inputHash ?? null]));
 
@@ -54,7 +65,7 @@ export async function listChapterOverview(
             statusOf(chapter, sub, [summary, bankById.get(sub.id) ?? null]),
             statusOf(chapter, sub, [summary]),
           ]);
-          return { ...sub, status, summaryStatus };
+          return { ...sub, status, summaryStatus, completed: completedIds.has(sub.id) };
         }),
       ),
     })),
