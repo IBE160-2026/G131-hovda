@@ -14,8 +14,13 @@ import type {
   Course,
   DataSource,
   NewQuestionBank,
+  NewQuiz,
   NewSummaryVersion,
   QuestionBankVersion,
+  Quiz,
+  QuizItem,
+  QuizQuestion,
+  QuizStatus,
   ReadResult,
   SaveChapterReport,
   SubchapterQuestionBanks,
@@ -25,10 +30,11 @@ import type {
   WriteResult,
 } from "@/application/dataSource";
 import type { QuestionBankStatus } from "@/domain/questionBank";
+import { QUIZ_LENGTH } from "@/domain/quiz";
 import type { SummaryStatus } from "@/domain/summary";
 
 // Bare den delen av Supabase-klienten som adapteren bruker, så testene kan bruke en falsk klient.
-export type SupabaseDataClient = Pick<SupabaseClient, "from">;
+export type SupabaseDataClient = Pick<SupabaseClient, "from" | "rpc">;
 
 type PostgrestErrorLike = { code?: string } | null;
 
@@ -118,6 +124,84 @@ function toQuestionBankVersion(row: QuestionBankVersionRow): QuestionBankVersion
     contentHash: row.content_hash,
     error: row.error,
     createdAt: row.created_at,
+  };
+}
+
+type QuizQuestionRow = {
+  id: string;
+  theme_id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+};
+
+const quizQuestionColumns = "id, theme_id, question, options, correct_index, explanation";
+
+function toQuizQuestion(row: QuizQuestionRow): QuizQuestion {
+  return {
+    id: row.id,
+    themeId: row.theme_id,
+    question: row.question,
+    options: row.options,
+    correctIndex: row.correct_index,
+    explanation: row.explanation,
+  };
+}
+
+type QuizItemRow = {
+  id: string;
+  position: number;
+  status: QuizItem["status"];
+  chosen_index: number | null;
+  correct: boolean | null;
+  answered_at: string | null;
+  created_at: string;
+  quiz_questions: QuizQuestionRow;
+};
+
+type QuizRow = {
+  id: string;
+  session_id: string;
+  subchapter_id: string;
+  status: QuizStatus;
+  correct_count: number | null;
+  total: number | null;
+  carry_theme_id: string | null;
+  created_at: string;
+  finished_at: string | null;
+  quiz_items: QuizItemRow[];
+};
+
+// Elementene og spørsmålene hentes med quizen i én spørring. FK-navnene sier hvilken kobling som menes.
+const quizColumns =
+  "id, session_id, subchapter_id, status, correct_count, total, carry_theme_id, created_at, finished_at, " +
+  "quiz_items!quiz_items_quiz_fkey(id, position, status, chosen_index, correct, answered_at, created_at, " +
+  `quiz_questions!quiz_items_question_fkey(${quizQuestionColumns}))`;
+
+function toQuiz(row: QuizRow): Quiz {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    subchapterId: row.subchapter_id,
+    status: row.status,
+    correctCount: row.correct_count,
+    total: row.total,
+    carryThemeId: row.carry_theme_id,
+    createdAt: row.created_at,
+    finishedAt: row.finished_at,
+    items: [...row.quiz_items]
+      .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at))
+      .map((item) => ({
+        id: item.id,
+        position: item.position,
+        status: item.status,
+        question: toQuizQuestion(item.quiz_questions),
+        chosenIndex: item.chosen_index,
+        correct: item.correct,
+        answeredAt: item.answered_at,
+        createdAt: item.created_at,
+      })),
   };
 }
 
@@ -586,6 +670,120 @@ export class SupabaseDataSource implements DataSource {
       } catch {
         return await fail();
       }
+    });
+  }
+
+  listQuizBank(subchapterId: string): Promise<ReadResult<QuizQuestion[]>> {
+    return guarded(async () => {
+      const version = await this.client
+        .from("question_bank_versions")
+        .select("id")
+        .eq("owner_id", this.ownerId)
+        .eq("subchapter_id", subchapterId)
+        .eq("status", "klart")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (isInvalidId(version.error)) return { status: "ok", value: [] };
+      if (version.error || !version.data) return unavailable;
+      const [ready] = version.data as { id: string }[];
+      if (!ready) return { status: "ok", value: [] };
+
+      const questions = await this.client
+        .from("quiz_questions")
+        .select(quizQuestionColumns)
+        .eq("owner_id", this.ownerId)
+        .eq("bank_version_id", ready.id)
+        .eq("status", "aktiv")
+        .order("position");
+      if (questions.error || !questions.data) return unavailable;
+      return { status: "ok", value: (questions.data as QuizQuestionRow[]).map(toQuizQuestion) };
+    });
+  }
+
+  listQuizzes(subchapterId: string): Promise<ReadResult<Quiz[]>> {
+    return guarded(async () => {
+      const { data, error } = await this.client
+        .from("quizzes")
+        .select(quizColumns)
+        .eq("owner_id", this.ownerId)
+        .eq("subchapter_id", subchapterId)
+        .order("created_at", { ascending: false });
+      if (isInvalidId(error)) return { status: "ok", value: [] };
+      if (error || !data) return unavailable;
+      return { status: "ok", value: (data as unknown as QuizRow[]).map(toQuiz) };
+    });
+  }
+
+  createQuiz(input: NewQuiz): Promise<WriteResult<Quiz>> {
+    return guarded(async () => {
+      // Økt, quiz og elementer lages i én transaksjon i databasen (create_quiz), så en feil
+      // underveis aldri etterlater en quiz i gang uten spørsmål. 23505: en quiz er alt i gang.
+      const { data, error } = await this.client.rpc("create_quiz", {
+        p_subchapter_id: input.subchapterId,
+        p_question_ids: input.questionIds,
+      });
+      if (error || typeof data !== "string") return toWriteFailure(error);
+
+      const created = await this.client
+        .from("quizzes")
+        .select(quizColumns)
+        .eq("owner_id", this.ownerId)
+        .eq("id", data)
+        .single();
+      if (created.error || !created.data) return unavailable;
+      return { status: "ok", value: toQuiz(created.data as unknown as QuizRow) };
+    });
+  }
+
+  answerQuizItem(itemId: string, chosenIndex: number, correct: boolean): Promise<WriteResult<boolean>> {
+    return guarded(async () => {
+      // Filteret på `answered_at` gjør at bare det første svaret lagres, også ved to samtidige.
+      const { data, error } = await this.client
+        .from("quiz_items")
+        .update({ chosen_index: chosenIndex, correct, answered_at: new Date().toISOString() })
+        .eq("owner_id", this.ownerId)
+        .eq("id", itemId)
+        .eq("status", "aktiv")
+        .is("answered_at", null)
+        .select("id");
+      if (isInvalidId(error)) return { status: "ok", value: false };
+      if (error || !data) return unavailable;
+      return { status: "ok", value: (data as unknown[]).length > 0 };
+    });
+  }
+
+  replaceQuizItem(itemId: string, questionId: string): Promise<WriteResult<boolean>> {
+    return guarded(async () => {
+      // Det gamle elementet merkes og det nye lages i én transaksjon (replace_quiz_item), så
+      // posisjonen aldri står uten aktivt element.
+      const { data, error } = await this.client.rpc("replace_quiz_item", {
+        p_item_id: itemId,
+        p_question_id: questionId,
+      });
+      if (isInvalidId(error)) return { status: "ok", value: false };
+      if (error || typeof data !== "boolean") return unavailable;
+      return { status: "ok", value: data };
+    });
+  }
+
+  saveQuizResult(quizId: string, correctCount: number, carryThemeId: string | null): Promise<WriteResult<boolean>> {
+    return guarded(async () => {
+      const { data, error } = await this.client
+        .from("quizzes")
+        .update({
+          status: "ferdig",
+          correct_count: correctCount,
+          total: QUIZ_LENGTH,
+          carry_theme_id: carryThemeId,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("owner_id", this.ownerId)
+        .eq("id", quizId)
+        .eq("status", "pågår")
+        .select("id");
+      if (isInvalidId(error)) return { status: "ok", value: false };
+      if (error || !data) return unavailable;
+      return { status: "ok", value: (data as unknown[]).length > 0 };
     });
   }
 }

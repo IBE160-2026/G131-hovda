@@ -10,7 +10,8 @@ import {
   subchapterNotFoundMessage,
   unavailableMessage,
 } from "../../../formState";
-import { pageMain, textLink } from "../../../styles";
+import { pageMain, primaryButton, textLink } from "../../../styles";
+import { startQuizAction } from "./quiz/actions";
 
 export const metadata: Metadata = {
   title: "Sammendrag – Studievenn",
@@ -60,7 +61,7 @@ export async function SubchapterSummary({
     );
   }
 
-  const { chapter, subchapter, summary, summaryStatus } = result;
+  const { chapter, subchapter, summary, summaryStatus, quizReady } = result;
   return (
     <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
@@ -80,6 +81,13 @@ export async function SubchapterSummary({
         </>
       ) : (
         <p className="text-lg text-muted">{noSummaryMessage}</p>
+      )}
+      {quizReady && (
+        <form action={startQuizAction.bind(null, id, nummer)}>
+          <button type="submit" className={primaryButton}>
+            Ta quizen
+          </button>
+        </form>
       )}
     </article>
   );

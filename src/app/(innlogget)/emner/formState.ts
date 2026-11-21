@@ -21,3 +21,10 @@ export const notFoundMessage = "Fant ikke emnet. Det kan være slettet.";
 export const subchapterNotFoundMessage = "Fant ikke delkapittelet.";
 export const noSummaryMessage = "Dette delkapittelet har ikke noe sammendrag ennå.";
 export const outdatedMessage = "Notatet er endret etter at dette sammendraget ble laget.";
+
+// Quizen.
+export const quizNotReadyMessage = "Dette delkapittelet har ikke quiz ennå.";
+export const tooFewQuestionsMessage = "Spørsmålsbanken har for få spørsmål til en quiz.";
+export const chooseAnswerMessage = "Velg et svar før du går videre.";
+export const correctAnswerMessage = "Riktig!";
+export const wrongAnswerMessage = "Ikke riktig.";

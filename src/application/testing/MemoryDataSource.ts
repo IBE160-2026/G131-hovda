@@ -8,14 +8,19 @@ import {
   type StoredSubchapter,
 } from "@/domain/chapter";
 import type { CourseInput } from "@/domain/course";
+import { QUIZ_LENGTH } from "@/domain/quiz";
 import type {
   Chapter,
   Course,
   DataSource,
   NewQuestionBank,
+  NewQuiz,
   NewQuizQuestion,
   NewSummaryVersion,
   QuestionBankVersion,
+  Quiz,
+  QuizItem,
+  QuizQuestion,
   SaveChapterReport,
   SubchapterQuestionBanks,
   SubchapterSummaries,
@@ -33,6 +38,10 @@ type StoredQuizQuestion = Omit<NewQuizQuestion, "theme"> & {
   themeId: string;
   status: "aktiv" | "trukket";
 };
+
+type StoredQuiz = Omit<Quiz, "items">;
+
+type StoredQuizItem = Omit<QuizItem, "question"> & { quizId: string; questionId: string };
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
@@ -53,6 +62,18 @@ export class MemoryDataSource implements DataSource {
   bankReadsDown = false;
   /** Feiler lagringen av spørsmålene etter at versjonen er opprettet, så den blir `feilet`. */
   bankQuestionWritesDown = false;
+  sessions: { id: string; startedAt: string; endedAt: string | null }[] = [];
+  quizzes: StoredQuiz[] = [];
+  /** Elementene i rekkefølgen de ble lagret, også de erstattede. */
+  quizItems: StoredQuizItem[] = [];
+  /** Feiler lesingen av bank og quizer. */
+  quizReadsDown = false;
+  /** Feiler alle skrivinger til quizene. */
+  quizWritesDown = false;
+  /** Feiler bare erstatningen, etter at svaret er lagret. */
+  replaceWritesDown = false;
+  /** Feiler bare lagringen av resultatet. */
+  resultWritesDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -104,6 +125,9 @@ export class MemoryDataSource implements DataSource {
     this.questionBankVersions = this.questionBankVersions.filter((v) => !removedSubIds.has(v.subchapterId));
     this.themes = this.themes.filter((t) => !removedSubIds.has(t.subchapterId));
     this.quizQuestions = this.quizQuestions.filter((q) => !removedSubIds.has(q.subchapterId));
+    const removedQuizIds = new Set(this.quizzes.filter((q) => removedSubIds.has(q.subchapterId)).map((q) => q.id));
+    this.quizzes = this.quizzes.filter((q) => !removedQuizIds.has(q.id));
+    this.quizItems = this.quizItems.filter((i) => !removedQuizIds.has(i.quizId));
     if (this.activeId === id) this.activeId = null;
     return { status: "ok" as const, value: undefined };
   }
@@ -276,5 +300,131 @@ export class MemoryDataSource implements DataSource {
     }
     version.status = "klart";
     return { status: "ok" as const, value: { ...version } };
+  }
+
+  /** Et tidspunkt som øker for hver skriving til quizene, så «nyest» og «for lengst siden» er entydig. */
+  private quizTick = 0;
+  private now() {
+    return new Date(Date.UTC(2026, 10, 21, 0, 0, 0, this.quizTick++)).toISOString();
+  }
+
+  private toQuizQuestion(id: string): QuizQuestion {
+    const q = this.quizQuestions.find((x) => x.id === id)!;
+    return {
+      id: q.id,
+      themeId: q.themeId,
+      question: q.question,
+      options: [...q.options],
+      correctIndex: q.correctIndex,
+      explanation: q.explanation,
+    };
+  }
+
+  private toQuiz(stored: StoredQuiz): Quiz {
+    const items = this.quizItems
+      .filter((i) => i.quizId === stored.id)
+      .sort((a, b) => a.position - b.position || a.createdAt.localeCompare(b.createdAt))
+      .map((i) => ({
+        id: i.id,
+        position: i.position,
+        status: i.status,
+        question: this.toQuizQuestion(i.questionId),
+        chosenIndex: i.chosenIndex,
+        correct: i.correct,
+        answeredAt: i.answeredAt,
+        createdAt: i.createdAt,
+      }));
+    return { ...stored, items };
+  }
+
+  async listQuizBank(subchapterId: string) {
+    if (this.down || this.quizReadsDown) return this.unavailable();
+    const ready = [...this.questionBankVersions].reverse().find((v) => v.subchapterId === subchapterId && v.status === "klart");
+    const value = ready
+      ? this.quizQuestions
+          .filter((q) => q.bankVersionId === ready.id && q.status === "aktiv")
+          .map((q) => this.toQuizQuestion(q.id))
+      : [];
+    return { status: "ok" as const, value };
+  }
+
+  async listQuizzes(subchapterId: string) {
+    if (this.down || this.quizReadsDown) return this.unavailable();
+    const value = this.quizzes
+      .filter((q) => q.subchapterId === subchapterId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((q) => this.toQuiz(q));
+    return { status: "ok" as const, value };
+  }
+
+  async createQuiz(input: NewQuiz) {
+    if (this.down || this.quizWritesDown) return this.unavailable();
+    if (this.quizzes.some((q) => q.subchapterId === input.subchapterId && q.status === "pågår")) {
+      return { status: "duplicate" as const };
+    }
+    const startedAt = this.now();
+    const session = { id: `o${this.nextId++}`, startedAt, endedAt: null };
+    this.sessions.push(session);
+    const quiz: StoredQuiz = {
+      id: `z${this.nextId++}`,
+      sessionId: session.id,
+      subchapterId: input.subchapterId,
+      status: "pågår",
+      correctCount: null,
+      total: null,
+      carryThemeId: null,
+      createdAt: startedAt,
+      finishedAt: null,
+    };
+    this.quizzes.push(quiz);
+    input.questionIds.forEach((questionId, i) => {
+      this.quizItems.push({
+        id: `i${this.nextId++}`,
+        quizId: quiz.id,
+        questionId,
+        position: i + 1,
+        status: "aktiv",
+        chosenIndex: null,
+        correct: null,
+        answeredAt: null,
+        createdAt: startedAt,
+      });
+    });
+    return { status: "ok" as const, value: this.toQuiz(quiz) };
+  }
+
+  async answerQuizItem(itemId: string, chosenIndex: number, correct: boolean) {
+    if (this.down || this.quizWritesDown) return this.unavailable();
+    const item = this.quizItems.find((i) => i.id === itemId);
+    if (!item || item.status !== "aktiv" || item.answeredAt !== null) return { status: "ok" as const, value: false };
+    Object.assign(item, { chosenIndex, correct, answeredAt: this.now() });
+    return { status: "ok" as const, value: true };
+  }
+
+  async replaceQuizItem(itemId: string, questionId: string) {
+    if (this.down || this.quizWritesDown || this.replaceWritesDown) return this.unavailable();
+    const item = this.quizItems.find((i) => i.id === itemId);
+    if (!item || item.status !== "aktiv" || item.answeredAt !== null) return { status: "ok" as const, value: false };
+    item.status = "erstattet";
+    this.quizItems.push({
+      id: `i${this.nextId++}`,
+      quizId: item.quizId,
+      questionId,
+      position: item.position,
+      status: "aktiv",
+      chosenIndex: null,
+      correct: null,
+      answeredAt: null,
+      createdAt: this.now(),
+    });
+    return { status: "ok" as const, value: true };
+  }
+
+  async saveQuizResult(quizId: string, correctCount: number, carryThemeId: string | null) {
+    if (this.down || this.quizWritesDown || this.resultWritesDown) return this.unavailable();
+    const quiz = this.quizzes.find((q) => q.id === quizId);
+    if (!quiz || quiz.status !== "pågår") return { status: "ok" as const, value: false };
+    Object.assign(quiz, { status: "ferdig", correctCount, total: QUIZ_LENGTH, carryThemeId, finishedAt: this.now() });
+    return { status: "ok" as const, value: true };
   }
 }

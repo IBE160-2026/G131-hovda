@@ -70,13 +70,18 @@ export type SubchapterSummaryResult =
       summaryStatus: SubchapterStatus;
       /** Siste klare versjon, eller `null` når det ikke finnes noen. */
       summary: SummaryVersion | null;
+      /**
+       * Om eieren kan ta en quiz: både sammendraget og spørsmålsbanken har en klar versjon, så den
+       * samlede statusen er «klart» eller «utdatert» (AD-8).
+       */
+      quizReady: boolean;
     }
   | { status: "notFound" }
   | Unavailable;
 
 /**
- * Delkapittelet med nummeret «n.m» i emnet, med kapittelet, status for sammendraget og siste klare versjon av
- * sammendraget. `notFound` når emnet eller nummeret ikke finnes, eller ikke er eierens.
+ * Delkapittelet med nummeret «n.m» i emnet, med kapittelet, status for sammendraget, siste klare versjon av
+ * sammendraget og om eieren kan ta en quiz. `notFound` når emnet eller nummeret ikke finnes, eller ikke er eierens.
  */
 export async function getSubchapterSummary(
   data: DataSource,
@@ -89,15 +94,25 @@ export async function getSubchapterSummary(
   for (const chapter of chapters.value) {
     const subchapter = chapter.subchapters.find((s) => s.number === number);
     if (!subchapter) continue;
-    const summaries = await data.listSummaryVersions([subchapter.id]);
+    const [summaries, banks] = await Promise.all([
+      data.listSummaryVersions([subchapter.id]),
+      data.listQuestionBanks([subchapter.id]),
+    ]);
     if (summaries.status !== "ok") return summaries;
+    if (banks.status !== "ok") return banks;
     const summary = summaries.value.find((s) => s.subchapterId === subchapter.id)?.latestReady ?? null;
+    const bank = banks.value.find((b) => b.subchapterId === subchapter.id)?.latestReady ?? null;
+    const [summaryStatus, status] = await Promise.all([
+      statusOf(chapter, subchapter, [summary?.inputHash ?? null]),
+      statusOf(chapter, subchapter, [summary?.inputHash ?? null, bank?.inputHash ?? null]),
+    ]);
     return {
       status: "ok",
       chapter,
       subchapter,
-      summaryStatus: await statusOf(chapter, subchapter, [summary?.inputHash ?? null]),
+      summaryStatus,
       summary,
+      quizReady: status === "klart" || status === "utdatert",
     };
   }
   return { status: "notFound" };
