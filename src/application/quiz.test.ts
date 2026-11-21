@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import innhold1 from "../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
 import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import { importChapter } from "./importChapter";
+import { listChapterOverview } from "./chapterOverview";
 import { answerQuiz, getQuiz, startQuiz } from "./quiz";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
 
@@ -227,7 +228,10 @@ describe("answerQuiz", () => {
       finished: true,
       feedbackPosition: null,
     });
-    expect(await setup.data.saveQuizResult(quizId, 10, null)).toEqual({ status: "ok", value: false });
+    expect(await setup.data.saveQuizResult(quizId, { correctCount: 10, carryThemeId: null, completes: true })).toEqual({
+      status: "ok",
+      value: false,
+    });
     expect(setup.data.quizzes[0]).toEqual(frozen);
     expect(activeItems(setup.data, quizId)[9]).toEqual(lastItem);
     // Uten quiz i gang vises startsiden.
@@ -336,5 +340,102 @@ describe("samtidige forespørsler", () => {
       feedbackPosition: position,
     });
     expect(setup.data.quizItems.filter((i) => i.status === "erstattet")).toEqual([]);
+  });
+});
+
+/** Tar en hel quiz på 1.1 med `correct` riktige først og resten feil, og gir quizens id. */
+async function takeQuiz(setup: Setup, correct: number) {
+  const quizId = await start(setup);
+  for (let i = 0; i < 10; i++) await answer(setup, i < correct);
+  return quizId;
+}
+
+async function resultOf(setup: Setup, quizId: string) {
+  const view = await getQuiz(setup.data, setup.courseId, "1.1", { resultQuizId: quizId });
+  if (view.status !== "ok" || view.stage !== "result") throw new Error(JSON.stringify(view));
+  return view;
+}
+
+describe("avkrysning", () => {
+  it("krysser av delkapittelet ved 8 av 10, med tidspunkt og quiz-ID", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 8);
+    expect(setup.data.completions).toEqual([{ subchapterId: setup.subchapterId, quizId, completedAt: expect.any(String) }]);
+    expect(setup.data.completions[0].completedAt).toBe(setup.data.quizzes[0].finishedAt);
+    expect(await resultOf(setup, quizId)).toMatchObject({ resultText: "8 av 10 riktige", passed: true, completedBy: "this" });
+  });
+
+  it("krysser ikke av ved 7 av 10, og resultatet sier at det er under 80 %", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 7);
+    expect(setup.data.completions).toEqual([]);
+    expect(await resultOf(setup, quizId)).toMatchObject({ correctCount: 7, passed: false, completedBy: null });
+  });
+
+  it("lar den første avkrysningen stå når en ny quiz også har minst 80 %", async () => {
+    const setup = await imported();
+    const first = await takeQuiz(setup, 9);
+    const before = [...setup.data.completions];
+    const second = await takeQuiz(setup, 10);
+    expect(setup.data.completions).toEqual(before);
+    expect(setup.data.completions[0].quizId).toBe(first);
+    expect(await resultOf(setup, second)).toMatchObject({ passed: true, completedBy: "earlier" });
+    expect(await resultOf(setup, first)).toMatchObject({ completedBy: "this" });
+  });
+
+  it("lar avkrysningen stå når en ny quiz er under 80 %", async () => {
+    const setup = await imported();
+    await takeQuiz(setup, 8);
+    const before = [...setup.data.completions];
+    const second = await takeQuiz(setup, 3);
+    expect(setup.data.completions).toEqual(before);
+    expect(await resultOf(setup, second)).toMatchObject({ passed: false, completedBy: "earlier" });
+  });
+
+  it("krysser av når en avsluttet quiz fullføres med «Se resultatet»", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let i = 0; i < 9; i++) await answer(setup, true);
+    setup.data.resultWritesDown = true;
+    const { item } = await current(setup);
+    await answerQuiz(setup.data, setup.courseId, "1.1", quizId, 10, (item.correctIndex + 1) % 4);
+    // Feilet: verken frosset resultat eller avkrysning.
+    expect(setup.data.quizzes[0].status).toBe("pågår");
+    expect(setup.data.completions).toEqual([]);
+    setup.data.resultWritesDown = false;
+    expect(await startQuiz(setup.data, setup.courseId, "1.1")).toEqual({ status: "ok", quizId, finished: true });
+    expect(setup.data.completions).toEqual([{ subchapterId: setup.subchapterId, quizId, completedAt: expect.any(String) }]);
+    expect(await resultOf(setup, quizId)).toMatchObject({ correctCount: 9, completedBy: "this" });
+  });
+
+  it("gir `unavailable` når avkrysningene ikke kan leses", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 8);
+    setup.data.completionReadsDown = true;
+    expect(await getQuiz(setup.data, setup.courseId, "1.1", { resultQuizId: quizId })).toEqual({ status: "unavailable" });
+  });
+});
+
+describe("avkrysning og ny import", () => {
+  it("holder 1.1 gjennomført med samme tidspunkt etter ny import med endret notat og en quiz med 3 riktige", async () => {
+    const setup = await imported();
+    const first = await takeQuiz(setup, 8);
+    const before = structuredClone(setup.data.completions);
+
+    const changed = kapittel1.replace(
+      /^### 1\.1 .*$/m,
+      (heading) => `${heading}\n\nEn ny setning i notatet.\n`,
+    );
+    const again = await importChapter(setup.data, changed, { courseCode: "IBE430", chapterNumber: 1 }, { content: innhold1 });
+    expect(again.status).toBe("ok");
+    await takeQuiz(setup, 3);
+
+    expect(setup.data.completions).toEqual(before);
+    expect(setup.data.completions[0].quizId).toBe(first);
+    const overview = await listChapterOverview(setup.data, setup.courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    const sub = overview.value[0].subchapters[0];
+    expect([sub.number, sub.status, sub.completed]).toEqual(["1.1", "utdatert", true]);
+    expect(overview.value[0].subchapters.filter((s) => s.completed)).toHaveLength(1);
   });
 });

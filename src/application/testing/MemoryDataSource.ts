@@ -21,7 +21,9 @@ import type {
   Quiz,
   QuizItem,
   QuizQuestion,
+  QuizResultInput,
   SaveChapterReport,
+  SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
   SummaryVersion,
@@ -72,8 +74,12 @@ export class MemoryDataSource implements DataSource {
   quizWritesDown = false;
   /** Feiler bare erstatningen, etter at svaret er lagret. */
   replaceWritesDown = false;
-  /** Feiler bare lagringen av resultatet. */
+  /** Feiler lagringen av resultatet, og dermed også avkrysningen. */
   resultWritesDown = false;
+  /** Avkrysningene, én per delkapittel, i rekkefølgen de ble lagret. */
+  completions: SubchapterCompletion[] = [];
+  /** Feiler lesingen av avkrysningene. */
+  completionReadsDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -128,6 +134,7 @@ export class MemoryDataSource implements DataSource {
     const removedQuizIds = new Set(this.quizzes.filter((q) => removedSubIds.has(q.subchapterId)).map((q) => q.id));
     this.quizzes = this.quizzes.filter((q) => !removedQuizIds.has(q.id));
     this.quizItems = this.quizItems.filter((i) => !removedQuizIds.has(i.quizId));
+    this.completions = this.completions.filter((c) => !removedSubIds.has(c.subchapterId));
     if (this.activeId === id) this.activeId = null;
     return { status: "ok" as const, value: undefined };
   }
@@ -420,11 +427,26 @@ export class MemoryDataSource implements DataSource {
     return { status: "ok" as const, value: true };
   }
 
-  async saveQuizResult(quizId: string, correctCount: number, carryThemeId: string | null) {
+  /** Som `finish_quiz`: resultatet og avkrysningen lagres sammen, eller ingen av dem. */
+  async saveQuizResult(quizId: string, { correctCount, carryThemeId, completes }: QuizResultInput) {
     if (this.down || this.quizWritesDown || this.resultWritesDown) return this.unavailable();
     const quiz = this.quizzes.find((q) => q.id === quizId);
     if (!quiz || quiz.status !== "pågår") return { status: "ok" as const, value: false };
-    Object.assign(quiz, { status: "ferdig", correctCount, total: QUIZ_LENGTH, carryThemeId, finishedAt: this.now() });
+    const finishedAt = this.now();
+    Object.assign(quiz, { status: "ferdig", correctCount, total: QUIZ_LENGTH, carryThemeId, finishedAt });
+    // Én per delkapittel: den første står (on conflict do nothing).
+    if (completes && !this.completions.some((c) => c.subchapterId === quiz.subchapterId)) {
+      this.completions.push({ subchapterId: quiz.subchapterId, quizId, completedAt: finishedAt });
+    }
     return { status: "ok" as const, value: true };
+  }
+
+  async listCompletions(subchapterIds: string[]) {
+    if (this.down || this.completionReadsDown) return this.unavailable();
+    const value: SubchapterCompletion[] = subchapterIds.flatMap((id) => {
+      const completion = this.completions.find((c) => c.subchapterId === id);
+      return completion ? [{ ...completion }] : [];
+    });
+    return { status: "ok" as const, value };
   }
 }

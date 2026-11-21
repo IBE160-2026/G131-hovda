@@ -6,6 +6,19 @@
 
 export const QUIZ_LENGTH = 10;
 
+/** Andelen riktige som krysser av delkapittelet: 80 %, som brøk så den regnes med heltall (AD-13). */
+export const COMPLETION_SHARE = { numerator: 8, denominator: 10 } as const;
+
+/**
+ * Om resultatet krysser av delkapittelet: `correct / counted ≥ 0,8`. `counted` er spørsmålene som
+ * teller, så et tilbaketrukket spørsmål (1.9) kan trekkes fra. Regnes med heltall, så 8/10 og 8/9
+ * er nok, men 7/10 er det ikke. Uten spørsmål som teller, krysses ingenting av.
+ */
+export function isCompleted(correct: number, counted: number): boolean {
+  if (counted <= 0) return false;
+  return correct * COMPLETION_SHARE.denominator >= counted * COMPLETION_SHARE.numerator;
+}
+
 /** Et aktivt spørsmål i banken, med temaet det hører til. */
 export type BankQuestion = { id: string; themeId: string };
 

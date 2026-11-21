@@ -132,6 +132,56 @@ describe("listChapterOverview", () => {
     expect([calls, bankCalls]).toEqual([1, 1]);
   });
 
+  it("merker delkapitler med avkrysning som gjennomført, også når notatet er endret etterpå", async () => {
+    const { data, courseId } = await smallChapter();
+    const [sub1, , , sub4] = data.chapters[0].subchapters;
+    data.completions.push({ subchapterId: sub4.id, quizId: "z1", completedAt: "2026-11-21T10:00:00Z" });
+    data.completions.push({ subchapterId: sub1.id, quizId: "z2", completedAt: "2026-11-21T11:00:00Z" });
+    sub1.noteText = "Notat en, endret";
+    const overview = await listChapterOverview(data, courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    expect(overview.value[0].subchapters.map((s) => [s.number, s.status, s.completed])).toEqual([
+      ["1.1", "utdatert", true],
+      ["1.2", "mangler innhold", false],
+      ["1.3", "mangler notater", false],
+      ["1.4", "mangler innhold", true],
+    ]);
+  });
+
+  it("leser «gjennomført» fra avkrysningen, ikke fra quizresultatene, med ett kall", async () => {
+    const { data, courseId } = await smallChapter();
+    const sub1 = data.chapters[0].subchapters[0];
+    // En ferdig quiz med 10 av 10 uten avkrysning gir ikke «gjennomført».
+    data.quizzes.push({
+      id: "z9",
+      sessionId: "o9",
+      subchapterId: sub1.id,
+      status: "ferdig",
+      correctCount: 10,
+      total: 10,
+      carryThemeId: null,
+      createdAt: "2026-11-21T09:00:00Z",
+      finishedAt: "2026-11-21T09:10:00Z",
+    });
+    let calls = 0;
+    const original = data.listCompletions.bind(data);
+    data.listCompletions = async (ids) => {
+      calls++;
+      expect(ids).toEqual(data.chapters[0].subchapters.map((s) => s.id));
+      return original(ids);
+    };
+    const overview = await listChapterOverview(data, courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    expect(overview.value[0].subchapters.every((s) => !s.completed)).toBe(true);
+    expect(calls).toBe(1);
+  });
+
+  it("gir `unavailable` når avkrysningene ikke kan hentes", async () => {
+    const { data, courseId } = await smallChapter();
+    data.completionReadsDown = true;
+    expect(await listChapterOverview(data, courseId)).toEqual({ status: "unavailable" });
+  });
+
   it("gir tom liste for et ukjent emne", async () => {
     const { data } = await smallChapter();
     expect(await listChapterOverview(data, "ukjent")).toEqual({ status: "ok", value: [] });

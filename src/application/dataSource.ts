@@ -148,6 +148,20 @@ export type Quiz = {
 
 export type NewQuiz = { subchapterId: string; questionIds: string[] };
 
+/** Resultatet `finishQuiz` lagrer. `completes` sier om delkapittelet krysses av (`isCompleted`). */
+export type QuizResultInput = { correctCount: number; carryThemeId: string | null; completes: boolean };
+
+/**
+ * At delkapittelet er gjennomført (AD-13): quizen som krysset det av, og når. Det finnes én per
+ * delkapittel, og den angres aldri.
+ */
+export type SubchapterCompletion = {
+  subchapterId: string;
+  quizId: string;
+  /** ISO-tidspunkt i UTC. */
+  completedAt: string;
+};
+
 export type Unavailable = { status: "unavailable" };
 
 export type ReadResult<T> = { status: "ok"; value: T } | Unavailable;
@@ -218,8 +232,15 @@ export interface DataSource {
    */
   replaceQuizItem(itemId: string, questionId: string): Promise<WriteResult<boolean>>;
   /**
-   * Setter en quiz som `pågår` til `ferdig` med resultatet av 10, som så aldri endres. `false` når
-   * quizen alt er ferdig eller ikke finnes. Bare `finishQuiz` kaller denne.
+   * Setter en quiz som `pågår` til `ferdig` med resultatet av 10, som så aldri endres, og krysser av
+   * delkapittelet når `completes` er sann, i samme transaksjon. Er delkapittelet alt krysset av,
+   * beholdes den første avkrysningen. `false` når quizen alt er ferdig eller ikke finnes, og da er
+   * ingenting endret. Feiler lagringen, er ingenting lagret. Bare `finishQuiz` kaller denne.
    */
-  saveQuizResult(quizId: string, correctCount: number, carryThemeId: string | null): Promise<WriteResult<boolean>>;
+  saveQuizResult(quizId: string, result: QuizResultInput): Promise<WriteResult<boolean>>;
+  /**
+   * Avkrysningene for delkapitlene, i samme rekkefølge som `subchapterIds`, men bare for dem som er
+   * krysset av. Delkapitler som ikke er eierens, gir ingen.
+   */
+  listCompletions(subchapterIds: string[]): Promise<ReadResult<SubchapterCompletion[]>>;
 }

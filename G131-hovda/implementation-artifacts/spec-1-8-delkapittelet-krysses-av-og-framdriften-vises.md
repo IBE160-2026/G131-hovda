@@ -2,7 +2,8 @@
 title: 'Story 1.8: Delkapittelet krysses av, og framdriften vises'
 type: 'feature'
 created: '2026-11-21'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: 'dd618b64f0bf00d12b5345c598e95df03d548214'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -77,13 +78,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/quiz.ts`, `src/domain/progress.ts` + tester -- 80 %-regelen og målet etter matrisen
-- [ ] `supabase/migrations/…_subchapter_completions.sql` -- tabellen og `finish_quiz`. Push mot `dev`
-- [ ] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `saveQuizResult` via RPC og `listCompletions`
-- [ ] `src/application/quiz.ts` + test -- `finishQuiz` og resultattrinnet etter matrisen
-- [ ] `chapterOverview.ts` + test, `start/page.tsx` + test -- `completed`, framdriftsindikator og merket «gjennomført»
-- [ ] `quiz/page.tsx` + test, `formState.ts` -- avkrysning og tilbudet under 80 %
-- [ ] `rls.dev.test.ts` -- RLS, frys og cascade for `subchapter_completions`
+- [x] `src/domain/quiz.ts`, `src/domain/progress.ts` + tester -- 80 %-regelen og målet etter matrisen
+- [x] `supabase/migrations/…_subchapter_completions.sql` -- tabellen og `finish_quiz`. Push mot `dev`
+- [x] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `saveQuizResult` via RPC og `listCompletions`
+- [x] `src/application/quiz.ts` + test -- `finishQuiz` og resultattrinnet etter matrisen
+- [x] `chapterOverview.ts` + test, `start/page.tsx` + test -- `completed`, framdriftsindikator og merket «gjennomført»
+- [x] `quiz/page.tsx` + test, `formState.ts` -- avkrysning og tilbudet under 80 %
+- [x] `rls.dev.test.ts` -- RLS, frys og cascade for `subchapter_completions`
 
 **Acceptance Criteria:**
 - Given IBE430 kapittel 1 i `dev`, when eieren fullfører en quiz på 1.1 med minst 8 riktige og åpner startsiden, then er 1.1 merket «gjennomført», og indikatoren viser «1 av 6 gjennomført, mål 6».
@@ -105,6 +106,26 @@ Resultatet og avkrysningen skrives i samme transaksjon, fordi det ikke finnes no
 
 ## Implementation Notes
 
+- Migreringen `20261121140000_subchapter_completions.sql` er kjørt mot `dev` (studievenn-dev), og `npm run test:dev` passerer (19 tester). Ikke kjørt mot `prod`. De manuelle sjekkene står igjen.
+- Quizer som ble ferdige med minst 8 riktige før migreringen (1.7), har ingen avkrysning. Resultatsiden viser da verken avkrysning eller tilbud. Delkapittelet krysses av ved neste quiz med minst 80 %.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Source | Finding | Verdict | Evidence | Route |
+|---|--------|---------|---------|----------|-------|
+| 1 | blind, edge | Direct INSERT on `subchapter_completions` bypasses `finish_quiz` | low | Real but only reachable by the sole owner hand-crafting API calls against their own rows; spec mandates `security invoker` + `GRANT select, insert` as in 1.7. Fix (definer + revoke) adds surface | reject |
+| 2 | blind, edge | No DB tie between `quiz_id` and `subchapter_id` | low | Only reachable through the same owner-only direct insert as #1; `finish_quiz` takes `subchapter_id` from the quiz row itself | reject |
+| 3 | blind, edge | Deleting a session/quiz cascades away the completion | low | Only `deleteCourse` deletes anything in the app (`dataSource.ts:340`); a session delete needs a hand-made API call by the owner. Changing the FK needs a new migration | reject |
+| 4 | blind, edge | `finish_quiz` trusts `p_completes`/`p_correct_count` | low | Same owner-only direct-RPC path; spec puts the decision in the domain (Design Notes) | reject |
+| 5 | edge | `p_correct_count` out of range or null | false | `quizzes_counts_check` (0..10, ≤ total) and `quizzes_result_check` (non-null when ferdig) in `20261121120000_quizzes.sql:41-46` reject it | reject |
+| 6 | blind | No backfill for 1.7 quizzes ≥ 80 % | low | Real for quizzes finished before the migration, but the intent says only `finishQuiz` writes completions, which rules out a migration backfill; noted in Implementation Notes | reject (intent) |
+| 7 | blind | `total = 10` duplicated in SQL and `QUIZ_LENGTH` | low | Spec mandates `total` 10 in the function until 1.9; 80 % is not duplicated in SQL | reject |
+| 8 | blind | Failed completions read hides the chapter list / result | false | Matrix row «Lesefeil» requires `unavailableMessage` with `role="alert"` and no progress; implemented as specified | reject |
+| 9 | blind | Progress total counts subchapters without notes | false | `listChapters` filters `removed_at is null` (`dataSource.ts:398`), so only active subchapters count; notes-less ones are active | reject |
+| 10 | blind | RLS "no owner completions" test passes on empty table | low | Test-quality only; same pattern as the other tables' RLS tests; fix needs seeding owner data | reject |
+| 11 | blind | No cross-user RPC test | low | `finish_quiz` filters `owner_id = auth.uid()`; RLS also blocks the update. Adding a test needs the owner's quiz id | reject |
+| 12 | blind | `isInvalidId` maps a malformed theme id to `false` | low | `carryThemeId` comes from stored theme rows, never user input | reject |
+| 13 | blind | Spec changes not in diff | false | Spec excluded from the diff on purpose; reviewed separately as claims file | reject |
+| 14 | verification-gap | Real `finish_quiz` SQL only verified by `npm run test:dev`, not CI | medium | Pre-verified; CI has no Supabase keys, the repo's deliberate pattern for all migrations | defer |

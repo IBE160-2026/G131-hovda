@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listChapterOverview, type ChapterOverview } from "@/application/chapterOverview";
 import type { ReadResult } from "@/application/dataSource";
+import { courseProgress } from "@/domain/progress";
 import type { SubchapterStatus } from "@/domain/summary";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../OwnerOnly";
-import { unavailableMessage } from "../emner/formState";
+import {
+  completedBadge,
+  goalReachedMessage,
+  progressText,
+  remainingText,
+  unavailableMessage,
+} from "../emner/formState";
 import { pageMain, primaryButton, secondaryButton, textLink } from "../emner/styles";
 import { logOut } from "./actions";
 
@@ -81,8 +88,10 @@ export async function ActiveCourse() {
     );
   }
 
+  const chapters = await listChapterOverview(data, course.id);
   return (
     <>
+      <Progress chapters={chapters} />
       <p className="text-sm font-semibold text-muted">Aktivt emne</p>
       <h1 className="text-3xl leading-tight font-bold break-words sm:text-4xl">
         {course.code} <span className="font-normal">{course.name}</span>
@@ -103,8 +112,37 @@ export async function ActiveCourse() {
           Bytt emne
         </Link>
       </div>
-      <ChapterList courseId={course.id} chapters={await listChapterOverview(data, course.id)} />
+      <ChapterList courseId={course.id} chapters={chapters} />
     </>
+  );
+}
+
+/**
+ * Framdriften mot målet øverst i emnekortet (FR-15, FR-20): gjennomførte av de aktive
+ * delkapitlene, målet på 90 % og hvor mange som er igjen. «Gjennomført» kommer fra avkrysningen.
+ * Vises ikke uten delkapitler, eller når de ikke kan leses (kapittellisten sier da fra).
+ */
+export function Progress({ chapters }: { chapters: ReadResult<ChapterOverview[]> }) {
+  if (chapters.status !== "ok") return null;
+  const subchapters = chapters.value.flatMap((c) => c.subchapters);
+  if (subchapters.length === 0) return null;
+  const { completed, total, goal, remaining } = courseProgress(
+    subchapters.length,
+    subchapters.filter((s) => s.completed).length,
+  );
+  return (
+    <section aria-label="Framdrift" className="flex flex-col gap-2 rounded-xl bg-mint px-4 py-3">
+      <p id="framdrift-tekst" className="text-lg font-semibold">
+        {progressText(completed, total, goal)}
+      </p>
+      <progress
+        aria-labelledby="framdrift-tekst"
+        value={completed}
+        max={total}
+        className="h-3 w-full accent-accent"
+      />
+      <p>{remaining === 0 ? goalReachedMessage : remainingText(remaining)}</p>
+    </section>
   );
 }
 
@@ -125,7 +163,8 @@ function canRead(summaryStatus: SubchapterStatus): boolean {
 
 /**
  * Kapitlene i det aktive emnet med delkapitler i rekkefølge og samlet status for sammendraget og
- * spørsmålsbanken. Delkapitler med et sammendrag lenker til lesesiden. Økten (quiz) kommer i 1.7.
+ * spørsmålsbanken. Delkapitler med et sammendrag lenker til lesesiden. Gjennomførte delkapitler
+ * har merket «gjennomført» ved siden av statusen.
  */
 export function ChapterList({
   courseId,
@@ -173,6 +212,12 @@ export function ChapterList({
                     <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${statusColors[sub.status]}`}>
                       {sub.status}
                     </span>
+                    {sub.completed && (
+                      <span className="rounded-full bg-accent px-3 py-0.5 text-sm font-semibold text-accent-contrast">
+                        <span aria-hidden="true">✓ </span>
+                        {completedBadge}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ol>

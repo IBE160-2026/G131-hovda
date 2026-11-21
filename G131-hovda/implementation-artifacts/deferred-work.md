@@ -45,3 +45,7 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-6a-importen-legger-inn-sporsmalsbanken.md`
   summary: `listQuestionBanks` for et helt emne kan bli avkortet av PostgREST max-rows, så delkapitler feilaktig viser «mangler innhold».
   evidence: Uverifisert (antatt middels). Samme mønster som for `listSummaryVersions`: adapteren henter alle bankversjonene (også `feilet` og `lages`) uten paginering. Avgjøres ved å sjekke max-rows og telle `question_bank_versions` per emne.
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-8-delkapittelet-krysses-av-og-framdriften-vises.md`
+  summary: The SQL in `finish_quiz` and the RLS for `subchapter_completions` are only verified by `npm run test:dev`, which CI does not run.
+  evidence: `vitest.config.ts` excludes `*.dev.test.ts` and `.github/workflows/ci.yml` runs only typecheck, lint and `npm test`; a regression such as `on conflict do update` would pass CI because app tests run against `MemoryDataSource`. Closing it needs a CI database (same gap for all earlier migrations).

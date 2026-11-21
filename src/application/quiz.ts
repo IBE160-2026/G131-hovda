@@ -2,6 +2,7 @@
 // Hver quiz hører til en ny økt. Hvert svar lagres med en gang, og resultatet fryses når quizen er ferdig.
 import {
   chooseReplacement,
+  isCompleted,
   QUIZ_LENGTH,
   quizOutcome,
   quizResultText,
@@ -56,13 +57,20 @@ const inProgress = (quizzes: Quiz[]) => quizzes.find((q) => q.status === "pågå
 
 /**
  * Avslutter quizen: resultatet (antall riktige av 10 og temaet som overføres) lagres og endres
- * aldri. Er quizen alt avsluttet, er ingenting endret. Story 1.8 utvider denne med avkrysning (AD-13).
+ * aldri. Ved minst 80 % riktige krysses delkapittelet av i samme transaksjon (AD-13). Er det alt
+ * krysset av, står den første avkrysningen. Er quizen alt avsluttet, er ingenting endret. Dette er
+ * det eneste stedet avkrysningen skrives.
  */
-export async function finishQuiz(data: DataSource, quiz: Quiz): Promise<WriteResult<{ correctCount: number }>> {
+export async function finishQuiz(
+  data: DataSource,
+  quiz: Quiz,
+): Promise<WriteResult<{ correctCount: number; completes: boolean }>> {
   const { correctCount, carryThemeId } = quizOutcome(itemStates(quiz));
-  const saved = await data.saveQuizResult(quiz.id, correctCount, carryThemeId);
+  // Alle 10 teller til 1.9 tar bort tilbaketrukne spørsmål.
+  const completes = isCompleted(correctCount, QUIZ_LENGTH);
+  const saved = await data.saveQuizResult(quiz.id, { correctCount, carryThemeId, completes });
   if (saved.status !== "ok") return saved;
-  return { status: "ok", value: { correctCount } };
+  return { status: "ok", value: { correctCount, completes } };
 }
 
 export type StartQuizResult =
@@ -226,8 +234,20 @@ export type QuizStage =
   | { stage: "feedback"; quizId: string; item: QuizItemView }
   /** Alle spørsmålene er besvart, men resultatet er ikke lagret. */
   | { stage: "unfinished"; quizId: string }
-  /** Tilbakemeldingen på siste spørsmål og det frosne resultatet. */
-  | { stage: "result"; quizId: string; item: QuizItemView | null; correctCount: number; total: number; resultText: string };
+  /**
+   * Tilbakemeldingen på siste spørsmål og det frosne resultatet. `passed`: minst 80 % riktige.
+   * `completedBy`: om delkapittelet ble krysset av av denne quizen, av en tidligere, eller ikke er det.
+   */
+  | {
+      stage: "result";
+      quizId: string;
+      item: QuizItemView | null;
+      correctCount: number;
+      total: number;
+      resultText: string;
+      passed: boolean;
+      completedBy: "this" | "earlier" | null;
+    };
 
 export type GetQuizResult =
   | ({ status: "ok"; chapter: Chapter; subchapter: Subchapter; total: number } & QuizStage)
@@ -256,6 +276,10 @@ export async function getQuiz(
     ? quizzes.value.find((q) => q.id === options.resultQuizId && q.status === "ferdig")
     : undefined;
   if (finished) {
+    // «Gjennomført» leses fra avkrysningen, aldri fra quizresultatet (AD-13).
+    const completions = await data.listCompletions([located.subchapter.id]);
+    if (completions.status !== "ok") return completions;
+    const completion = completions.value.find((c) => c.subchapterId === located.subchapter.id);
     const last = activeItems(finished).at(-1);
     const correctCount = finished.correctCount ?? 0;
     const total = finished.total ?? QUIZ_LENGTH;
@@ -267,6 +291,8 @@ export async function getQuiz(
       correctCount,
       total,
       resultText: quizResultText(correctCount, total),
+      passed: isCompleted(correctCount, total),
+      completedBy: !completion ? null : completion.quizId === finished.id ? "this" : "earlier",
     };
   }
 
