@@ -70,4 +70,5 @@
 - [x] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — før merge av 1.7 til `main`: kjør `20261121120000_quizzes.sql` og `20261121130000_quiz_functions.sql` mot `prod` (krever ja fra Marte); ellers gir «Ta quizen» feilmelding i prod (løst 2026-11-21: begge er kjørt mot `prod`)
 - [ ] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — i 1.6b: en ny bankversjon lager nye spørsmålsrader, så «brukt»-historikken nullstilles
 - [ ] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — tilbakemeldingen etter et svar varsles ikke for skjermleser (gjelder hele appen; avvist som lite i review)
-- [ ] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — merge PR #6, og sjekk «Ta quizen» i prod etter deploy
+- [x] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — merge PR #6, og sjekk «Ta quizen» i prod etter deploy (merget 2026-11-21 som `39f29c8`; prod-sjekken står i eget punkt)
+- [ ] 2026-11-21 [story-1-7-bygg](979-2026-11-21-10-51-52-story-1-7-bygg.md) — sjekk «Ta quizen» på 1.1 i prod etter deploy av `39f29c8`
