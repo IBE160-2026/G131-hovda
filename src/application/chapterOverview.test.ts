@@ -185,6 +185,24 @@ describe("getSubchapterSummary", () => {
     expect(result.summary).toBeNull();
   });
 
+  it("gir `quizReady` bare når både sammendraget og banken har en klar versjon", async () => {
+    const { data, courseId } = await smallChapter();
+    const ready = async (number: string) => {
+      const result = await getSubchapterSummary(data, courseId, number);
+      if (result.status !== "ok") throw new Error(result.status);
+      return result.quizReady;
+    };
+    expect(await Promise.all(["1.1", "1.2", "1.3", "1.4"].map(ready))).toEqual([true, false, false, false]);
+    data.chapters[0].subchapters[0].noteText = "Notat en, endret";
+    expect(await ready("1.1")).toBe(true);
+  });
+
+  it("gir `unavailable` når banken ikke kan leses", async () => {
+    const { data, courseId } = await smallChapter();
+    data.bankReadsDown = true;
+    expect(await getSubchapterSummary(data, courseId, "1.1")).toEqual({ status: "unavailable" });
+  });
+
   it("gir `notFound` for ukjent emne eller nummer", async () => {
     const { data, courseId } = await smallChapter();
     expect(await getSubchapterSummary(data, "ukjent", "1.1")).toEqual({ status: "notFound" });

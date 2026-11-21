@@ -9,8 +9,12 @@ type Response = { data?: unknown; error?: { code?: string; message?: string } | 
 function fakeClient(respond: (query: Query) => Response | Promise<Response>) {
   const queries: Query[] = [];
   const client = {
-    from(table: string) {
-      const query: Query = { table, calls: [] };
+    // Et rpc-kall registreres som tabellen `rpc:<navn>` med kallet `["rpc", args]`.
+    rpc(fn: string, args: unknown) {
+      return client.from(`rpc:${fn}`, [["rpc", args]]);
+    },
+    from(table: string, calls: Call[] = []) {
+      const query: Query = { table, calls: [...calls] };
       queries.push(query);
       const builder: Record<string, unknown> = {
         then(resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) {
@@ -20,7 +24,7 @@ function fakeClient(respond: (query: Query) => Response | Promise<Response>) {
             .then(resolve, reject);
         },
       };
-      for (const method of ["select", "insert", "update", "upsert", "delete", "eq", "in", "is", "order", "single", "maybeSingle"]) {
+      for (const method of ["select", "insert", "update", "upsert", "delete", "eq", "in", "is", "order", "limit", "single", "maybeSingle"]) {
         builder[method] = (...args: unknown[]) => {
           query.calls.push([method, ...args]);
           return builder;
@@ -635,5 +639,202 @@ describe("SupabaseDataSource med spørsmålsbanker", () => {
     const { client, queries } = fakeClient(() => ({ error: { code: "", message: "fetch failed" } }));
     expect(await new SupabaseDataSource(client, "eier").addQuestionBank(newBank)).toEqual({ status: "unavailable" });
     expect(queries).toHaveLength(1);
+  });
+});
+
+describe("SupabaseDataSource med quizer", () => {
+  const failure = { error: { code: "", message: "fetch failed" } };
+  const questionRow = (id: string) => ({
+    id,
+    theme_id: "t1",
+    question: `Spørsmål ${id}?`,
+    options: ["A", "B", "C", "D"],
+    correct_index: 2,
+    explanation: "Fordi.",
+  });
+  const question = (id: string) => ({
+    id,
+    themeId: "t1",
+    question: `Spørsmål ${id}?`,
+    options: ["A", "B", "C", "D"],
+    correctIndex: 2,
+    explanation: "Fordi.",
+  });
+  const itemRow = (id: string, position: number, extra: Record<string, unknown> = {}) => ({
+    id,
+    position,
+    status: "aktiv",
+    chosen_index: null,
+    correct: null,
+    answered_at: null,
+    created_at: "2026-11-21T10:00:00Z",
+    quiz_questions: questionRow(`q${id}`),
+    ...extra,
+  });
+  const quizRow = (items: unknown[]) => ({
+    id: "z1",
+    session_id: "o1",
+    subchapter_id: "d1",
+    status: "pågår",
+    correct_count: null,
+    total: null,
+    carry_theme_id: null,
+    created_at: "2026-11-21T10:00:00Z",
+    finished_at: null,
+    quiz_items: items,
+  });
+
+  it("henter de aktive spørsmålene i siste klare bankversjon", async () => {
+    const { client, queries } = fakeClient((q) =>
+      q.table === "question_bank_versions" ? { data: [{ id: "b2" }] } : { data: [questionRow("q1"), questionRow("q2")] },
+    );
+    expect(await new SupabaseDataSource(client, "eier").listQuizBank("d1")).toEqual({
+      status: "ok",
+      value: [question("q1"), question("q2")],
+    });
+    expect(queries.map((q) => q.table)).toEqual(["question_bank_versions", "quiz_questions"]);
+    expect(queries.every(filtersOnOwner)).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "status", "klart"]);
+    expect(queries[0].calls).toContainEqual(["order", "created_at", { ascending: false }]);
+    expect(queries[0].calls).toContainEqual(["limit", 1]);
+    expect(queries[1].calls).toContainEqual(["eq", "bank_version_id", "b2"]);
+    expect(queries[1].calls).toContainEqual(["eq", "status", "aktiv"]);
+    expect(queries[1].calls).toContainEqual(["order", "position"]);
+  });
+
+  it("gir tom bank uten klar versjon eller for en ugyldig id", async () => {
+    const none = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(none.client, "eier").listQuizBank("d1")).toEqual({ status: "ok", value: [] });
+    expect(none.queries).toHaveLength(1);
+    const invalid = fakeClient(() => ({ error: { code: "22P02" } }));
+    expect(await new SupabaseDataSource(invalid.client, "eier").listQuizBank("abc")).toEqual({ status: "ok", value: [] });
+  });
+
+  it("lister quizene med elementene sortert på posisjon og tidspunkt", async () => {
+    const items = [
+      itemRow("i3", 2, { created_at: "2026-11-21T10:05:00Z" }),
+      itemRow("i2", 2, { status: "erstattet" }),
+      itemRow("i1", 1, { chosen_index: 2, correct: true, answered_at: "2026-11-21T10:01:00Z" }),
+    ];
+    const { client, queries } = fakeClient(() => ({ data: [quizRow(items)] }));
+    const result = await new SupabaseDataSource(client, "eier").listQuizzes("d1");
+    if (result.status !== "ok") throw new Error(result.status);
+    expect(result.value[0]).toMatchObject({
+      id: "z1",
+      sessionId: "o1",
+      subchapterId: "d1",
+      status: "pågår",
+      correctCount: null,
+      carryThemeId: null,
+    });
+    expect(result.value[0].items.map((i) => [i.id, i.position, i.status])).toEqual([
+      ["i1", 1, "aktiv"],
+      ["i2", 2, "erstattet"],
+      ["i3", 2, "aktiv"],
+    ]);
+    expect(result.value[0].items[0]).toEqual({
+      id: "i1",
+      position: 1,
+      status: "aktiv",
+      question: question("qi1"),
+      chosenIndex: 2,
+      correct: true,
+      answeredAt: "2026-11-21T10:01:00Z",
+      createdAt: "2026-11-21T10:00:00Z",
+    });
+    expect(queries).toHaveLength(1);
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "subchapter_id", "d1"]);
+    expect(queries[0].calls).toContainEqual(["order", "created_at", { ascending: false }]);
+    expect(String(queries[0].calls[0][1])).toContain("quiz_items!quiz_items_quiz_fkey(");
+  });
+
+  it("lager økt, quiz og elementer i én transaksjon med create_quiz og leser quizen", async () => {
+    const { client, queries } = fakeClient((q) =>
+      q.table === "rpc:create_quiz" ? { data: "z1" } : { data: quizRow([itemRow("i1", 1), itemRow("i2", 2)]) },
+    );
+    const result = await new SupabaseDataSource(client, "eier").createQuiz({ subchapterId: "d1", questionIds: ["q1", "q2"] });
+    expect(result).toEqual({ status: "ok", value: expect.objectContaining({ id: "z1", status: "pågår" }) });
+    expect(queries.map((q) => q.table)).toEqual(["rpc:create_quiz", "quizzes"]);
+    expect(queries[0].calls).toEqual([["rpc", { p_subchapter_id: "d1", p_question_ids: ["q1", "q2"] }]]);
+    expect(filtersOnOwner(queries[1])).toBe(true);
+    expect(queries[1].calls).toContainEqual(["eq", "id", "z1"]);
+  });
+
+  it("gir duplicate når en quiz alt er i gang, uten flere kall", async () => {
+    const { client, queries } = fakeClient(() => ({ error: { code: "23505" } }));
+    expect(await new SupabaseDataSource(client, "eier").createQuiz({ subchapterId: "d1", questionIds: ["q1"] })).toEqual({
+      status: "duplicate",
+    });
+    expect(queries).toHaveLength(1);
+  });
+
+  it("gir unavailable uten flere kall når create_quiz feiler", async () => {
+    const { client, queries } = fakeClient(() => failure);
+    expect(await new SupabaseDataSource(client, "eier").createQuiz({ subchapterId: "d1", questionIds: ["q1"] })).toEqual({
+      status: "unavailable",
+    });
+    expect(queries).toHaveLength(1);
+  });
+
+  it("lagrer bare svaret på et aktivt, ubesvart element", async () => {
+    const { client, queries } = fakeClient(() => ({ data: [{ id: "i1" }] }));
+    expect(await new SupabaseDataSource(client, "eier").answerQuizItem("i1", 2, true)).toEqual({ status: "ok", value: true });
+    expect(queries[0].calls[0]).toEqual(["update", { chosen_index: 2, correct: true, answered_at: expect.any(String) }]);
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "id", "i1"]);
+    expect(queries[0].calls).toContainEqual(["eq", "status", "aktiv"]);
+    expect(queries[0].calls).toContainEqual(["is", "answered_at", null]);
+
+    const answered = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(answered.client, "eier").answerQuizItem("i1", 0, false)).toEqual({
+      status: "ok",
+      value: false,
+    });
+  });
+
+  it("erstatter et element i én transaksjon med replace_quiz_item", async () => {
+    const { client, queries } = fakeClient(() => ({ data: true }));
+    expect(await new SupabaseDataSource(client, "eier").replaceQuizItem("i7", "q99")).toEqual({ status: "ok", value: true });
+    expect(queries.map((q) => [q.table, q.calls])).toEqual([
+      ["rpc:replace_quiz_item", [["rpc", { p_item_id: "i7", p_question_id: "q99" }]]],
+    ]);
+  });
+
+  it("erstatter ingenting når elementet alt er besvart eller id-en er ugyldig", async () => {
+    const answered = fakeClient(() => ({ data: false }));
+    expect(await new SupabaseDataSource(answered.client, "eier").replaceQuizItem("i7", "q99")).toEqual({
+      status: "ok",
+      value: false,
+    });
+    const invalid = fakeClient(() => ({ error: { code: "22P02" } }));
+    expect(await new SupabaseDataSource(invalid.client, "eier").replaceQuizItem("abc", "q99")).toEqual({
+      status: "ok",
+      value: false,
+    });
+  });
+
+  it("lagrer resultatet av 10 bare på en quiz som er i gang", async () => {
+    const { client, queries } = fakeClient(() => ({ data: [{ id: "z1" }] }));
+    expect(await new SupabaseDataSource(client, "eier").saveQuizResult("z1", 8, "t1")).toEqual({ status: "ok", value: true });
+    expect(queries[0].calls[0]).toEqual([
+      "update",
+      { status: "ferdig", correct_count: 8, total: 10, carry_theme_id: "t1", finished_at: expect.any(String) },
+    ]);
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "status", "pågår"]);
+    const done = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(done.client, "eier").saveQuizResult("z1", 8, null)).toEqual({ status: "ok", value: false });
+  });
+
+  it("gir unavailable når quizene ikke kan leses eller skrives", async () => {
+    const { client } = fakeClient(() => failure);
+    const data = new SupabaseDataSource(client, "eier");
+    expect(await data.listQuizBank("d1")).toEqual({ status: "unavailable" });
+    expect(await data.listQuizzes("d1")).toEqual({ status: "unavailable" });
+    expect(await data.createQuiz({ subchapterId: "d1", questionIds: ["q1"] })).toEqual({ status: "unavailable" });
+    expect(await data.answerQuizItem("i1", 0, true)).toEqual({ status: "unavailable" });
+    expect(await data.replaceQuizItem("i1", "q2")).toEqual({ status: "unavailable" });
+    expect(await data.saveQuizResult("z1", 8, null)).toEqual({ status: "unavailable" });
   });
 });

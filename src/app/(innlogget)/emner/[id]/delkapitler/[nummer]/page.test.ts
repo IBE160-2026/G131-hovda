@@ -7,7 +7,7 @@ import { importChapter } from "@/application/importChapter";
 import { MemoryDataSource } from "@/application/testing/MemoryDataSource";
 
 const getDataSourceForRender = vi.fn();
-vi.mock("@/composition/server", () => ({ getDataSourceForRender }));
+vi.mock("@/composition/server", () => ({ getDataSourceForRender, getDataSource: vi.fn() }));
 
 const { SubchapterSummary } = await import("./page");
 const { noSummaryMessage, outdatedMessage, subchapterNotFoundMessage, unavailableMessage } = await import(
@@ -92,6 +92,13 @@ describe("lesesiden for sammendraget", () => {
     expect(html).not.toContain("<b>");
     expect(html).toContain("<strong>ekte</strong>");
     expect(html).toContain("<span>Linje en</span></span><span><br/><span>linje to</span>");
+  });
+
+  it("viser «Ta quizen» bare når både sammendraget og banken er klare", async () => {
+    const ready = await imported();
+    expect(await render(ready.data, ready.courseId, "1.1")).toContain("Ta quizen");
+    const none = await imported(null);
+    expect(await render(none.data, none.courseId, "1.1")).not.toContain("Ta quizen");
   });
 
   it("sier fra når delkapittelet ikke har noe sammendrag", async () => {

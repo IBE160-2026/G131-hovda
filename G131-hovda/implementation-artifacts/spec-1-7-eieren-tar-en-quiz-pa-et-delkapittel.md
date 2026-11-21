@@ -2,9 +2,10 @@
 title: 'Story 1.7: Eieren tar en quiz på et delkapittel'
 type: 'feature'
 created: '2026-11-20'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: '245be8807351bcdb8e5442c4fdde7c30bad0b6d8'
 context:
   - '{project-root}/G131-hovda/implementation-artifacts/epic-1-context.md'
 ---
@@ -80,13 +81,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/quiz.ts` + test -- utvalg, erstatning og resultattekst etter matrisen
-- [ ] `supabase/migrations/…_quizzes.sql` -- tabellene. Push mot `dev`
-- [ ] `src/application/dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- de seks metodene
-- [ ] `src/application/quiz.ts` + test -- `startQuiz`, `getQuiz`, `answerQuiz`, `finishQuiz` etter matrisen
-- [ ] `chapterOverview.ts` + test, lesesiden + test -- `quizReady` og knappen «Ta quizen»
-- [ ] `quiz/page.tsx`, `quiz/actions.ts` + tester, `formState.ts` -- quizsiden
-- [ ] `rls.dev.test.ts` -- RLS for de nye tabellene
+- [x] `src/domain/quiz.ts` + test -- utvalg, erstatning og resultattekst etter matrisen
+- [x] `supabase/migrations/…_quizzes.sql` -- tabellene. Push mot `dev`
+- [x] `src/application/dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- de seks metodene
+- [x] `src/application/quiz.ts` + test -- `startQuiz`, `getQuiz`, `answerQuiz`, `finishQuiz` etter matrisen
+- [x] `chapterOverview.ts` + test, lesesiden + test -- `quizReady` og knappen «Ta quizen»
+- [x] `quiz/page.tsx`, `quiz/actions.ts` + tester, `formState.ts` -- quizsiden
+- [x] `rls.dev.test.ts` -- RLS for de nye tabellene
 
 **Acceptance Criteria:**
 - Given IBE430 kapittel 1 i `dev`, when eieren åpner 1.1 fra startsiden og trykker «Ta quizen», then vises spørsmål 1 av 10 med fire alternativer, og 10 spørsmål er lagret som brukt.
@@ -113,6 +114,35 @@ Siden etter svar: action lagrer og sender til `?svar=<posisjon>`, som viser tilb
 
 ## Implementation Notes
 
+- Migreringen `20261121120000_quizzes.sql` er pushet til `studievenn-dev` 2026-11-21, og `npm run test:dev` passerer (16 tester, også en hel quiz gjennom adapteren).
+- `listQuizzes` henter quizene med elementer og spørsmål i én spørring med FK-hint (`quiz_items!quiz_items_quiz_fkey`, `quiz_questions!quiz_items_question_fkey`). `test:dev` viser at PostgREST løser FK-hintene.
+- `quizOutcome` i domenet regner antall riktige og overført tema fra elementene, så `finishQuiz` kan avslutte en quiz også når lagringen av resultatet feilet første gang (siden viser da «Se resultatet», som kaller `startQuiz`).
+- Triggere i databasen fryser et besvart element og en ferdig quiz (`23514` ved forsøk på endring). `carry_theme_id` har `on delete set null (carry_theme_id)`.
+- PostgREST har ingen transaksjoner på tvers av kall, så `createQuiz` og `replaceQuizItem` kaller databasefunksjonene `create_quiz` og `replace_quiz_item` (`20261121130000_quiz_functions.sql`, `security invoker`). Hver er én transaksjon (Marte valgte dette etter review, funn 1–2). Pushet til `dev` 2026-11-21.
+- Svar på et annet spørsmål enn det nåværende endrer ingenting (hindrer feil «overført tema» fra en gammel fane).
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Kilde | Funn | Dom | Bevis | Rute |
+|---|-------|------|-----|-------|------|
+| 1 | blind, edge | `createQuiz` uten transaksjon: feiler elementene og `undo` (feil sjekkes ikke), står en tom quiz `pågår`, og `startQuiz` fryser den som «0 av 10» | medium | `undo` sjekker ikke `{error}`; `startQuiz` kaller `finishQuiz` når `currentItem` er `undefined`. Brudd i nettet treffer begge skrivingene | patch (Marte valgte databasefunksjoner) |
+| 2 | blind, edge | `replaceQuizItem`: feiler `restore`, mangler en posisjon, og quizen fryses på 9 svar med total 10. Kommentaren sier at quizen ikke kan fullføres | medium | Samme rotårsak som 1: to skrivinger uten transaksjon | patch (med 1) |
+| 3 | edge | `answerQuiz` legger til et lokalt erstatningselement også når `replaceQuizItem` gir `ok false` | low | `replaced.value` sjekkes ikke. Kan bare skje ved samtidige forespørsler, og rettingen er direkte | patch |
+| 4 | verif | Ingen test for at `startQuizAction` sender til `?resultat=` etter en gjenopptatt avslutning, eller at `answerQuizAction` gir `?feil=1` | (gap) | Forhåndsverifisert av laget | patch |
+| 5 | verif | Trinnet `unfinished` («Se resultatet») vises aldri i en sidetest | (gap) | Forhåndsverifisert | patch |
+| 6 | verif | Grenene `duplicate` i `startQuiz` og `!answered.value` i `answerQuiz` kjøres aldri | (gap) | Forhåndsverifisert | patch |
+| 7 | verif | Triggeren som fryser et besvart element, testes ikke direkte | (gap) | Forhåndsverifisert | patch |
+| 8 | blind, edge | Svaret lagres, men erstatningen går tapt hvis lesing av banken eller erstatningen feiler, og ingen ny forsøk | low | Stemmer, men svaret beholdes (matrisen). Sjeldent, og rettingen krever en ny gren | avvist |
+| 9 | blind | Lesesiden viser feilmelding når banken ikke kan leses | low | Samsvarer med matriseraden «Databasefeil». Sjeldent at bare den ene lesingen feiler | avvist |
+| 10 | blind | Mange rundturer per klikk, og `listQuizzes` vokser uten grense | low | Én bruker, noen få quizer per delkapittel | avvist |
+| 11 | blind | `on delete cascade` fra `quiz_questions` og delete-policyer kan slette besvarte elementer | false | Ingen kode sletter spørsmål eller bankversjoner. Bare sletting av emnet, som skal fjerne alt. Eieren er eneste bruker | avvist |
+| 12 | blind | Ingenting binder spørsmålene i en quiz til delkapittelet | low | Eneste kaller henter dem fra delkapittelets bank | avvist |
+| 13 | blind | Brukte spørsmål kommer i bankens rekkefølge, og alternativene stokkes ikke | low | Ikke krevd i intensjonen. Rekkefølgen er tilfeldig for ubrukte spørsmål | avvist |
+| 14 | blind | RLS-testene prøver ikke update/delete med en annen eier, og kan etterlate økter i `dev` | low | Samme dekning som tidligere tabeller (1.6a) | avvist |
+| 15 | blind | Mangler indekser på FK-kolonner | low | Små tabeller med én bruker | avvist |
+| 16 | blind | Tallene 10 og 3 står både i SQL og TypeScript | low | Vanlig dobbel sikring. En endring av lengden er en egen story | avvist |
+| 17 | blind | Statusfilene og Implementation Notes motsier hverandre | low | `sprint-status` følger arbeidsflyten. Utdatert merknad om `listQuizzes` er rettet | avvist (merknaden rettet) |
+| 18 | blind | Tilbakemeldingen etter svar varsles ikke for skjermleser (`role="status"`, fokus) | low | Ingen side i appen bruker live-regioner ennå. Rettingen er mer enn en direkte endring | avvist |
+| 19 | verif | Økter blir stående når et emne slettes | low | Økter hører ikke til et emne, og ingenting leser dem ennå | avvist |
