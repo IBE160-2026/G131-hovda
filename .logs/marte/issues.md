@@ -77,4 +77,4 @@
 - [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — før merge av 1.8 til `main`: kjør `20261121140000_subchapter_completions.sql` mot `prod` (krever ja fra Marte); ellers feiler quizavslutning og startside i prod (løst 2026-11-21: kjørt mot `prod`)
 - [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — quizer ≥ 80 % fra 1.7 før migreringen har ingen avkrysning (bevisst, ingen backfill)
 - [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — merge PR #7, og sjekk avkrysning og framdrift på startsiden i prod etter deploy (merget 2026-11-21 som `2dbe9e1`; prod-sjekken står i eget punkt)
-- [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — sjekk avkrysning og framdrift på startsiden i prod etter deploy av `2dbe9e1`
+- [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — sjekk avkrysning og framdrift på startsiden i prod etter deploy av `2dbe9e1` (løst 2026-11-21: Marte testet i prod, alt fungerer)
