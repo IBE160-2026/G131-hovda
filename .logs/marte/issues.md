@@ -78,5 +78,8 @@
 - [ ] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — quizer ≥ 80 % fra 1.7 før migreringen har ingen avkrysning (bevisst, ingen backfill)
 - [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — merge PR #7, og sjekk avkrysning og framdrift på startsiden i prod etter deploy (merget 2026-11-21 som `2dbe9e1`; prod-sjekken står i eget punkt)
 - [x] 2026-11-21 [story-1-8-bygg](977-2026-11-21-20-51-37-story-1-8-bygg.md) — sjekk avkrysning og framdrift på startsiden i prod etter deploy av `2dbe9e1` (løst 2026-11-21: Marte testet i prod, alt fungerer)
-- [ ] 2026-11-22 [story-1-9a-spesifikasjon](976-2026-11-22-08-16-14-story-1-9a-spesifikasjon.md) — bygg story 1.9a i en ny `bmad-build`-økt (specen er godkjent); migreringen mot `dev` og `prod` krever ja fra Marte
+- [x] 2026-11-22 [story-1-9a-spesifikasjon](976-2026-11-22-08-16-14-story-1-9a-spesifikasjon.md) — bygg story 1.9a i en ny `bmad-build`-økt (specen er godkjent); migreringen mot `dev` og `prod` krever ja fra Marte (løst 2026-11-22: `9c3222c`, migreringen er i `dev`; prod står i eget punkt)
 - [ ] 2026-11-22 [story-1-9a-spesifikasjon](976-2026-11-22-08-16-14-story-1-9a-spesifikasjon.md) — story 1.9b: feilrapport på sammendrag (se deferred-work.md)
+- [ ] 2026-11-22 [story-1-9a-bygg](975-2026-11-22-08-52-59-story-1-9a-bygg.md) — manuell sjekk mot `dev`: meld i en quiz som pågår og på resultatsiden; «n av 9», resultatet, listen i importen, at spørsmålet ikke kommer igjen, og at teksten står igjen ved for lang kommentar
+- [ ] 2026-11-22 [story-1-9a-bygg](975-2026-11-22-08-52-59-story-1-9a-bygg.md) — før merge av 1.9a til `main`: kjør `20261122120000_question_reports.sql` mot `prod` (krever ja fra Marte); ellers feiler «Send feilrapport» i prod
+- [ ] 2026-11-22 [story-1-9a-bygg](975-2026-11-22-08-52-59-story-1-9a-bygg.md) — i 1.6b: feilrapporter kan ikke merkes som håndtert, så importen lister dem hver gang (se deferred-work.md)
