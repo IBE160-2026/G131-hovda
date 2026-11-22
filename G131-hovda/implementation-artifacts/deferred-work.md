@@ -49,3 +49,7 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-8-delkapittelet-krysses-av-og-framdriften-vises.md`
   summary: The SQL in `finish_quiz` and the RLS for `subchapter_completions` are only verified by `npm run test:dev`, which CI does not run.
   evidence: `vitest.config.ts` excludes `*.dev.test.ts` and `.github/workflows/ci.yml` runs only typecheck, lint and `npm test`; a regression such as `on conflict do update` would pass CI because app tests run against `MemoryDataSource`. Closing it needs a CI database (same gap for all earlier migrations).
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-9a-eieren-sier-fra-om-feil-i-quizsporsmal.md`
+  summary: Story 1.9b: eieren melder feil i et sammendrag, sammendraget merkes og vises til neste import, importen lister merkede sammendrag, og neste import legger inn den rettede versjonen fra innholdsfila (FR-12).
+  evidence: Marte valgte 22.11.2026 å dele story 1.9 og ta quizspørsmålene først. Sammendragsdelen kan leveres for seg (merke på sammendragsversjonen og en liste i importen).
