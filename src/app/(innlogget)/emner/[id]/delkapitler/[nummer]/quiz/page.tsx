@@ -4,20 +4,25 @@ import { getQuiz, type QuizItemView } from "@/application/quiz";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../../../../../OwnerOnly";
 import {
+  allReportedMessage,
   alreadyCompletedMessage,
+  alreadyReportedMessage,
   belowThresholdMessage,
   chooseAnswerMessage,
   completedMessage,
   correctAnswerMessage,
   newQuizLabel,
   quizNotReadyMessage,
+  reportedFromBankMessage,
+  reportedFromQuizMessage,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
   unavailableMessage,
   wrongAnswerMessage,
 } from "../../../../formState";
 import { pageMain, primaryButton, textLink } from "../../../../styles";
-import { answerQuizAction, startQuizAction } from "./actions";
+import { answerQuizAction, reportQuizQuestionAction, startQuizAction } from "./actions";
+import { ReportForm } from "./ReportForm";
 
 export const metadata: Metadata = {
   title: "Quiz – Studievenn",
@@ -28,6 +33,7 @@ type Props = PageProps<"/emner/[id]/delkapitler/[nummer]/quiz">;
 /**
  * Quizen på et delkapittel (FR-10, FR-14). `nummer` er «n.m» (AD-5). Under resultatet står det om
  * delkapittelet ble krysset av, og under 80 % får eieren tilbud om sammendraget og en ny quiz (FR-15).
+ * På spørsmålet, tilbakemeldingen og resultatet kan eieren melde feil i spørsmålet (FR-16).
  */
 export default function QuizPage({ params, searchParams }: Props) {
   return (
@@ -55,6 +61,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
   const answered = Number(first(query.svar));
   const resultQuizId = first(query.resultat);
   const error = first(query.feil);
+  const reportedNow = first(query.meldt);
 
   const data = await getDataSourceForRender();
   if (!data) return null;
@@ -100,6 +107,12 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
   }
 
   const { chapter, subchapter, total } = result;
+  const reportForm = (item: QuizItemView, quizId: string) => (
+    <ReportForm
+      action={reportQuizQuestionAction.bind(null, id, nummer, quizId, item.position)}
+      idPrefix={`meld-${item.position}`}
+    />
+  );
   return (
     <>
       {back}
@@ -115,6 +128,11 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
 
         {error === "1" && <Alert>{unavailableMessage}</Alert>}
         {error === "valg" && result.stage === "question" && <Alert>{chooseAnswerMessage}</Alert>}
+        {reportedNow === "quiz" && (
+          <p role="status" className="rounded-2xl bg-card px-5 py-3 text-lg font-semibold">
+            {reportedFromQuizMessage}
+          </p>
+        )}
 
         {result.stage === "start" &&
           (result.tooFew ? (
@@ -138,7 +156,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
             <fieldset className="flex min-w-0 flex-col gap-3">
               <legend className="mb-3 flex flex-col gap-2">
                 <span className="text-sm font-semibold text-muted">
-                  Spørsmål {result.item.position} av {total}
+                  Spørsmål {result.item.number} av {total}
                 </span>
                 <span className="text-xl font-semibold break-words">{result.item.question}</span>
               </legend>
@@ -159,6 +177,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
             </div>
           </form>
         )}
+        {result.stage === "question" && reportForm(result.item, result.quizId)}
 
         {result.stage === "feedback" && (
           <>
@@ -168,6 +187,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
                 Neste spørsmål
               </Link>
             </p>
+            {reportForm(result.item, result.quizId)}
           </>
         )}
 
@@ -185,11 +205,25 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
         {result.stage === "result" && (
           <>
             {result.item && <Feedback item={result.item} total={total} />}
+            {result.item &&
+              (reportedNow === "banken" ? (
+                <p role="status" className="rounded-2xl bg-card px-5 py-3 text-lg font-semibold">
+                  {reportedFromBankMessage}
+                </p>
+              ) : result.item.reported ? (
+                <p className="text-lg text-muted">{alreadyReportedMessage}</p>
+              ) : (
+                reportForm(result.item, result.quizId)
+              ))}
             <section aria-labelledby="resultat" className="flex flex-col gap-3 rounded-2xl bg-sky px-6 py-5">
               <h2 id="resultat" className="text-lg font-semibold">
                 Resultat
               </h2>
-              <p className="text-3xl font-bold">{result.resultText}</p>
+              {result.total === 0 ? (
+                <p className="text-lg font-semibold">{allReportedMessage}</p>
+              ) : (
+                <p className="text-3xl font-bold">{result.resultText}</p>
+              )}
               {result.completedBy === "this" && <p className="text-lg font-semibold">{completedMessage}</p>}
               {result.completedBy === "earlier" && <p className="text-lg">{alreadyCompletedMessage}</p>}
             </section>
@@ -201,7 +235,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <p className="max-w-prose text-lg">{belowThresholdMessage}</p>
+                {result.total > 0 && <p className="max-w-prose text-lg">{belowThresholdMessage}</p>}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
                   <form action={startQuizAction.bind(null, id, nummer)}>
                     <button type="submit" className={primaryButton}>
@@ -227,7 +261,7 @@ function Feedback({ item, total }: { item: QuizItemView; total: number }) {
   return (
     <section aria-labelledby="tilbakemelding" className="flex flex-col gap-4">
       <p className="text-sm font-semibold text-muted">
-        Spørsmål {item.position} av {total}
+        Spørsmål {item.number} av {total}
       </p>
       <p className="text-xl font-semibold break-words">{item.question}</p>
       <div className={`flex flex-col gap-3 rounded-2xl px-6 py-5 ${item.correct ? "bg-mint" : "bg-sun"}`}>

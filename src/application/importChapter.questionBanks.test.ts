@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import innhold1 from "../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
 import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import { importChapter, importMessages, reportImport, type ImportOptions } from "./importChapter";
+import { reportQuizQuestion, startQuiz } from "./quiz";
 import { subchapterInputHash } from "./summaryHash";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
 
@@ -218,6 +219,47 @@ describe("importen av IBE430 kapittel 1 med den ekte innholdsfila", () => {
     expect(statuses(second)).toEqual(Array(6).fill("unchanged"));
     const report = reportImport(second);
     expect(report.stdout).toContain(importMessages.allUnchanged);
+    expect(report.code).toBe(0);
+    expect(report.stdout).not.toContain(importMessages.reportedHeading);
+  });
+
+  it("lister de meldte spørsmålene med delkapittel, tekst, tema og kommentar, uten å endre koden", async () => {
+    const data = await setup();
+    await run(data, kapittel1, { content: innhold1 });
+    const courseId = data.courses[0].id;
+    const started = await startQuiz(data, courseId, "1.1");
+    if (started.status !== "ok") throw new Error(started.status);
+    const items = data.quizItems.filter((i) => i.quizId === started.quizId);
+    const [first, second] = items.map((i) => data.quizQuestions.find((q) => q.id === i.questionId)!);
+    const themeName = (id: string) => data.themes.find((t) => t.id === id)!.name;
+    await reportQuizQuestion(data, courseId, "1.1", started.quizId, 1, "Fasit er feil");
+    await reportQuizQuestion(data, courseId, "1.1", started.quizId, 2, "");
+
+    const again = await run(data, kapittel1, { content: innhold1 });
+    expect(again.questionReports).toEqual([
+      { number: "1.1", question: first.question, theme: themeName(first.themeId), comment: "Fasit er feil" },
+      { number: "1.1", question: second.question, theme: themeName(second.themeId), comment: null },
+    ]);
+    const report = reportImport(again);
+    const heading = report.stdout.indexOf(importMessages.reportedHeading);
+    expect(heading).toBeGreaterThan(0);
+    expect(report.stdout.slice(heading + 1, heading + 3)).toEqual([
+      `  1.1 «${first.question}» (tema: ${themeName(first.themeId)}): Fasit er feil`,
+      `  1.1 «${second.question}» (tema: ${themeName(second.themeId)}): ${importMessages.noComment}`,
+    ]);
+    expect(report.stdout).toContain(importMessages.allUnchanged);
+    expect(report.code).toBe(0);
+    // Importen legger ikke inn nye spørsmål i en bank som finnes.
+    expect(data.quizQuestions).toHaveLength(120);
+  });
+
+  it("sier fra når de meldte spørsmålene ikke kan leses, uten å endre koden", async () => {
+    const data = await setup();
+    data.reportReadsDown = true;
+    const result = await run(data, kapittel1, { content: innhold1 });
+    expect(result.questionReports).toBeNull();
+    const report = reportImport(result);
+    expect(report.stderr).toContain(importMessages.reportsUnavailable);
     expect(report.code).toBe(0);
   });
 });

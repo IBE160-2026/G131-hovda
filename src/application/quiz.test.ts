@@ -4,7 +4,7 @@ import innhold1 from "../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw"
 import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import { importChapter } from "./importChapter";
 import { listChapterOverview } from "./chapterOverview";
-import { answerQuiz, getQuiz, startQuiz } from "./quiz";
+import { answerQuiz, getQuiz, reportQuizQuestion, startQuiz } from "./quiz";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
 
 /** Stokker likt hver gang (mulberry32), så testene er deterministiske. */
@@ -437,5 +437,207 @@ describe("avkrysning og ny import", () => {
     const sub = overview.value[0].subchapters[0];
     expect([sub.number, sub.status, sub.completed]).toEqual(["1.1", "utdatert", true]);
     expect(overview.value[0].subchapters.filter((s) => s.completed)).toHaveLength(1);
+  });
+});
+
+/** Melder spørsmålet på `position` i quizen som feil. */
+async function report(setup: Setup, quizId: string, position: number, comment: string | null = null) {
+  return reportQuizQuestion(setup.data, setup.courseId, "1.1", quizId, position, comment);
+}
+
+/** Svarer på alle gjenstående spørsmål, riktig eller feil. */
+async function answerRest(setup: Setup, right: boolean) {
+  for (;;) {
+    const view = await getQuiz(setup.data, setup.courseId, "1.1");
+    if (view.status !== "ok" || view.stage !== "question") return;
+    await answer(setup, right);
+  }
+}
+
+const questionOf = (data: MemoryDataSource, itemId: string) => {
+  const item = data.quizItems.find((i) => i.id === itemId)!;
+  return data.quizQuestions.find((q) => q.id === item.questionId)!;
+};
+
+describe("reportQuizQuestion", () => {
+  it("tar spørsmålet som vises, ut av quizen og banken, og viser neste som «4 av 9»", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let i = 0; i < 3; i++) await answer(setup, true);
+    const fourth = activeItems(setup.data, quizId)[3];
+    expect(await report(setup, quizId, 4, "  Fasit er feil  ")).toEqual({
+      status: "ok",
+      quizId,
+      removedFrom: "quiz",
+      finished: false,
+      finishFailed: false,
+    });
+    expect(setup.data.quizItems.find((i) => i.id === fourth.id)!.status).toBe("trukket");
+    expect(questionOf(setup.data, fourth.id).status).toBe("trukket");
+    expect(setup.data.questionReports).toEqual([
+      { questionId: fourth.questionId, quizItemId: fourth.id, comment: "Fasit er feil", reportedAt: expect.any(String) },
+    ]);
+    const view = await current(setup);
+    expect(view.item).toMatchObject({ position: 5, number: 4, reported: false });
+    expect(view.total).toBe(9);
+  });
+
+  it("tar et besvart spørsmål ut i tilbakemeldingen, lar erstatningene stå og gir «8 av 9 riktige»", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    await answer(setup, false);
+    await answer(setup, true);
+    await answer(setup, false);
+    const replaced = setup.data.quizItems.filter((i) => i.status === "erstattet").map((i) => i.id);
+    const reported = await report(setup, quizId, 3);
+    expect(reported).toMatchObject({ status: "ok", removedFrom: "quiz", finished: false });
+    expect(setup.data.quizItems.filter((i) => i.status === "erstattet").map((i) => i.id)).toEqual(replaced);
+    expect(activeItems(setup.data, quizId)).toHaveLength(9);
+    await answerRest(setup, true);
+    const result = await resultOf(setup, quizId);
+    expect(result).toMatchObject({ resultText: "8 av 9 riktige", total: 9, passed: true, completedBy: "this" });
+    expect(setup.data.quizzes[0].total).toBe(9);
+  });
+
+  it("avslutter quizen når det siste ubesvarte meldes, og resultatet regnes av 9", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let i = 0; i < 9; i++) await answer(setup, i !== 0);
+    const last = activeItems(setup.data, quizId).at(-1)!;
+    expect(await report(setup, quizId, last.position)).toEqual({
+      status: "ok",
+      quizId,
+      removedFrom: "quiz",
+      finished: true,
+      finishFailed: false,
+    });
+    expect(setup.data.quizzes[0]).toMatchObject({ status: "ferdig", correctCount: 8, total: 9 });
+    const result = await resultOf(setup, quizId);
+    expect(result).toMatchObject({ resultText: "8 av 9 riktige", passed: true });
+    expect(result.item).toMatchObject({ number: 9 });
+  });
+
+  it("krysser ikke av ved 7 av 9", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let i = 0; i < 9; i++) await answer(setup, i >= 2);
+    const last = activeItems(setup.data, quizId).at(-1)!;
+    await report(setup, quizId, last.position);
+    expect(await resultOf(setup, quizId)).toMatchObject({ resultText: "7 av 9 riktige", passed: false, completedBy: null });
+    expect(setup.data.completions).toEqual([]);
+  });
+
+  it("lagrer rapporten og viser «Se resultatet» når avslutningen feiler", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let i = 0; i < 9; i++) await answer(setup, true);
+    setup.data.resultWritesDown = true;
+    expect(await report(setup, quizId, 10)).toMatchObject({ status: "ok", finished: false, finishFailed: true });
+    expect(setup.data.questionReports).toHaveLength(1);
+    expect(await getQuiz(setup.data, setup.courseId, "1.1")).toMatchObject({ stage: "unfinished", total: 9 });
+    setup.data.resultWritesDown = false;
+    expect(await startQuiz(setup.data, setup.courseId, "1.1")).toEqual({ status: "ok", quizId, finished: true });
+    expect(setup.data.quizzes[0]).toMatchObject({ correctCount: 9, total: 9 });
+  });
+
+  it("trekker spørsmålet tilbake fra banken på resultatsiden, men lar resultatet og avkrysningen stå", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 8);
+    const completions = structuredClone(setup.data.completions);
+    const last = activeItems(setup.data, quizId).at(-1)!;
+    expect(await report(setup, quizId, last.position, "Uklart")).toEqual({
+      status: "ok",
+      quizId,
+      removedFrom: "bank",
+      finished: true,
+      finishFailed: false,
+    });
+    expect(questionOf(setup.data, last.id).status).toBe("trukket");
+    expect(setup.data.quizItems.find((i) => i.id === last.id)!.status).toBe("aktiv");
+    expect(setup.data.quizzes[0]).toMatchObject({ correctCount: 8, total: 10 });
+    expect(setup.data.completions).toEqual(completions);
+    const result = await resultOf(setup, quizId);
+    expect(result).toMatchObject({ resultText: "8 av 10 riktige", completedBy: "this" });
+    expect(result.item).toMatchObject({ reported: true });
+  });
+
+  it("lar bare det siste spørsmålet meldes i en ferdig quiz", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 10);
+    expect(await report(setup, quizId, 3)).toEqual({ status: "notFound" });
+    expect(setup.data.questionReports).toEqual([]);
+  });
+
+  it("lager ingen ny rapport når spørsmålet alt er meldt", async () => {
+    const setup = await imported();
+    const quizId = await takeQuiz(setup, 10);
+    await report(setup, quizId, 10, "Første");
+    expect(await report(setup, quizId, 10, "Andre")).toMatchObject({ status: "ok", removedFrom: "bank" });
+    expect(setup.data.questionReports).toEqual([expect.objectContaining({ comment: "Første" })]);
+  });
+
+  it("lagrer en tom kommentar som null, godtar 500 tegn og avviser 501 uten å lagre noe", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    expect(await report(setup, quizId, 1, "x".repeat(501))).toEqual({ status: "invalid" });
+    expect(setup.data.questionReports).toEqual([]);
+    expect(setup.data.quizQuestions.every((q) => q.status === "aktiv")).toBe(true);
+    await report(setup, quizId, 1, "   ");
+    await report(setup, quizId, 2, "æ".repeat(500));
+    expect(setup.data.questionReports.map((r) => r.comment)).toEqual([null, "æ".repeat(500)]);
+  });
+
+  it("teller et linjeskift fra tekstfeltet (CRLF) som ett tegn og lagrer det som LF", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    const text = `${"a".repeat(250)}\r\n${"b".repeat(249)}`;
+    expect(await report(setup, quizId, 1, text)).toMatchObject({ status: "ok" });
+    expect(setup.data.questionReports.map((r) => r.comment)).toEqual([`${"a".repeat(250)}\n${"b".repeat(249)}`]);
+  });
+
+  it("avslutter med 0 av 0, ikke gjennomført, når alle spørsmålene meldes", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    for (let position = 1; position <= 10; position++) {
+      expect(await report(setup, quizId, position)).toMatchObject({ status: "ok", finished: position === 10 });
+    }
+    expect(setup.data.quizzes[0]).toMatchObject({ status: "ferdig", correctCount: 0, total: 0 });
+    expect(setup.data.completions).toEqual([]);
+    expect(await resultOf(setup, quizId)).toMatchObject({ item: null, correctCount: 0, total: 0, passed: false });
+  });
+
+  it("velger aldri et meldt spørsmål til en ny quiz, og sier fra når banken har for få", async () => {
+    const setup = await imported();
+    const first = await start(setup);
+    const reported = activeItems(setup.data, first).map((i) => i.questionId);
+    for (let position = 1; position <= 10; position++) await report(setup, first, position);
+    const second = await start(setup);
+    const chosen = activeItems(setup.data, second).map((i) => i.questionId);
+    expect(chosen).toHaveLength(10);
+    expect(chosen.filter((id) => reported.includes(id))).toEqual([]);
+    await report(setup, second, 1);
+    await answerRest(setup, true);
+    expect(await getQuiz(setup.data, setup.courseId, "1.1")).toMatchObject({ stage: "start", tooFew: true });
+    expect(await startQuiz(setup.data, setup.courseId, "1.1")).toEqual({ status: "tooFew" });
+  });
+
+  it("endrer ingenting og gir `unavailable` når rapporten ikke kan lagres", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    setup.data.reportWritesDown = true;
+    expect(await report(setup, quizId, 1, "Feil")).toEqual({ status: "unavailable" });
+    expect(setup.data.questionReports).toEqual([]);
+    expect(activeItems(setup.data, quizId)).toHaveLength(10);
+    expect(setup.data.quizQuestions.every((q) => q.status === "aktiv")).toBe(true);
+  });
+
+  it("gir `notFound` for en ukjent quiz eller posisjon", async () => {
+    const setup = await imported();
+    const quizId = await start(setup);
+    expect(await report(setup, "ukjent", 1)).toEqual({ status: "notFound" });
+    expect(await report(setup, quizId, 11)).toEqual({ status: "notFound" });
+    await report(setup, quizId, 1);
+    // Et element som alt er tatt ut, kan ikke meldes igjen i quizen.
+    expect(await report(setup, quizId, 1)).toEqual({ status: "notFound" });
   });
 });

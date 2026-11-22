@@ -122,6 +122,8 @@ export type QuizItem = {
   status: QuizItemState["status"];
   /** Spørsmålet slik det er lagret, også om banken senere har fått en ny versjon. */
   question: QuizQuestion;
+  /** Om spørsmålet er trukket tilbake fra banken, for eksempel fordi det er meldt som feil (1.9a). */
+  questionRetired: boolean;
   /** `null` når elementet ikke er besvart. */
   chosenIndex: number | null;
   correct: boolean | null;
@@ -160,6 +162,18 @@ export type SubchapterCompletion = {
   quizId: string;
   /** ISO-tidspunkt i UTC. */
   completedAt: string;
+};
+
+/** Et spørsmål eieren har meldt som feil (1.9a), slik importen lister det. */
+export type QuestionReport = {
+  subchapterId: string;
+  question: string;
+  /** Navnet på temaet. */
+  theme: string;
+  /** `null` når eieren ikke skrev noen kommentar. */
+  comment: string | null;
+  /** ISO-tidspunkt i UTC. */
+  reportedAt: string;
 };
 
 export type Unavailable = { status: "unavailable" };
@@ -232,10 +246,11 @@ export interface DataSource {
    */
   replaceQuizItem(itemId: string, questionId: string): Promise<WriteResult<boolean>>;
   /**
-   * Setter en quiz som `pågår` til `ferdig` med resultatet av 10, som så aldri endres, og krysser av
-   * delkapittelet når `completes` er sann, i samme transaksjon. Er delkapittelet alt krysset av,
-   * beholdes den første avkrysningen. `false` når quizen alt er ferdig eller ikke finnes, og da er
-   * ingenting endret. Feiler lagringen, er ingenting lagret. Bare `finishQuiz` kaller denne.
+   * Setter en quiz som `pågår` til `ferdig` med resultatet, som så aldri endres, og krysser av
+   * delkapittelet når `completes` er sann, i samme transaksjon. Totalen er antallet aktive elementer
+   * (de som teller), og settes av datakilden. Er delkapittelet alt krysset av, beholdes den første
+   * avkrysningen. `false` når quizen alt er ferdig eller ikke finnes, og da er ingenting endret.
+   * Feiler lagringen, er ingenting lagret. Bare `finishQuiz` kaller denne.
    */
   saveQuizResult(quizId: string, result: QuizResultInput): Promise<WriteResult<boolean>>;
   /**
@@ -243,4 +258,14 @@ export interface DataSource {
    * krysset av. Delkapitler som ikke er eierens, gir ingen.
    */
   listCompletions(subchapterIds: string[]): Promise<ReadResult<SubchapterCompletion[]>>;
+  /**
+   * Melder spørsmålet i elementet som feil, i én transaksjon (1.9a): rapporten lagres (én per
+   * spørsmål, så å melde på nytt ikke endrer den), spørsmålet trekkes tilbake fra banken, og når
+   * quizen pågår og elementet er aktivt, får elementet status `trukket`. `comment` er trimmet, maks
+   * 500 tegn, eller `null`. `false` når elementet ikke finnes, og da er ingenting endret. Bare
+   * `reportQuizQuestion` kaller denne.
+   */
+  reportQuizItem(itemId: string, comment: string | null): Promise<WriteResult<boolean>>;
+  /** Spørsmålene som er meldt som feil i delkapitlene, eldste først. */
+  listQuestionReports(subchapterIds: string[]): Promise<ReadResult<QuestionReport[]>>;
 }

@@ -178,12 +178,29 @@ describe("quizOutcome", () => {
     let items = answerWrong(quiz(3), 4);
     items = replace(items, 10, "q15");
     items = items.map((i) => (i.status === "aktiv" && !i.answered ? { ...i, answered: true, correct: true } : i));
-    expect(quizOutcome(items)).toEqual({ correctCount: 9, carryThemeId: null });
+    expect(quizOutcome(items)).toEqual({ correctCount: 9, counted: 10, carryThemeId: null });
   });
 
   it("overfører temaet når siste spørsmål er feil", () => {
     const items = answerWrong(quiz(9), 10);
-    expect(quizOutcome(items)).toEqual({ correctCount: 9, carryThemeId: "E" });
+    expect(quizOutcome(items)).toEqual({ correctCount: 9, counted: 10, carryThemeId: "E" });
+  });
+
+  it("teller ikke et tilbaketrukket spørsmål, så 8 riktige av 9 krysser av", () => {
+    const items = answerWrong(quiz(10), 5).map((i) => (i.position === 3 ? { ...i, status: "trukket" as const } : i));
+    const outcome = quizOutcome(items);
+    expect(outcome).toEqual({ correctCount: 8, counted: 9, carryThemeId: null });
+    expect(isCompleted(outcome.correctCount, outcome.counted)).toBe(true);
+  });
+
+  it("overfører ikke temaet fra et tilbaketrukket siste spørsmål", () => {
+    const items = answerWrong(quiz(9), 10).map((i) => (i.position === 10 ? { ...i, status: "trukket" as const } : i));
+    expect(quizOutcome(items)).toEqual({ correctCount: 9, counted: 9, carryThemeId: null });
+  });
+
+  it("gir 0 av 0 når alle er trukket", () => {
+    const items = quiz(0).map((i) => ({ ...i, status: "trukket" as const }));
+    expect(quizOutcome(items)).toEqual({ correctCount: 0, counted: 0, carryThemeId: null });
   });
 });
 

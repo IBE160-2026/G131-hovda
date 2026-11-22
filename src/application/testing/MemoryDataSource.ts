@@ -8,7 +8,6 @@ import {
   type StoredSubchapter,
 } from "@/domain/chapter";
 import type { CourseInput } from "@/domain/course";
-import { QUIZ_LENGTH } from "@/domain/quiz";
 import type {
   Chapter,
   Course,
@@ -18,6 +17,7 @@ import type {
   NewQuizQuestion,
   NewSummaryVersion,
   QuestionBankVersion,
+  QuestionReport,
   Quiz,
   QuizItem,
   QuizQuestion,
@@ -43,7 +43,9 @@ type StoredQuizQuestion = Omit<NewQuizQuestion, "theme"> & {
 
 type StoredQuiz = Omit<Quiz, "items">;
 
-type StoredQuizItem = Omit<QuizItem, "question"> & { quizId: string; questionId: string };
+type StoredQuizItem = Omit<QuizItem, "question" | "questionRetired"> & { quizId: string; questionId: string };
+
+type StoredQuestionReport = { questionId: string; quizItemId: string | null; comment: string | null; reportedAt: string };
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
@@ -80,6 +82,12 @@ export class MemoryDataSource implements DataSource {
   completions: SubchapterCompletion[] = [];
   /** Feiler lesingen av avkrysningene. */
   completionReadsDown = false;
+  /** Feilrapportene, én per spørsmål, i rekkefølgen de ble lagret. */
+  questionReports: StoredQuestionReport[] = [];
+  /** Feiler rapporten, og da er ingenting endret. */
+  reportWritesDown = false;
+  /** Feiler lesingen av feilrapportene. */
+  reportReadsDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -135,6 +143,8 @@ export class MemoryDataSource implements DataSource {
     this.quizzes = this.quizzes.filter((q) => !removedQuizIds.has(q.id));
     this.quizItems = this.quizItems.filter((i) => !removedQuizIds.has(i.quizId));
     this.completions = this.completions.filter((c) => !removedSubIds.has(c.subchapterId));
+    const keptQuestions = new Set(this.quizQuestions.map((q) => q.id));
+    this.questionReports = this.questionReports.filter((r) => keptQuestions.has(r.questionId));
     if (this.activeId === id) this.activeId = null;
     return { status: "ok" as const, value: undefined };
   }
@@ -336,6 +346,7 @@ export class MemoryDataSource implements DataSource {
         position: i.position,
         status: i.status,
         question: this.toQuizQuestion(i.questionId),
+        questionRetired: this.quizQuestions.find((q) => q.id === i.questionId)!.status === "trukket",
         chosenIndex: i.chosenIndex,
         correct: i.correct,
         answeredAt: i.answeredAt,
@@ -427,18 +438,47 @@ export class MemoryDataSource implements DataSource {
     return { status: "ok" as const, value: true };
   }
 
-  /** Som `finish_quiz`: resultatet og avkrysningen lagres sammen, eller ingen av dem. */
+  /** Som `finish_quiz`: resultatet og avkrysningen lagres sammen, eller ingen av dem. Totalen er de aktive elementene. */
   async saveQuizResult(quizId: string, { correctCount, carryThemeId, completes }: QuizResultInput) {
     if (this.down || this.quizWritesDown || this.resultWritesDown) return this.unavailable();
     const quiz = this.quizzes.find((q) => q.id === quizId);
     if (!quiz || quiz.status !== "pågår") return { status: "ok" as const, value: false };
     const finishedAt = this.now();
-    Object.assign(quiz, { status: "ferdig", correctCount, total: QUIZ_LENGTH, carryThemeId, finishedAt });
+    const total = this.quizItems.filter((i) => i.quizId === quizId && i.status === "aktiv").length;
+    Object.assign(quiz, { status: "ferdig", correctCount, total, carryThemeId, finishedAt });
     // Én per delkapittel: den første står (on conflict do nothing).
     if (completes && !this.completions.some((c) => c.subchapterId === quiz.subchapterId)) {
       this.completions.push({ subchapterId: quiz.subchapterId, quizId, completedAt: finishedAt });
     }
     return { status: "ok" as const, value: true };
+  }
+
+  /** Som `report_quiz_question`: rapporten, tilbaketrekkingen og uttaket skjer sammen, eller ikke. */
+  async reportQuizItem(itemId: string, comment: string | null) {
+    if (this.down || this.reportWritesDown) return this.unavailable();
+    const item = this.quizItems.find((i) => i.id === itemId);
+    if (!item) return { status: "ok" as const, value: false };
+    const quiz = this.quizzes.find((q) => q.id === item.quizId)!;
+    const reportedAt = this.now();
+    if (!this.questionReports.some((r) => r.questionId === item.questionId)) {
+      this.questionReports.push({ questionId: item.questionId, quizItemId: item.id, comment, reportedAt });
+    }
+    const question = this.quizQuestions.find((q) => q.id === item.questionId)!;
+    if (question.status === "aktiv") question.status = "trukket";
+    if (quiz.status === "pågår" && item.status === "aktiv") item.status = "trukket";
+    return { status: "ok" as const, value: true };
+  }
+
+  async listQuestionReports(subchapterIds: string[]) {
+    if (this.down || this.reportReadsDown) return this.unavailable();
+    const wanted = new Set(subchapterIds);
+    const value: QuestionReport[] = this.questionReports.flatMap((r) => {
+      const q = this.quizQuestions.find((x) => x.id === r.questionId)!;
+      if (!wanted.has(q.subchapterId)) return [];
+      const theme = this.themes.find((t) => t.id === q.themeId)!.name;
+      return [{ subchapterId: q.subchapterId, question: q.question, theme, comment: r.comment, reportedAt: r.reportedAt }];
+    });
+    return { status: "ok" as const, value };
   }
 
   async listCompletions(subchapterIds: string[]) {

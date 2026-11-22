@@ -17,6 +17,7 @@ import type {
   NewQuiz,
   NewSummaryVersion,
   QuestionBankVersion,
+  QuestionReport,
   Quiz,
   QuizItem,
   QuizQuestion,
@@ -158,7 +159,7 @@ type QuizItemRow = {
   correct: boolean | null;
   answered_at: string | null;
   created_at: string;
-  quiz_questions: QuizQuestionRow;
+  quiz_questions: QuizQuestionRow & { status: "aktiv" | "trukket" };
 };
 
 type QuizRow = {
@@ -176,11 +177,22 @@ type QuizRow = {
 
 type CompletionRow = { subchapter_id: string; quiz_id: string; completed_at: string };
 
+type QuestionReportRow = {
+  comment: string | null;
+  reported_at: string;
+  quiz_questions: { subchapter_id: string; question: string; themes: { name: string } };
+};
+
+// Spørsmålet og temaet hentes med rapporten. `!inner`: bare rapporter for delkapitlene i filteret.
+const questionReportColumns =
+  "comment, reported_at, " +
+  "quiz_questions!question_reports_question_fkey!inner(subchapter_id, question, themes!quiz_questions_theme_fkey(name))";
+
 // Elementene og spørsmålene hentes med quizen i én spørring. FK-navnene sier hvilken kobling som menes.
 const quizColumns =
   "id, session_id, subchapter_id, status, correct_count, total, carry_theme_id, created_at, finished_at, " +
   "quiz_items!quiz_items_quiz_fkey(id, position, status, chosen_index, correct, answered_at, created_at, " +
-  `quiz_questions!quiz_items_question_fkey(${quizQuestionColumns}))`;
+  `quiz_questions!quiz_items_question_fkey(${quizQuestionColumns}, status))`;
 
 function toQuiz(row: QuizRow): Quiz {
   return {
@@ -200,6 +212,7 @@ function toQuiz(row: QuizRow): Quiz {
         position: item.position,
         status: item.status,
         question: toQuizQuestion(item.quiz_questions),
+        questionRetired: item.quiz_questions.status === "trukket",
         chosenIndex: item.chosen_index,
         correct: item.correct,
         answeredAt: item.answered_at,
@@ -772,7 +785,8 @@ export class SupabaseDataSource implements DataSource {
   saveQuizResult(quizId: string, result: QuizResultInput): Promise<WriteResult<boolean>> {
     return guarded(async () => {
       // Resultatet fryses og delkapittelet krysses av i én transaksjon (finish_quiz), så det aldri
-      // finnes en ferdig quiz over 80 % uten avkrysning. Totalen (10) settes i funksjonen.
+      // finnes en ferdig quiz over 80 % uten avkrysning. Totalen (antallet aktive elementer) settes i
+      // funksjonen.
       const { data, error } = await this.client.rpc("finish_quiz", {
         p_quiz_id: quizId,
         p_correct_count: result.correctCount,
@@ -782,6 +796,43 @@ export class SupabaseDataSource implements DataSource {
       if (isInvalidId(error)) return { status: "ok", value: false };
       if (error || typeof data !== "boolean") return unavailable;
       return { status: "ok", value: data };
+    });
+  }
+
+  reportQuizItem(itemId: string, comment: string | null): Promise<WriteResult<boolean>> {
+    return guarded(async () => {
+      // Rapporten, tilbaketrekkingen og uttaket av quizen skjer i én transaksjon
+      // (report_quiz_question), så ingenting er endret hvis kallet feiler.
+      const { data, error } = await this.client.rpc("report_quiz_question", {
+        p_item_id: itemId,
+        p_comment: comment,
+      });
+      if (isInvalidId(error)) return { status: "ok", value: false };
+      if (error || typeof data !== "boolean") return unavailable;
+      return { status: "ok", value: data };
+    });
+  }
+
+  listQuestionReports(subchapterIds: string[]): Promise<ReadResult<QuestionReport[]>> {
+    return guarded(async () => {
+      if (subchapterIds.length === 0) return { status: "ok", value: [] };
+      const { data, error } = await this.client
+        .from("question_reports")
+        .select(questionReportColumns)
+        .eq("owner_id", this.ownerId)
+        .in("quiz_questions.subchapter_id", subchapterIds)
+        .order("reported_at");
+      if (error || !data) return unavailable;
+      return {
+        status: "ok",
+        value: (data as unknown as QuestionReportRow[]).map((row) => ({
+          subchapterId: row.quiz_questions.subchapter_id,
+          question: row.quiz_questions.question,
+          theme: row.quiz_questions.themes.name,
+          comment: row.comment,
+          reportedAt: row.reported_at,
+        })),
+      };
     });
   }
 

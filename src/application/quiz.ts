@@ -1,5 +1,6 @@
-// Quizen på et delkapittel (FR-10, FR-14, AD-6, AD-13, AD-16). Valgreglene ligger i src/domain/quiz.ts.
-// Hver quiz hører til en ny økt. Hvert svar lagres med en gang, og resultatet fryses når quizen er ferdig.
+// Quizen på et delkapittel (FR-10, FR-14, FR-16, AD-6, AD-13, AD-16, AD-18). Valgreglene ligger i
+// src/domain/quiz.ts. Hver quiz hører til en ny økt. Hvert svar lagres med en gang, og resultatet
+// fryses når quizen er ferdig. Et spørsmål som er meldt som feil mens quizen pågår, teller ikke.
 import {
   chooseReplacement,
   isCompleted,
@@ -56,21 +57,93 @@ const currentItem = (quiz: Quiz) => activeItems(quiz).find((i) => i.answeredAt =
 const inProgress = (quizzes: Quiz[]) => quizzes.find((q) => q.status === "pågår");
 
 /**
- * Avslutter quizen: resultatet (antall riktige av 10 og temaet som overføres) lagres og endres
- * aldri. Ved minst 80 % riktige krysses delkapittelet av i samme transaksjon (AD-13). Er det alt
- * krysset av, står den første avkrysningen. Er quizen alt avsluttet, er ingenting endret. Dette er
+ * Avslutter quizen: resultatet (antall riktige av dem som teller, og temaet som overføres) lagres og
+ * endres aldri. Et spørsmål som er meldt som feil, teller ikke, så 8 av 9 kan krysse av. Ved minst
+ * 80 % riktige krysses delkapittelet av i samme transaksjon (AD-13). Er det alt krysset av, står den
+ * første avkrysningen. Er quizen alt avsluttet, er ingenting endret. Dette er
  * det eneste stedet avkrysningen skrives.
  */
 export async function finishQuiz(
   data: DataSource,
   quiz: Quiz,
-): Promise<WriteResult<{ correctCount: number; completes: boolean }>> {
-  const { correctCount, carryThemeId } = quizOutcome(itemStates(quiz));
-  // Alle 10 teller til 1.9 tar bort tilbaketrukne spørsmål.
-  const completes = isCompleted(correctCount, QUIZ_LENGTH);
+): Promise<WriteResult<{ correctCount: number; counted: number; completes: boolean }>> {
+  const { correctCount, counted, carryThemeId } = quizOutcome(itemStates(quiz));
+  const completes = isCompleted(correctCount, counted);
   const saved = await data.saveQuizResult(quiz.id, { correctCount, carryThemeId, completes });
   if (saved.status !== "ok") return saved;
-  return { status: "ok", value: { correctCount, completes } };
+  return { status: "ok", value: { correctCount, counted, completes } };
+}
+
+/** Lengste kommentar i en feilrapport, i tegn. */
+export const REPORT_COMMENT_MAX = 500;
+
+/**
+ * Kommentaren til en feilrapport: trimmet, og `null` når den er tom. `invalid` når den er lengre
+ * enn 500 tegn (regnet som i Postgres, så et emoji er ett tegn).
+ */
+export function reportComment(raw: string | null): { ok: true; value: string | null } | { ok: false } {
+  // Et tekstfelt sender linjeskift som CRLF, mens nettleserens maxLength teller dem som ett tegn.
+  const trimmed = (raw ?? "").replace(/\r\n/g, "\n").trim();
+  if ([...trimmed].length > REPORT_COMMENT_MAX) return { ok: false };
+  return { ok: true, value: trimmed === "" ? null : trimmed };
+}
+
+export type ReportQuizQuestionResult =
+  | {
+      status: "ok";
+      quizId: string;
+      /**
+       * `quiz`: spørsmålet er tatt ut av quizen som pågår og av banken. `bank`: quizen var ferdig,
+       * så bare banken er endret, og resultatet står.
+       */
+      removedFrom: "quiz" | "bank";
+      /** Om quizen er ferdig nå, fordi den var det fra før eller fordi ingen ubesvarte sto igjen. */
+      finished: boolean;
+      /** Rapporten er lagret, men quizen kunne ikke avsluttes. Siden viser «Se resultatet». */
+      finishFailed: boolean;
+    }
+  | { status: "invalid" }
+  | { status: "notFound" }
+  | Unavailable;
+
+/**
+ * Melder spørsmålet på `position` som feil (FR-16, AD-18), med en valgfri kommentar. Spørsmålet
+ * trekkes tilbake fra banken med en gang. I en quiz som pågår, kan et hvilket som helst aktivt
+ * element meldes (det som vises nå, eller et besvart i tilbakemeldingen). Det tas ut av quizen, og
+ * står ingen ubesvarte igjen, avsluttes quizen. I en ferdig quiz kan bare det siste spørsmålet, det
+ * resultatsiden viser, meldes, og resultatet endres ikke.
+ */
+export async function reportQuizQuestion(
+  data: DataSource,
+  courseId: string,
+  number: string,
+  quizId: string,
+  position: number,
+  rawComment: string | null,
+): Promise<ReportQuizQuestionResult> {
+  const comment = reportComment(rawComment);
+  if (!comment.ok) return { status: "invalid" };
+  const located = await locate(data, courseId, number);
+  if (located.status !== "ok") return located;
+  const quizzes = await data.listQuizzes(located.subchapter.id);
+  if (quizzes.status !== "ok") return quizzes;
+  const quiz = quizzes.value.find((q) => q.id === quizId);
+  if (!quiz) return { status: "notFound" };
+
+  const running = quiz.status === "pågår";
+  const item = running ? activeItems(quiz).find((i) => i.position === position) : activeItems(quiz).at(-1);
+  if (!item || item.position !== position) return { status: "notFound" };
+
+  const reported = await data.reportQuizItem(item.id, comment.value);
+  if (reported.status !== "ok") return { status: "unavailable" };
+  if (!reported.value) return { status: "notFound" };
+  if (!running) return { status: "ok", quizId, removedFrom: "bank", finished: true, finishFailed: false };
+
+  const updated = { ...quiz, items: quiz.items.map((i) => (i.id === item.id ? { ...i, status: "trukket" as const } : i)) };
+  if (currentItem(updated)) return { status: "ok", quizId, removedFrom: "quiz", finished: false, finishFailed: false };
+  const finished = await finishQuiz(data, updated);
+  const ok = finished.status === "ok";
+  return { status: "ok", quizId, removedFrom: "quiz", finished: ok, finishFailed: !ok };
 }
 
 export type StartQuizResult =
@@ -204,6 +277,8 @@ export async function answerQuiz(
 /** Et spørsmål i quizen slik siden viser det. */
 export type QuizItemView = {
   position: number;
+  /** Nummeret blant spørsmålene som teller, så et uttatt spørsmål ikke gir hull («Spørsmål 4 av 9»). */
+  number: number;
   question: string;
   options: string[];
   /** `null` når spørsmålet ikke er besvart. */
@@ -211,22 +286,26 @@ export type QuizItemView = {
   correct: boolean | null;
   correctIndex: number;
   explanation: string;
+  /** Spørsmålet er meldt som feil og trukket tilbake fra banken. */
+  reported: boolean;
 };
 
-function toView(item: QuizItem): QuizItemView {
+function toView(quiz: Quiz, item: QuizItem): QuizItemView {
   return {
     position: item.position,
+    number: activeItems(quiz).indexOf(item) + 1,
     question: item.question.question,
     options: item.question.options,
     chosenIndex: item.chosenIndex,
     correct: item.correct,
     correctIndex: item.question.correctIndex,
     explanation: item.question.explanation,
+    reported: item.status === "trukket" || item.questionRetired,
   };
 }
 
 export type QuizStage =
-  /** Ingen quiz i gang. `tooFew` når banken har færre enn 10 spørsmål. */
+  /** Ingen quiz i gang. `tooFew` når banken har færre enn 10 aktive spørsmål. */
   | { stage: "start"; tooFew: boolean }
   /** Det nåværende spørsmålet. */
   | { stage: "question"; quizId: string; item: QuizItemView }
@@ -235,7 +314,8 @@ export type QuizStage =
   /** Alle spørsmålene er besvart, men resultatet er ikke lagret. */
   | { stage: "unfinished"; quizId: string }
   /**
-   * Tilbakemeldingen på siste spørsmål og det frosne resultatet. `passed`: minst 80 % riktige.
+   * Tilbakemeldingen på siste spørsmål som teller, og det frosne resultatet. `passed`: minst 80 %
+   * riktige. `total` er 0 når alle spørsmålene ble meldt som feil.
    * `completedBy`: om delkapittelet ble krysset av av denne quizen, av en tidligere, eller ikke er det.
    */
   | {
@@ -250,6 +330,7 @@ export type QuizStage =
     };
 
 export type GetQuizResult =
+  /** `total`: spørsmålene som teller i quizen som vises, eller 10 for en ny quiz. */
   | ({ status: "ok"; chapter: Chapter; subchapter: Subchapter; total: number } & QuizStage)
   | { status: "notReady" }
   | { status: "notFound" }
@@ -287,7 +368,7 @@ export async function getQuiz(
       ...base,
       stage: "result",
       quizId: finished.id,
-      item: last ? toView(last) : null,
+      item: last ? toView(finished, last) : null,
       correctCount,
       total,
       resultText: quizResultText(correctCount, total),
@@ -298,11 +379,12 @@ export async function getQuiz(
 
   const running = inProgress(quizzes.value);
   if (running) {
+    const counted = { ...base, total: activeItems(running).length };
     const answered = activeItems(running).find((i) => i.position === options.answered && i.answeredAt !== null);
-    if (answered) return { ...base, stage: "feedback", quizId: running.id, item: toView(answered) };
+    if (answered) return { ...counted, stage: "feedback", quizId: running.id, item: toView(running, answered) };
     const current = currentItem(running);
-    if (current) return { ...base, stage: "question", quizId: running.id, item: toView(current) };
-    return { ...base, stage: "unfinished", quizId: running.id };
+    if (current) return { ...counted, stage: "question", quizId: running.id, item: toView(running, current) };
+    return { ...counted, stage: "unfinished", quizId: running.id };
   }
 
   if (!located.quizReady) return { status: "notReady" };
