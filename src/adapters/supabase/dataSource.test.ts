@@ -499,6 +499,61 @@ describe("SupabaseDataSource med sammendragsversjoner", () => {
         inputHash: "h",
       }),
     ).toEqual({ status: "unavailable" });
+    expect(await data.reportSummaryVersion("s1", null)).toEqual({ status: "unavailable" });
+    expect(await data.listSummaryReports(["d1"])).toEqual({ status: "unavailable" });
+  });
+
+  it("melder en versjon med upsert som ignorerer duplikater, med eieren satt", async () => {
+    const { client, queries } = fakeClient(() => ({}));
+    expect(await new SupabaseDataSource(client, "eier").reportSummaryVersion("s1", "Feil definisjon")).toEqual({
+      status: "ok",
+      value: true,
+    });
+    expect(queries.map((q) => [q.table, q.calls])).toEqual([
+      [
+        "summary_reports",
+        [
+          [
+            "upsert",
+            { owner_id: "eier", summary_version_id: "s1", comment: "Feil definisjon" },
+            { onConflict: "owner_id,summary_version_id", ignoreDuplicates: true },
+          ],
+        ],
+      ],
+    ]);
+  });
+
+  it("gir false når versjonen ikke finnes (FK) eller id-en er ugyldig", async () => {
+    for (const code of ["23503", "22P02"]) {
+      const { client } = fakeClient(() => ({ error: { code } }));
+      expect(await new SupabaseDataSource(client, "eier").reportSummaryVersion("s9", null)).toEqual({
+        status: "ok",
+        value: false,
+      });
+    }
+  });
+
+  it("lister rapportene på sammendrag med delkapittelet fra versjonen, filtrert på eier", async () => {
+    const rows = [
+      { summary_version_id: "s1", comment: "Feil definisjon", reported_at: "2026-11-22T10:00:00Z", summary_versions: { subchapter_id: "d1" } },
+      { summary_version_id: "s2", comment: null, reported_at: "2026-11-22T11:00:00Z", summary_versions: { subchapter_id: "d2" } },
+    ];
+    const { client, queries } = fakeClient(() => ({ data: rows }));
+    expect(await new SupabaseDataSource(client, "eier").listSummaryReports(["d1", "d2"])).toEqual({
+      status: "ok",
+      value: [
+        { subchapterId: "d1", summaryVersionId: "s1", comment: "Feil definisjon", reportedAt: "2026-11-22T10:00:00Z" },
+        { subchapterId: "d2", summaryVersionId: "s2", comment: null, reportedAt: "2026-11-22T11:00:00Z" },
+      ],
+    });
+    expect(queries[0].table).toBe("summary_reports");
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(String(queries[0].calls[0][1])).toContain("summary_versions!summary_reports_summary_version_fkey!inner(");
+    expect(queries[0].calls).toContainEqual(["in", "summary_versions.subchapter_id", ["d1", "d2"]]);
+    expect(queries[0].calls).toContainEqual(["order", "reported_at"]);
+    const empty = fakeClient(() => ({ data: [] }));
+    expect(await new SupabaseDataSource(empty.client, "eier").listSummaryReports([])).toEqual({ status: "ok", value: [] });
+    expect(empty.queries).toHaveLength(0);
   });
 });
 

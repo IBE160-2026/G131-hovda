@@ -2,7 +2,8 @@
 title: 'Story 1.9b: Eieren sier fra om feil i sammendrag'
 type: 'feature'
 created: '2026-11-22'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: '965498b82495be364870b1c3d5dabf437c55d56b'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -69,12 +70,12 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/…_summary_reports.sql` -- unik nøkkel og tabellen. Push mot `dev`
-- [ ] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `reportSummaryVersion` og `listSummaryReports`
-- [ ] `chapterOverview.ts` + test -- `reported` og `reportSummary`, etter matrisen
-- [ ] `[nummer]/actions.ts`, `[nummer]/page.tsx` + tester, `formState.ts`, `ReportForm` -- skjemaet og meldingene
-- [ ] `importChapter.ts` + test -- listen over merkede sammendrag
-- [ ] `rls.dev.test.ts` -- RLS, én per versjon, ny versjon uten merke
+- [x] `supabase/migrations/…_summary_reports.sql` -- unik nøkkel og tabellen. Push mot `dev`
+- [x] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `reportSummaryVersion` og `listSummaryReports`
+- [x] `chapterOverview.ts` + test -- `reported` og `reportSummary`, etter matrisen
+- [x] `[nummer]/actions.ts`, `[nummer]/page.tsx` + tester, `formState.ts`, `ReportForm` -- skjemaet og meldingene
+- [x] `importChapter.ts` + test -- listen over merkede sammendrag
+- [x] `rls.dev.test.ts` -- RLS, én per versjon, ny versjon uten merke
 
 **Acceptance Criteria:**
 - Given sammendraget for IBE430 1.1 i `dev`, when eieren melder det med kommentaren «Feil definisjon», then står sammendraget med meldingen, og `npm run import -- --target dev IBE430 1` skriver ut 1.1 med kommentaren.
@@ -99,3 +100,21 @@ Rapporten peker på versjonen, ikke på delkapittelet. Da trengs ingen oppryddin
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Layer | Finding | Verdict | Route | Evidence |
+|---|-------|---------|---------|-------|----------|
+| 1 | verification-gap | Import's service-role read of `summary_reports` (grant + embed) is run by no test | medium | defer | Pre-verified gap: unit test mocks client, import test uses memory, `rls.dev.test.ts` runs as `testUser`. Same gap exists for 1.9a `question_reports`; no service-role dev harness exists. |
+| 2 | blind | «Det vises til neste import» is misleading when the text is unchanged | low | reject | The message is verbatim from the frozen intent; the fix would edit the spec. |
+| 3 | blind | Report from an outdated page is discarded without notice | false | reject | Matrix row «Gammel side» prescribes exactly this: nothing saved, page reloads with the newest version. |
+| 4 | blind | A failed report read makes the whole reading page unavailable | low | reject | Real, but needs the same database to fail one read of several; the fix adds a tri-state `reported` and branches. |
+| 5 | blind | Extra sequential round-trip, and reads reports for all versions | low | reject | Single-owner app, one small query per view; the fix restructures reads for negligible gain. |
+| 6 | blind | `chapterOverview.ts` depends on `quiz.ts` for `reportComment` | false | reject | Spec Code Map directs reuse of `reportComment` from `quiz.ts`; no caller diverges. |
+| 7 | blind | `MemoryDataSource.reportSummaryVersion` doesn't enforce the comment check | low | reject | The only caller, `reportSummary`, normalises through `reportComment` first (documented on the interface); no test path sends invalid comments. |
+| 8 | blind | No adapter test for other DB error codes → `unavailable` | low | reject | `if (error) return unavailable` is a one-line branch; the existing unavailable test covers the throw path. |
+| 9 | blind | Cross-owner version id not tested | low | reject | Composite FK `(owner_id, summary_version_id)` with RLS `owner_id = auth.uid()` makes it fail by construction (23503 → false); testing needs a service-key fixture. |
+| 10 | blind | Empty-string comment not tested at the DB | low | reject | The app never sends `""` (`reportComment` → `null`); the check is plain SQL. |
+| 11 | blind | Reported state doesn't show the comment | false | reject | Intent prescribes the fixed message in place of the form. |
+| 12 | blind | Import line lacks version/date | false | reject | Intent prescribes the line «delkapittel, tittel og kommentar». |
+| 13 | blind | Redundant version read in import; failed/outdated new version case untested | low | reject | The re-read is deliberate (comment says why); a non-ready new version leaves `latestReady` unchanged, so the old report correctly stays listed. |
+| 14 | blind | `ReportForm` doc comment line too long; `label` example quiz-only | low | patch | Direct correction of a comment in the moved file. |
+| 15 | edge-case | Race: import adds a ready version between the latest-ready check and the insert | false | reject | The outcome (report on the version shown, new version unmarked, old report kept as history) is the same as reporting just before the import, which is the designed behaviour. |

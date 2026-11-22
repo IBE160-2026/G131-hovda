@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import innhold1 from "../../../../../../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
 import kapittel1 from "../../../../../../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
+import { reportSummary } from "@/application/chapterOverview";
 import { importChapter } from "@/application/importChapter";
 import { MemoryDataSource } from "@/application/testing/MemoryDataSource";
 
@@ -10,9 +11,14 @@ const getDataSourceForRender = vi.fn();
 vi.mock("@/composition/server", () => ({ getDataSourceForRender, getDataSource: vi.fn() }));
 
 const { SubchapterSummary } = await import("./page");
-const { noSummaryMessage, outdatedMessage, subchapterNotFoundMessage, unavailableMessage } = await import(
-  "../../../formState"
-);
+const {
+  noSummaryMessage,
+  outdatedMessage,
+  subchapterNotFoundMessage,
+  summaryReportedMessage,
+  summaryReportLabel,
+  unavailableMessage,
+} = await import("../../../formState");
 
 async function render(data: MemoryDataSource, id: string, nummer: string) {
   getDataSourceForRender.mockResolvedValue(data);
@@ -127,5 +133,55 @@ describe("lesesiden for sammendraget", () => {
     const html = await render(data, courseId, "1.1");
     expect(html).toContain(unavailableMessage);
     expect(html).toContain('role="alert"');
+  });
+
+  it("har «Meld feil i sammendraget» med et valgfritt felt med etikett når sammendraget ikke er meldt", async () => {
+    const { data, courseId } = await imported();
+    const html = await render(data, courseId, "1.1");
+    expect(html).toContain("<details");
+    expect(html).toContain(summaryReportLabel);
+    expect(html).toContain('<label for="meld-sammendrag-kommentar"');
+    expect(html).toMatch(/<textarea[^>]*id="meld-sammendrag-kommentar"/);
+    expect(html).toContain('maxLength="500"');
+    expect(html).not.toMatch(/<textarea[^>]*required/);
+    expect(html).not.toContain(summaryReportedMessage);
+  });
+
+  it("viser sammendraget og beskjeden i stedet for skjemaet når versjonen er meldt", async () => {
+    const { data, courseId } = await imported();
+    await reportSummary(data, courseId, "1.1", data.summaryVersions[0].id, "Feil definisjon");
+    const html = await render(data, courseId, "1.1");
+    expect(html).toContain("<strong>forretningsprosess</strong>");
+    expect(html).toContain(summaryReportedMessage);
+    expect(html).toContain('role="status"');
+    expect(html).not.toContain(summaryReportLabel);
+    expect(html).toContain("Ta quizen");
+    // Bare 1.1 er merket.
+    expect(await render(data, courseId, "1.2")).toContain(summaryReportLabel);
+  });
+
+  it("viser skjemaet og ikke merket når en ny versjon er lagt inn etter rapporten", async () => {
+    const { data, courseId } = await imported();
+    const [old] = data.summaryVersions;
+    await reportSummary(data, courseId, "1.1", old.id, "Feil definisjon");
+    await data.addSummaryVersion({
+      subchapterId: old.subchapterId,
+      status: "klart",
+      text: "Rettet sammendrag.",
+      modelId: old.modelId,
+      promptVersion: old.promptVersion,
+      inputHash: old.inputHash,
+    });
+    const html = await render(data, courseId, "1.1");
+    expect(html).toContain("Rettet sammendrag.");
+    expect(html).toContain(summaryReportLabel);
+    expect(html).not.toContain(summaryReportedMessage);
+  });
+
+  it("har ikke skjemaet når delkapittelet ikke har noe sammendrag", async () => {
+    const { data, courseId } = await imported(null);
+    const html = await render(data, courseId, "1.1");
+    expect(html).not.toContain(summaryReportLabel);
+    expect(html).not.toContain(summaryReportedMessage);
   });
 });

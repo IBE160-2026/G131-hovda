@@ -2,6 +2,7 @@
 import { hasNotes } from "@/domain/hasNotes";
 import { subchapterStatus, type SubchapterStatus } from "@/domain/summary";
 import type { Chapter, DataSource, ReadResult, Subchapter, SummaryVersion, Unavailable } from "./dataSource";
+import { reportComment } from "./quiz";
 import { subchapterInputHash } from "./summaryHash";
 
 /**
@@ -86,6 +87,8 @@ export type SubchapterSummaryResult =
        * samlede statusen er «klart» eller «utdatert» (AD-8).
        */
       quizReady: boolean;
+      /** Om siste klare versjon er meldt som feil (1.9b). Alltid `false` uten klar versjon. */
+      reported: boolean;
     }
   | { status: "notFound" }
   | Unavailable;
@@ -113,6 +116,12 @@ export async function getSubchapterSummary(
     if (banks.status !== "ok") return banks;
     const summary = summaries.value.find((s) => s.subchapterId === subchapter.id)?.latestReady ?? null;
     const bank = banks.value.find((b) => b.subchapterId === subchapter.id)?.latestReady ?? null;
+    let reported = false;
+    if (summary) {
+      const reports = await data.listSummaryReports([subchapter.id]);
+      if (reports.status !== "ok") return reports;
+      reported = reports.value.some((r) => r.summaryVersionId === summary.id);
+    }
     const [summaryStatus, status] = await Promise.all([
       statusOf(chapter, subchapter, [summary?.inputHash ?? null]),
       statusOf(chapter, subchapter, [summary?.inputHash ?? null, bank?.inputHash ?? null]),
@@ -124,7 +133,39 @@ export async function getSubchapterSummary(
       summaryStatus,
       summary,
       quizReady: status === "klart" || status === "utdatert",
+      reported,
     };
   }
   return { status: "notFound" };
+}
+
+export type ReportSummaryResult = { status: "ok" } | { status: "invalid" } | { status: "notFound" } | Unavailable;
+
+/**
+ * Melder sammendraget for delkapittelet som feil (FR-12, AD-18), med en valgfri kommentar.
+ * Rapporten gjelder `versionId`, versjonen siden viste. `notFound` når den ikke er siste klare
+ * versjon (siden er gammel, eller det finnes ingen), og da lagres ingenting. Å melde en versjon på
+ * nytt endrer ingenting, og sammendraget vises som før.
+ */
+export async function reportSummary(
+  data: DataSource,
+  courseId: string,
+  number: string,
+  versionId: string,
+  rawComment: string | null,
+): Promise<ReportSummaryResult> {
+  const comment = reportComment(rawComment);
+  if (!comment.ok) return { status: "invalid" };
+  const chapters = await data.listChapters(courseId);
+  if (chapters.status !== "ok") return chapters;
+  const subchapter = chapters.value.flatMap((c) => c.subchapters).find((s) => s.number === number);
+  if (!subchapter) return { status: "notFound" };
+  const summaries = await data.listSummaryVersions([subchapter.id]);
+  if (summaries.status !== "ok") return summaries;
+  const ready = summaries.value.find((s) => s.subchapterId === subchapter.id)?.latestReady ?? null;
+  if (!ready || ready.id !== versionId) return { status: "notFound" };
+
+  const reported = await data.reportSummaryVersion(ready.id, comment.value);
+  if (reported.status !== "ok") return { status: "unavailable" };
+  return reported.value ? { status: "ok" } : { status: "notFound" };
 }

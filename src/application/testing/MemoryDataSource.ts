@@ -26,6 +26,7 @@ import type {
   SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
+  SummaryReport,
   SummaryVersion,
 } from "../dataSource";
 
@@ -46,6 +47,8 @@ type StoredQuiz = Omit<Quiz, "items">;
 type StoredQuizItem = Omit<QuizItem, "question" | "questionRetired"> & { quizId: string; questionId: string };
 
 type StoredQuestionReport = { questionId: string; quizItemId: string | null; comment: string | null; reportedAt: string };
+
+type StoredSummaryReport = { summaryVersionId: string; comment: string | null; reportedAt: string };
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
@@ -88,6 +91,12 @@ export class MemoryDataSource implements DataSource {
   reportWritesDown = false;
   /** Feiler lesingen av feilrapportene. */
   reportReadsDown = false;
+  /** Rapportene på sammendrag, én per versjon, i rekkefølgen de ble lagret. */
+  summaryReports: StoredSummaryReport[] = [];
+  /** Feiler rapporten på et sammendrag, og da er ingenting lagret. */
+  summaryReportWritesDown = false;
+  /** Feiler lesingen av rapportene på sammendrag. */
+  summaryReportReadsDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
   private nextId = 1;
@@ -136,6 +145,8 @@ export class MemoryDataSource implements DataSource {
     );
     this.chapters = this.chapters.filter((c) => c.courseId !== id);
     this.summaryVersions = this.summaryVersions.filter((v) => !removedSubIds.has(v.subchapterId));
+    const keptVersions = new Set(this.summaryVersions.map((v) => v.id));
+    this.summaryReports = this.summaryReports.filter((r) => keptVersions.has(r.summaryVersionId));
     this.questionBankVersions = this.questionBankVersions.filter((v) => !removedSubIds.has(v.subchapterId));
     this.themes = this.themes.filter((t) => !removedSubIds.has(t.subchapterId));
     this.quizQuestions = this.quizQuestions.filter((q) => !removedSubIds.has(q.subchapterId));
@@ -477,6 +488,27 @@ export class MemoryDataSource implements DataSource {
       if (!wanted.has(q.subchapterId)) return [];
       const theme = this.themes.find((t) => t.id === q.themeId)!.name;
       return [{ subchapterId: q.subchapterId, question: q.question, theme, comment: r.comment, reportedAt: r.reportedAt }];
+    });
+    return { status: "ok" as const, value };
+  }
+
+  /** Som `insert … on conflict do nothing`: den første rapporten på en versjon står. */
+  async reportSummaryVersion(versionId: string, comment: string | null) {
+    if (this.down || this.summaryReportWritesDown) return this.unavailable();
+    if (!this.summaryVersions.some((v) => v.id === versionId)) return { status: "ok" as const, value: false };
+    if (!this.summaryReports.some((r) => r.summaryVersionId === versionId)) {
+      this.summaryReports.push({ summaryVersionId: versionId, comment, reportedAt: this.now() });
+    }
+    return { status: "ok" as const, value: true };
+  }
+
+  async listSummaryReports(subchapterIds: string[]) {
+    if (this.down || this.summaryReportReadsDown) return this.unavailable();
+    const wanted = new Set(subchapterIds);
+    const value: SummaryReport[] = this.summaryReports.flatMap((r) => {
+      const version = this.summaryVersions.find((v) => v.id === r.summaryVersionId)!;
+      if (!wanted.has(version.subchapterId)) return [];
+      return [{ subchapterId: version.subchapterId, summaryVersionId: r.summaryVersionId, comment: r.comment, reportedAt: r.reportedAt }];
     });
     return { status: "ok" as const, value };
   }

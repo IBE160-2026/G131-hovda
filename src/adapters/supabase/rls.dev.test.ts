@@ -1,6 +1,6 @@
 // Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
-// question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items, subchapter_completions og
-// question_reports mot
+// question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items, subchapter_completions,
+// question_reports og summary_reports mot
 // Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data.
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
@@ -538,6 +538,80 @@ describe("RLS i dev", () => {
     expect(tooLong.error?.code).toBe("23514");
   });
 
+  it("gir testkontoen ingen av eierens rapporter på sammendrag, og stopper en med en annen eier", async () => {
+    const { data, error } = await testUser.from("summary_reports").select("id, owner_id");
+    expect(error).toBeNull();
+    expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+    const other = "00000000-0000-0000-0000-000000000000";
+    const insert = await testUser.from("summary_reports").insert({ owner_id: other, summary_version_id: other });
+    expect(insert.error?.code).toBe("42501");
+  });
+
+  it("melder et sammendrag én gang per versjon, og en ny versjon er ikke meldt", async () => {
+    const code = `RS${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const course = await testUser.from("courses").insert({ code, name: "Sammendragsrapport" }).select("id").single();
+    expect(course.error).toBeNull();
+    createdIds.push(course.data!.id);
+    const chapter = await testUser
+      .from("chapters")
+      .insert({ course_id: course.data!.id, number: 1, title: "Kapittel" })
+      .select("id")
+      .single();
+    expect(chapter.error).toBeNull();
+    const sub = await testUser
+      .from("subchapters")
+      .insert({ chapter_id: chapter.data!.id, number: "1.1", position: 1, title: "Del", note_text: "Notat" })
+      .select("id")
+      .single();
+    expect(sub.error).toBeNull();
+    const subchapterId = sub.data!.id;
+
+    const data = new SupabaseDataSource(testUser, testUserId);
+    const version = { subchapterId, status: "klart" as const, modelId: "claude-code/test", promptVersion: "innhold.v2", inputHash: "h" };
+    const first = await data.addSummaryVersion({ ...version, text: "Første tekst." });
+    if (first.status !== "ok") throw new Error("versjonen ble ikke lagret");
+
+    expect(await data.reportSummaryVersion(first.value.id, "Feil definisjon")).toEqual({ status: "ok", value: true });
+    // Å melde på nytt gir ingen ny rad og endrer ikke kommentaren.
+    expect(await data.reportSummaryVersion(first.value.id, "Andre gang")).toEqual({ status: "ok", value: true });
+    const rows = await testUser.from("summary_reports").select("summary_version_id, comment").eq("summary_version_id", first.value.id);
+    expect(rows.error).toBeNull();
+    expect(rows.data).toEqual([{ summary_version_id: first.value.id, comment: "Feil definisjon" }]);
+    // En versjon som ikke finnes, gir false og ingen rad.
+    expect(await data.reportSummaryVersion("00000000-0000-0000-0000-000000000000", null)).toEqual({ status: "ok", value: false });
+    expect(await data.reportSummaryVersion("abc", null)).toEqual({ status: "ok", value: false });
+
+    // En ny klar versjon har ingen rapport. Den gamle står igjen.
+    const second = await data.addSummaryVersion({ ...version, text: "Rettet tekst." });
+    if (second.status !== "ok") throw new Error("versjonen ble ikke lagret");
+    const listed = await data.listSummaryReports([subchapterId]);
+    expect(listed).toEqual({
+      status: "ok",
+      value: [{ subchapterId, summaryVersionId: first.value.id, comment: "Feil definisjon", reportedAt: expect.any(String) }],
+    });
+    if (listed.status === "ok") expect(listed.value.map((r) => r.summaryVersionId)).not.toContain(second.value.id);
+
+    // Uinnloggede kan ikke melde.
+    const anonInsert = await newClient().from("summary_reports").insert({ summary_version_id: second.value.id });
+    expect(anonInsert.error?.code).toBe("42501");
+
+    // Rapporten kan verken endres eller slettes av den innloggede.
+    const updated = await testUser.from("summary_reports").update({ comment: "x" }).eq("summary_version_id", first.value.id).select("id");
+    expect(updated.error?.code).toBe("42501");
+    const deleted = await testUser.from("summary_reports").delete().eq("summary_version_id", first.value.id).select("id");
+    expect(deleted.error?.code).toBe("42501");
+    // For lang kommentar stoppes av databasen også.
+    const tooLong = await testUser.from("summary_reports").insert({ summary_version_id: second.value.id, comment: "x".repeat(501) });
+    expect(tooLong.error?.code).toBe("23514");
+
+    // Rapporten forsvinner med emnet (cascade via versjonen).
+    const removed = await testUser.from("courses").delete().eq("id", course.data!.id);
+    expect(removed.error).toBeNull();
+    const after = await testUser.from("summary_reports").select("id").eq("summary_version_id", first.value.id);
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual([]);
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
@@ -556,6 +630,7 @@ describe("RLS i dev", () => {
       "quiz_items",
       "subchapter_completions",
       "question_reports",
+      "summary_reports",
     ]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");

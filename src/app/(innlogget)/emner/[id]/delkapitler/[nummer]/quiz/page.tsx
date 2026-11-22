@@ -15,6 +15,7 @@ import {
   quizNotReadyMessage,
   reportedFromBankMessage,
   reportedFromQuizMessage,
+  reportQuestionLabel,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
   unavailableMessage,
@@ -22,7 +23,7 @@ import {
 } from "../../../../formState";
 import { pageMain, primaryButton, textLink } from "../../../../styles";
 import { answerQuizAction, reportQuizQuestionAction, startQuizAction } from "./actions";
-import { ReportForm } from "./ReportForm";
+import { ReportForm } from "../ReportForm";
 
 export const metadata: Metadata = {
   title: "Quiz – Studievenn",
@@ -111,6 +112,7 @@ export async function QuizContent({ params, searchParams }: Pick<Props, "params"
     <ReportForm
       action={reportQuizQuestionAction.bind(null, id, nummer, quizId, item.position)}
       idPrefix={`meld-${item.position}`}
+      label={reportQuestionLabel}
     />
   );
   return (

@@ -28,6 +28,7 @@ import type {
   SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
+  SummaryReport,
   SummaryVersion,
   Unavailable,
   WriteResult,
@@ -188,6 +189,17 @@ const questionReportColumns =
   "comment, reported_at, " +
   "quiz_questions!question_reports_question_fkey!inner(subchapter_id, question, themes!quiz_questions_theme_fkey(name))";
 
+type SummaryReportRow = {
+  summary_version_id: string;
+  comment: string | null;
+  reported_at: string;
+  summary_versions: { subchapter_id: string };
+};
+
+// Delkapittelet hentes fra versjonen. `!inner`: bare rapporter for delkapitlene i filteret.
+const summaryReportColumns =
+  "summary_version_id, comment, reported_at, summary_versions!summary_reports_summary_version_fkey!inner(subchapter_id)";
+
 // Elementene og spørsmålene hentes med quizen i én spørring. FK-navnene sier hvilken kobling som menes.
 const quizColumns =
   "id, session_id, subchapter_id, status, correct_count, total, carry_theme_id, created_at, finished_at, " +
@@ -245,8 +257,9 @@ function toSubchapterRow(fields: Partial<SubchapterFields>) {
   };
 }
 
-// Postgres-feilkoder: brudd på unik indeks og ugyldig uuid (f.eks. /emner/abc).
+// Postgres-feilkoder: brudd på unik indeks, brudd på FK og ugyldig uuid (f.eks. /emner/abc).
 const UNIQUE_VIOLATION = "23505";
+const FOREIGN_KEY_VIOLATION = "23503";
 const INVALID_TEXT_REPRESENTATION = "22P02";
 
 const unavailable: Unavailable = { status: "unavailable" };
@@ -829,6 +842,44 @@ export class SupabaseDataSource implements DataSource {
           subchapterId: row.quiz_questions.subchapter_id,
           question: row.quiz_questions.question,
           theme: row.quiz_questions.themes.name,
+          comment: row.comment,
+          reportedAt: row.reported_at,
+        })),
+      };
+    });
+  }
+
+  reportSummaryVersion(versionId: string, comment: string | null): Promise<WriteResult<boolean>> {
+    return guarded(async () => {
+      // `insert … on conflict do nothing`: å melde på nytt gir ingen ny rad og endrer ikke den første.
+      // Den sammensatte FK-en til versjonen avviser en versjon som ikke finnes eller ikke er eierens.
+      const { error } = await this.client
+        .from("summary_reports")
+        .upsert(
+          { owner_id: this.ownerId, summary_version_id: versionId, comment },
+          { onConflict: "owner_id,summary_version_id", ignoreDuplicates: true },
+        );
+      if (isInvalidId(error) || error?.code === FOREIGN_KEY_VIOLATION) return { status: "ok", value: false };
+      if (error) return unavailable;
+      return { status: "ok", value: true };
+    });
+  }
+
+  listSummaryReports(subchapterIds: string[]): Promise<ReadResult<SummaryReport[]>> {
+    return guarded(async () => {
+      if (subchapterIds.length === 0) return { status: "ok", value: [] };
+      const { data, error } = await this.client
+        .from("summary_reports")
+        .select(summaryReportColumns)
+        .eq("owner_id", this.ownerId)
+        .in("summary_versions.subchapter_id", subchapterIds)
+        .order("reported_at");
+      if (error || !data) return unavailable;
+      return {
+        status: "ok",
+        value: (data as unknown as SummaryReportRow[]).map((row) => ({
+          subchapterId: row.summary_versions.subchapter_id,
+          summaryVersionId: row.summary_version_id,
           comment: row.comment,
           reportedAt: row.reported_at,
         })),

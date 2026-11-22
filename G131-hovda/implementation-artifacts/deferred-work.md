@@ -61,3 +61,7 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-9a-eieren-sier-fra-om-feil-i-quizsporsmal.md`
   summary: Story 1.6b needs a way to mark a question report as handled, since `question_reports` has no update grant or resolved column and the import lists every report on every run.
   evidence: The spec says reports are listed "til 1.6b legger inn erstatningen", but the 1.9a schema allows only select and insert, so 1.6b must add a column or table and a migration.
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-9b-eieren-sier-fra-om-feil-i-sammendrag.md`
+  summary: No automated test runs the import's read of `summary_reports` (or `question_reports`) through a service-role client, so a missing grant or broken embed would only show in a manual `--target dev` import.
+  evidence: `dataSource.test.ts` mocks the client, `importChapter.summaries.test.ts` uses `MemoryDataSource`, and `rls.dev.test.ts` runs `listSummaryReports` as the authenticated test user; the import CLI (`src/composition/script.ts`) uses the service key. A service-role case in `rls.dev.test.ts` asserting a reported version comes back would settle it.
