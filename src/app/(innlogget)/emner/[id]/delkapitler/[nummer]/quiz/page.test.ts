@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import innhold1 from "../../../../../../../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
 import kapittel1 from "../../../../../../../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import { importChapter } from "@/application/importChapter";
-import { answerQuiz, startQuiz } from "@/application/quiz";
+import { answerQuiz, reportQuizQuestion, startQuiz } from "@/application/quiz";
 import { MemoryDataSource } from "@/application/testing/MemoryDataSource";
 
 const getDataSourceForRender = vi.fn();
@@ -12,13 +12,19 @@ vi.mock("@/composition/server", () => ({ getDataSourceForRender, getDataSource: 
 
 const { QuizContent } = await import("./page");
 const {
+  allReportedMessage,
   alreadyCompletedMessage,
+  alreadyReportedMessage,
   belowThresholdMessage,
   chooseAnswerMessage,
   completedMessage,
   correctAnswerMessage,
   newQuizLabel,
   quizNotReadyMessage,
+  reportButtonLabel,
+  reportedFromBankMessage,
+  reportedFromQuizMessage,
+  reportSummaryLabel,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
   unavailableMessage,
@@ -219,6 +225,57 @@ describe("quizsiden", () => {
       expect(html).toContain(subchapterNotFoundMessage);
       expect(html).toContain('href="/start"');
     }
+  });
+
+  it("har «Meld feil i spørsmålet» med et valgfritt felt med etikett på spørsmålet og i tilbakemeldingen", async () => {
+    const { data, courseId } = await quizWith([true]);
+    for (const query of [{}, { svar: "1" }] as Record<string, string>[]) {
+      const html = await render(data, courseId, "1.1", query);
+      expect(html).toContain("<details");
+      expect(html).toContain(`<summary`);
+      expect(html).toContain(reportSummaryLabel);
+      expect(html).toMatch(/<label for="meld-\d+-kommentar"/);
+      expect(html).toMatch(/<textarea[^>]*id="meld-\d+-kommentar"/);
+      expect(html).toContain('maxLength="500"');
+      expect(html).not.toMatch(/<textarea[^>]*required/);
+      expect(html).toContain(`${reportButtonLabel}</button>`);
+    }
+  });
+
+  it("viser neste spørsmål som «4 av 9» og beskjeden etter en rapport", async () => {
+    const { data, courseId, quizId } = await quizWith([true, true, true]);
+    await reportQuizQuestion(data, courseId, "1.1", quizId, 4, "Fasit er feil");
+    const html = await render(data, courseId, "1.1", { meldt: "quiz" });
+    expect(html).toContain("Spørsmål 4 av 9");
+    expect(html).toContain(reportedFromQuizMessage);
+    expect(html).toContain('role="status"');
+    expect(await render(data, courseId, "1.1", { svar: "3" })).toContain("Spørsmål 3 av 9");
+  });
+
+  it("lar resultatet stå når spørsmålet meldes på resultatsiden, og viser ikke skjemaet igjen", async () => {
+    const { data, courseId, quizId } = await quizWith([...Array(8).fill(true), false, false]);
+    const before = await render(data, courseId, "1.1", { resultat: quizId });
+    expect(before).toContain(reportSummaryLabel);
+    await reportQuizQuestion(data, courseId, "1.1", quizId, 10, null);
+    const html = await render(data, courseId, "1.1", { resultat: quizId, meldt: "banken" });
+    expect(html).toContain("8 av 10 riktige");
+    expect(html).toContain(completedMessage);
+    expect(html).toContain(reportedFromBankMessage);
+    expect(html).not.toContain(reportSummaryLabel);
+    const later = await render(data, courseId, "1.1", { resultat: quizId });
+    expect(later).toContain(alreadyReportedMessage);
+    expect(later).not.toContain(reportSummaryLabel);
+  });
+
+  it("sier at quizen ikke har noe resultat når alle spørsmålene er meldt", async () => {
+    const { data, courseId, quizId } = await quizWith([]);
+    for (let position = 1; position <= 10; position++) await reportQuizQuestion(data, courseId, "1.1", quizId, position, null);
+    const html = await render(data, courseId, "1.1", { resultat: quizId, meldt: "quiz" });
+    expect(html).toContain(allReportedMessage);
+    expect(html).not.toContain("0 av 0 riktige");
+    expect(html).not.toContain(completedMessage);
+    expect(html).not.toContain(belowThresholdMessage);
+    expect(html).toContain(`${newQuizLabel}</button>`);
   });
 
   it("viser feilmeldingen når databasen ikke svarer", async () => {

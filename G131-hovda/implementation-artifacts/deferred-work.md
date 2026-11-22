@@ -53,3 +53,11 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-9a-eieren-sier-fra-om-feil-i-quizsporsmal.md`
   summary: Story 1.9b: eieren melder feil i et sammendrag, sammendraget merkes og vises til neste import, importen lister merkede sammendrag, og neste import legger inn den rettede versjonen fra innholdsfila (FR-12).
   evidence: Marte valgte 22.11.2026 å dele story 1.9 og ta quizspørsmålene først. Sammendragsdelen kan leveres for seg (merke på sammendragsversjonen og en liste i importen).
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-9a-eieren-sier-fra-om-feil-i-quizsporsmal.md`
+  summary: `ReportForm` keeping the comment text, opening `<details>` and showing the error after a failed submit is not covered by any automated test.
+  evidence: The repo has no DOM/client-component test setup (no testing-library or jsdom); action tests check only the returned state, and the page test renders only the initial state. The manual check in the spec covers it until a DOM test setup exists.
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-1-9a-eieren-sier-fra-om-feil-i-quizsporsmal.md`
+  summary: Story 1.6b needs a way to mark a question report as handled, since `question_reports` has no update grant or resolved column and the import lists every report on every run.
+  evidence: The spec says reports are listed "til 1.6b legger inn erstatningen", but the 1.9a schema allows only select and insert, so 1.6b must add a column or table and a migration.

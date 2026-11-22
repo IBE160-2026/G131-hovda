@@ -36,6 +36,29 @@ export const belowThresholdMessage =
   "Under 80 % riktige denne gangen. Les sammendraget igjen, og ta en ny quiz når du er klar.";
 export const newQuizLabel = "Ta en ny quiz";
 
+// Feilrapporten på et quizspørsmål.
+export const reportSummaryLabel = "Meld feil i spørsmålet";
+export const reportCommentLabel = "Hva er feil? (valgfritt)";
+export const reportButtonLabel = "Send feilrapport";
+export const reportPendingLabel = "Sender …";
+export const reportedFromQuizMessage = "Spørsmålet er meldt som feil og tatt ut av quizen.";
+export const reportedFromBankMessage = "Spørsmålet er meldt som feil og tatt ut av banken.";
+export const alreadyReportedMessage = "Spørsmålet er meldt som feil.";
+export const allReportedMessage = "Alle spørsmålene ble meldt som feil, så quizen har ikke noe resultat.";
+export const commentTooLongMessage = "Kommentaren kan være på høyst 500 tegn.";
+
+/** Skjemaet for feilrapporten. Ved feil beholdes teksten. */
+export type ReportFormState = {
+  comment: string;
+  /** Feil ved kommentarfeltet. */
+  commentError: string | null;
+  /** Feil for hele skjemaet, for eksempel når databasen ikke svarer. */
+  formError: string | null;
+  attempt: number;
+};
+
+export const initialReportFormState: ReportFormState = { comment: "", commentError: null, formError: null, attempt: 0 };
+
 // Framdriften på startsiden.
 export const completedBadge = "gjennomført";
 export const goalReachedMessage = "Målet er nådd!";

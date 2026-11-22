@@ -35,6 +35,9 @@ export type SummaryOutcome =
  */
 export type QuestionBankOutcome = SummaryOutcome | { number: string; status: "changed" };
 
+/** Et spørsmål som er meldt som feil, med delkapittelets nummer, så det kan rettes i innholdsfila. */
+export type ReportedQuestion = { number: string; question: string; theme: string; comment: string | null };
+
 /** `file` sier om feilene er i notatfilen eller innholdsfilen. */
 export type InvalidImport = { status: "invalid"; file: "notes" | "content"; errors: string[] };
 
@@ -51,6 +54,8 @@ export type ImportChapterResult =
       questionBanks: QuestionBankOutcome[];
       /** Numrene i `## Spørsmålsbank` som er hoppet over («Må avklares før bruk»). */
       skippedQuestions: number[];
+      /** Spørsmålene som er meldt som feil i kapittelet (1.9a), eller `null` når de ikke kunne leses. */
+      questionReports: ReportedQuestion[] | null;
     }
   | InvalidImport
   | { status: "courseNotFound"; courseCode: string }
@@ -85,6 +90,9 @@ export const importMessages = {
     "Å erstatte eller fylle på spørsmål kommer i en senere story, så ingenting er skrevet for dem.",
   skippedQuestions: (numbers: number[]) =>
     `Hopper over spørsmål ${listNumbers(numbers)} fra «## Spørsmålsbank» (må avklares før bruk).`,
+  reportedHeading: "Meldt som feil (rett i innholdsfila):",
+  reportsUnavailable: "Fikk ikke lest spørsmålene som er meldt som feil.",
+  noComment: "ingen kommentar",
 } as const;
 
 /**
@@ -160,7 +168,27 @@ export async function importChapter(
     summaries,
     questionBanks,
     skippedQuestions: prepared.ownQuestions.skipped,
+    questionReports: chapter ? await listReportedQuestions(data, chapter) : null,
   };
+}
+
+/**
+ * Spørsmålene som er meldt som feil i kapittelets delkapitler, i delkapittelrekkefølge og så eldste
+ * først. De listes ved hver import, til 1.6b legger inn en erstatning. `null` når de ikke kan leses.
+ */
+async function listReportedQuestions(data: DataSource, chapter: Chapter): Promise<ReportedQuestion[] | null> {
+  const reports = await data.listQuestionReports(chapter.subchapters.map((s) => s.id));
+  if (reports.status !== "ok") return null;
+  const order = new Map(chapter.subchapters.map((s, i) => [s.id, i]));
+  return [...reports.value]
+    .filter((r) => order.has(r.subchapterId))
+    .sort((a, b) => order.get(a.subchapterId)! - order.get(b.subchapterId)! || a.reportedAt.localeCompare(b.reportedAt))
+    .map((r) => ({
+      number: chapter.subchapters[order.get(r.subchapterId)!].number,
+      question: r.question,
+      theme: r.theme,
+      comment: r.comment,
+    }));
 }
 
 /** Kapittelet slik det er lagret nå, eller `null` når det ikke kan leses. */
@@ -369,13 +397,15 @@ function contentLabel(summary?: SummaryOutcome, bank?: QuestionBankOutcome): str
 
 /**
  * Norsk sammendrag av importen, én linje per kapittel og delkapittel. Linjen for et aktivt
- * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken.
+ * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken. Til slutt kommer
+ * spørsmålene som er meldt som feil, med delkapittel, tekst, tema og kommentar.
  */
 export function describeImport(
   chapter: ChapterInput,
   report: SaveChapterReport,
   summaries: SummaryOutcome[] = [],
   questionBanks: QuestionBankOutcome[] = [],
+  reported: ReportedQuestion[] = [],
 ): string[] {
   const titles = new Map(chapter.subchapters.map((s) => [s.number, s.title]));
   const summaryByNumber = new Map(summaries.map((s) => [s.number, s]));
@@ -393,17 +423,27 @@ export function describeImport(
     summaries.every(quiet) &&
     questionBanks.every(quiet);
   if (allUnchanged) lines.push(importMessages.allUnchanged);
+  if (reported.length > 0) {
+    lines.push(importMessages.reportedHeading);
+    for (const r of reported) {
+      lines.push(`  ${r.number} «${r.question}» (tema: ${r.theme}): ${r.comment ?? importMessages.noComment}`);
+    }
+  }
   return lines;
 }
 
 export type ImportReport = { stdout: string[]; stderr: string[]; code: 0 | 1 };
 
-/** Det kommandoen skriver ut etter en vellykket lagring, og koden den avslutter med. */
+/**
+ * Det kommandoen skriver ut etter en vellykket lagring, og koden den avslutter med. Spørsmål som er
+ * meldt som feil, endrer ikke koden.
+ */
 export function reportImport(result: Extract<ImportChapterResult, { status: "ok" }>): ImportReport {
   const { summaries, questionBanks } = result;
-  const stdout = describeImport(result.chapter, result.report, summaries, questionBanks);
+  const stdout = describeImport(result.chapter, result.report, summaries, questionBanks, result.questionReports ?? []);
   if (result.skippedQuestions.length > 0) stdout.push(importMessages.skippedQuestions(result.skippedQuestions));
   const stderr: string[] = [];
+  if (result.questionReports === null) stderr.push(importMessages.reportsUnavailable);
   if (summaries.some((s) => s.status === "outdated")) stderr.push(importMessages.summariesOutdated);
   if (summaries.some((s) => s.status === "failed")) stderr.push(importMessages.summariesFailed);
   if (questionBanks.some((s) => s.status === "outdated")) stderr.push(importMessages.banksOutdated);

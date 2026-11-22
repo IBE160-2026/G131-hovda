@@ -13,7 +13,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { answerQuizAction, startQuizAction } = await import("./actions");
+const { answerQuizAction, reportQuizQuestionAction, startQuizAction } = await import("./actions");
+const { commentTooLongMessage, initialReportFormState, unavailableMessage } = await import("../../../../formState");
 
 async function imported(content: string | null = innhold1) {
   const data = new MemoryDataSource();
@@ -31,8 +32,14 @@ function choice(value: string | null) {
   return form;
 }
 
+function comment(text: string) {
+  const form = new FormData();
+  form.set("kommentar", text);
+  return form;
+}
+
 /** Kjører en handling og gir adressen den sender til. */
-async function redirectOf(run: () => Promise<void>): Promise<string> {
+async function redirectOf(run: () => Promise<unknown>): Promise<string> {
   try {
     await run();
   } catch (error) {
@@ -126,6 +133,76 @@ describe("quizhandlingene", () => {
     data.resultWritesDown = false;
     expect(await redirectOf(() => startQuizAction(courseId, "1.1"))).toBe(`${path(courseId)}?resultat=${quizId}`);
     expect(data.quizzes[0]).toMatchObject({ status: "ferdig", correctCount: 10 });
+  });
+
+  it("melder spørsmålet som vises, og sender til quizsiden med beskjeden", async () => {
+    const { data, courseId } = await imported();
+    await redirectOf(() => startQuizAction(courseId, "1.1"));
+    const quizId = data.quizzes[0].id;
+    const report = () => reportQuizQuestionAction(courseId, "1.1", quizId, 1, initialReportFormState, comment(" Fasit er feil "));
+    expect(await redirectOf(report)).toBe(`${path(courseId)}?meldt=quiz`);
+    expect(data.questionReports).toEqual([expect.objectContaining({ comment: "Fasit er feil" })]);
+    expect(data.quizItems[0].status).toBe("trukket");
+  });
+
+  it("sender til resultatet når det siste ubesvarte meldes, og når en ferdig quiz meldes", async () => {
+    const { data, courseId } = await imported();
+    await redirectOf(() => startQuizAction(courseId, "1.1"));
+    const quizId = data.quizzes[0].id;
+    for (let i = 0; i < 9; i++) {
+      const { item, correct } = currentItem(data);
+      await redirectOf(() => answerQuizAction(courseId, "1.1", quizId, item.position, choice(String(correct))));
+    }
+    const { item } = currentItem(data);
+    expect(
+      await redirectOf(() => reportQuizQuestionAction(courseId, "1.1", quizId, item.position, initialReportFormState, comment(""))),
+    ).toBe(`${path(courseId)}?resultat=${quizId}&meldt=quiz`);
+    expect(data.quizzes[0]).toMatchObject({ status: "ferdig", correctCount: 9, total: 9 });
+    expect(
+      await redirectOf(() => reportQuizQuestionAction(courseId, "1.1", quizId, 9, initialReportFormState, comment(""))),
+    ).toBe(`${path(courseId)}?resultat=${quizId}&meldt=banken`);
+    expect(data.quizzes[0]).toMatchObject({ correctCount: 9, total: 9 });
+  });
+
+  it("sender til «Se resultatet» med feilmelding når quizen ikke kan avsluttes etter rapporten", async () => {
+    const { data, courseId } = await imported();
+    await redirectOf(() => startQuizAction(courseId, "1.1"));
+    const quizId = data.quizzes[0].id;
+    for (let i = 0; i < 9; i++) {
+      const { item, correct } = currentItem(data);
+      await redirectOf(() => answerQuizAction(courseId, "1.1", quizId, item.position, choice(String(correct))));
+    }
+    data.resultWritesDown = true;
+    const { item } = currentItem(data);
+    expect(
+      await redirectOf(() => reportQuizQuestionAction(courseId, "1.1", quizId, item.position, initialReportFormState, comment(""))),
+    ).toBe(`${path(courseId)}?meldt=quiz&feil=1`);
+    expect(data.questionReports).toHaveLength(1);
+    expect(data.quizzes[0].status).toBe("pågår");
+  });
+
+  it("beholder teksten og viser feilen ved feltet når kommentaren er for lang", async () => {
+    const { data, courseId } = await imported();
+    await redirectOf(() => startQuizAction(courseId, "1.1"));
+    const long = "x".repeat(501);
+    const state = await reportQuizQuestionAction(courseId, "1.1", data.quizzes[0].id, 1, initialReportFormState, comment(long));
+    expect(state).toEqual({ comment: long, commentError: commentTooLongMessage, formError: null, attempt: 1 });
+    expect(data.questionReports).toEqual([]);
+  });
+
+  it("viser feilmeldingen i skjemaet når rapporten ikke kan lagres", async () => {
+    const { data, courseId } = await imported();
+    await redirectOf(() => startQuizAction(courseId, "1.1"));
+    data.reportWritesDown = true;
+    const state = await reportQuizQuestionAction(courseId, "1.1", data.quizzes[0].id, 1, initialReportFormState, comment("Feil"));
+    expect(state).toEqual({ comment: "Feil", commentError: null, formError: unavailableMessage, attempt: 1 });
+  });
+
+  it("sender uinnloggede til forsiden uten å melde noe", async () => {
+    getDataSource.mockResolvedValue(null);
+    expect(
+      await redirectOf(() => reportQuizQuestionAction("c1", "1.1", "z1", 1, initialReportFormState, comment("x"))),
+    ).toBe("/");
   });
 
   it("sender til quizsiden, som sier fra, når delkapittelet ikke har quiz", async () => {

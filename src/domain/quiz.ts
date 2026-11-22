@@ -31,12 +31,15 @@ export type QuizHistory = {
   carryThemeId: string | null;
 };
 
-/** Et element i en quiz. Et erstattet element står igjen, så spørsmålet regnes som brukt. */
+/**
+ * Et element i en quiz. Et erstattet element står igjen, så spørsmålet regnes som brukt. Et element
+ * som er `trukket`, ble meldt som feil mens quizen pågikk (1.9a), og teller ikke i resultatet.
+ */
 export type QuizItemState = {
   position: number;
   questionId: string;
   themeId: string;
-  status: "aktiv" | "erstattet";
+  status: "aktiv" | "erstattet" | "trukket";
   answered: boolean;
   /** `null` når elementet ikke er besvart. */
   correct: boolean | null;
@@ -123,14 +126,20 @@ export function chooseReplacement(
 }
 
 /**
- * Resultatet når alle spørsmålene er besvart: antall riktige, og temaet som overføres når siste
- * spørsmål ble besvart feil. Resultatet regnes alltid av 10 (`QUIZ_LENGTH`).
+ * Resultatet når alle spørsmålene er besvart: antall riktige, antallet som teller, og temaet som
+ * overføres når siste spørsmål ble besvart feil. Bare aktive elementer teller, så et erstattet eller
+ * tilbaketrukket element er med verken i `counted`, `correctCount` eller `carryThemeId`.
  */
-export function quizOutcome(items: readonly QuizItemState[]): { correctCount: number; carryThemeId: string | null } {
+export function quizOutcome(items: readonly QuizItemState[]): {
+  correctCount: number;
+  counted: number;
+  carryThemeId: string | null;
+} {
   const active = items.filter((i) => i.status === "aktiv").sort((a, b) => a.position - b.position);
   const last = active.at(-1);
   return {
     correctCount: active.filter((i) => i.correct === true).length,
+    counted: active.length,
     carryThemeId: last && last.correct === false ? last.themeId : null,
   };
 }

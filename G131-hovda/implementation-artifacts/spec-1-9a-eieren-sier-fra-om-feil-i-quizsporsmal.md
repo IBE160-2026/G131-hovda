@@ -2,7 +2,8 @@
 title: 'Story 1.9a: Eieren sier fra om feil i quizspørsmål'
 type: 'feature'
 created: '2026-11-22'
-status: 'ready-for-dev'
+baseline_commit: '1714edcc6e4149dcc668d953a75ccda1c353ba6c'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -82,13 +83,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/quiz.ts` + test -- `trukket` og `counted` i `quizOutcome`
-- [ ] `supabase/migrations/…_question_reports.sql` -- tabellen, endringene i `quiz_items`, `report_quiz_question` og `finish_quiz`. Push mot `dev`
-- [ ] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `reportQuizItem` og `listQuestionReports`
-- [ ] `src/application/quiz.ts` + test -- `reportQuizQuestion`, `counted` i `finishQuiz` og visningen, etter matrisen
-- [ ] `quiz/actions.ts`, `quiz/page.tsx` + tester, `formState.ts` -- skjemaet og meldingene
-- [ ] `importChapter.ts` + test, `scripts/import.ts` -- listen over meldte spørsmål
-- [ ] `rls.dev.test.ts` -- RLS, rapport, frys og `total`
+- [x] `src/domain/quiz.ts` + test -- `trukket` og `counted` i `quizOutcome`
+- [x] `supabase/migrations/…_question_reports.sql` -- tabellen, endringene i `quiz_items`, `report_quiz_question` og `finish_quiz`. Push mot `dev`
+- [x] `dataSource.ts`, `MemoryDataSource.ts`, Supabase-adapter + tester -- `reportQuizItem` og `listQuestionReports`
+- [x] `src/application/quiz.ts` + test -- `reportQuizQuestion`, `counted` i `finishQuiz` og visningen, etter matrisen
+- [x] `quiz/actions.ts`, `quiz/page.tsx` + tester, `formState.ts` -- skjemaet og meldingene
+- [x] `importChapter.ts` + test, `scripts/import.ts` -- listen over meldte spørsmål
+- [x] `rls.dev.test.ts` -- RLS, rapport, frys og `total` (21 av 21 passerer mot `dev`)
 
 **Acceptance Criteria:**
 - Given en quiz på IBE430 1.1 i `dev`, when eieren melder spørsmål 2 med kommentaren «Fasit er feil» og svarer riktig på 8 av de 9 andre, then viser resultatet «8 av 9 riktige», delkapittelet er krysset av, og `npm run import -- --target dev IBE430 1` skriver ut spørsmålet med kommentaren.
@@ -110,6 +111,34 @@ Rapporten peker på quiz-elementet, ikke bare på spørsmålet, så den alltid g
 
 ## Implementation Notes
 
+- Migreringen er `supabase/migrations/20261122120000_question_reports.sql`, kjørt mot `dev` (studievenn-dev) 2026-11-22 etter ja fra Marte. `npm run test:dev` passerer. Ikke kjørt mot `prod`. De manuelle sjekkene er ikke gjort.
+- `question_reports.quiz_item_id` har `on delete set null (quiz_item_id)`, ikke cascade, så rapporten (og listen i importen) står igjen om quizen slettes. Spørsmålet har cascade som ellers.
+- `QuizItem` har fått `questionRetired` (fra `quiz_questions.status`), så resultatsiden ser at spørsmålet i en ferdig quiz alt er meldt.
+- Skjemaet er en klientkomponent (`ReportForm.tsx`) med `useActionState`, så teksten står igjen ved for lang kommentar eller databasefeil. Ved suksess sender handlingen videre med `?meldt=quiz` eller `?resultat=…&meldt=banken`. Feiler avslutningen etter en rapport, sendes det til `?meldt=quiz&feil=1`, og siden viser «Se resultatet».
+- I en quiz som pågår, vises skjemaet også når spørsmålet alt er trukket fra en annen quiz. Da lager databasen ingen ny rapport, men tar elementet ut av denne quizen.
+- Importen leser rapportene etter lagringen. Kan de ikke leses, skriver den «Fikk ikke lest spørsmålene som er meldt som feil.» på stderr, uten å endre koden.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Source | Finding | Verdict | Route | Evidence |
+|---|--------|---------|---------|-------|----------|
+| 1 | verification-gap, blind | `finishFailed` redirect `?meldt=quiz&feil=1` untested | medium | patch | No action/page test covers it; quiz.test checks only the application result. |
+| 2 | edge-case, blind | Textarea submits CRLF, so newlines count twice against 500 and CRLF is stored | low | patch | Form submission normalises line breaks to CRLF while `maxLength` counts LF; `reportComment` counts code points of the raw string. Trivial fix. |
+| 3 | verification-gap, blind | `ReportForm` error state (kept text, open `<details>`, aria) is never rendered in a test | medium | defer | No DOM test setup in the repo; covered by the spec's manual check. |
+| 4 | verification-gap | Import reads reports with the service-role key, never tested automatically | low | reject | `grant select … to service_role` is in place; the acceptance criterion's manual `npm run import -- --target dev` covers it. |
+| 5 | edge-case | Quiz finished in another tab between `listQuizzes` and the report: wrong message, extra `finishQuiz` | low | reject | Needs two concurrent tabs of a single-owner app; `saveQuizResult` then returns `false` with nothing changed. Fix needs a changed RPC contract. |
+| 6 | edge-case | Stale snapshot marks an item `trukket` the DB skipped, so `finishQuiz` may run early | low | reject | Only reachable under the same concurrency as #5; the item was `aktiv` in the snapshot. |
+| 7 | edge-case, blind | `finish_quiz` mixes client `correct_count` with server `total`; a concurrent report could break `correct_count <= total` | low | reject | Concurrent-only; the check rejects the write (nothing frozen), and retry recomputes. Moving scoring into SQL is a redesign. |
+| 8 | edge-case, blind | An unanswered `trukket` item can be set back to `aktiv` with a direct update | low | reject | Only the owner can do it, through the raw API; no app path does. The fix needs another migration after the push to `dev`. |
+| 9 | blind | Direct insert into `question_reports` bypasses retirement | low | reject | The spec requires `GRANT insert`; owner-only and never done by the app. |
+| 10 | blind | `questionRetired` is shown as "reported", but other things may retire questions | false | reject | Today only `report_quiz_question` sets `quiz_questions.status = 'trukket'` (grep of src and migrations). |
+| 11 | blind | Reports can never be resolved, so the import lists them forever | low | defer | Intended ("til 1.6b legger inn erstatningen"), but 1.6b needs a way to mark a report as handled. |
+| 12 | blind | Import listing lacks the source number in `## Spørsmålsbank` | low | reject | The full question text is printed and can be searched; adding the field touches every layer. |
+| 13 | blind | Prod rollout order and manual AC not done | false | reject | Recorded in Implementation Notes and handled at presentation; not a code defect. |
+| 14 | blind | Spec `in-review` vs sprint `in-progress` | false | reject | The workflow syncs sprint status at presentation. |
+| 15 | blind | Browser `maxLength` (UTF-16, untrimmed) vs app (code points, trimmed); DB `btrim` strips only spaces | low | reject | Only emoji-heavy 500-character comments or direct RPC calls hit it; the CRLF part is fixed in #2. |
+| 16 | edge-case, blind | `notFound` on report redirects silently, so the comment is lost | low | reject | Needs a stale tab or a double submit; the button is disabled while pending. |
+| 17 | blind | `MemoryDataSource` doesn't null `quizItemId` or normalise the comment like the DB | low | reject | Nothing in the app reads `quizItemId`; the comment is always normalised by `reportComment` first. |
+| 18 | blind | Misleading stderr "Fikk ikke lest…" when the saved chapter can't be read | low | reject | Only when the chapter read already failed, and the other outcomes then say "unavailable" too. |
