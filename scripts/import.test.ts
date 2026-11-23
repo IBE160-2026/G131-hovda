@@ -48,19 +48,19 @@ describe("npm run import med feil", () => {
 
 describe("npm run import med innholdsfilen", () => {
   it("sier fra om manglende innholdsfil før prod-bekreftelsen, uten å nevne KI", () => {
-    // Kapittel 2 har ingen innholdsfil ennå. Testene må endres når den lages.
-    const result = runImport(["--target", "prod", "IBE430", "2"], "nei\n");
-    expect(result.stdout).toContain("Fant ikke innholdsfilen G131-hovda/notater/IBE430/kapittel-2.innhold.md");
-    expect(result.stdout).toContain("Du importerer IBE430 kapittel 2 til prod. Skriv ja for å importere til prod");
+    // Kapittel 3 har ingen innholdsfil ennå. Testene må endres når den lages.
+    const result = runImport(["--target", "prod", "IBE430", "3"], "nei\n");
+    expect(result.stdout).toContain("Fant ikke innholdsfilen G131-hovda/notater/IBE430/kapittel-3.innhold.md");
+    expect(result.stdout).toContain("Du importerer IBE430 kapittel 3 til prod. Skriv ja for å importere til prod");
     expect(result.stdout).not.toContain("KI");
     expect(result.status).toBe(1);
   }, 20000);
 
   it("avviser --force for et delkapittel uten sammendrag i innholdsfilen før noe skrives", () => {
-    const result = runImport(["--target", "dev", "--force", "2.1", "IBE430", "2"], "");
-    expect(result.stdout).toContain("Fant ikke innholdsfilen G131-hovda/notater/IBE430/kapittel-2.innhold.md");
-    expect(result.stderr).toContain("Innholdsfilen G131-hovda/notater/IBE430/kapittel-2.innhold.md har feil. Ingenting er skrevet.");
-    expect(result.stderr).toContain("--force 2.1: delkapittelet har ikke sammendrag i innholdsfilen.");
+    const result = runImport(["--target", "dev", "--force", "3.1", "IBE430", "3"], "");
+    expect(result.stdout).toContain("Fant ikke innholdsfilen G131-hovda/notater/IBE430/kapittel-3.innhold.md");
+    expect(result.stderr).toContain("Innholdsfilen G131-hovda/notater/IBE430/kapittel-3.innhold.md har feil. Ingenting er skrevet.");
+    expect(result.stderr).toContain("--force 3.1: delkapittelet har ikke sammendrag i innholdsfilen.");
     expect(result.stdout).not.toContain("Importerer");
     expect(result.status).toBe(1);
   }, 20000);
