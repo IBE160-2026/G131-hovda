@@ -1,9 +1,13 @@
 // Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
 // question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items, subchapter_completions,
 // question_reports og summary_reports mot
-// Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data.
+// Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data. Sjekker
+// også importens vei med service role-nøkkelen (GRANT til service_role).
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
-// RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
+// RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene, og
+// SUPABASE_SERVICE_ROLE_KEY i .env.dev.local, som importen bruker.
+import { readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SupabaseDataSource } from "./dataSource";
@@ -16,6 +20,15 @@ function required(name: string): string {
 
 const url = required("NEXT_PUBLIC_SUPABASE_URL");
 const anonKey = required("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+/** Service role-klienten for dev, med nøklene fra .env.dev.local som importen. */
+function serviceClient(): SupabaseClient {
+  const env = parseEnv(readFileSync(".env.dev.local", "utf8"));
+  if (env.NEXT_PUBLIC_SUPABASE_URL !== url) throw new Error(".env.dev.local og .env.local peker på ulike prosjekter.");
+  const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!key) throw new Error("Mangler SUPABASE_SERVICE_ROLE_KEY i .env.dev.local. Se README og .env.example.");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
 
 function newClient(): SupabaseClient {
   return createClient(url, anonKey, {
@@ -610,6 +623,73 @@ describe("RLS i dev", () => {
     const after = await testUser.from("summary_reports").select("id").eq("summary_version_id", first.value.id);
     expect(after.error).toBeNull();
     expect(after.data).toEqual([]);
+  });
+
+  it("lar importen skrive og lese med service role, også rapportene eieren har sendt", async () => {
+    // Samme vei som importen (src/composition/script.ts): service role-klienten, eieren satt i adapteren.
+    const service = new SupabaseDataSource(serviceClient(), testUserId);
+    const code = `SR${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const course = await testUser.from("courses").insert({ code, name: "Service role" }).select("id").single();
+    expect(course.error).toBeNull();
+    const courseId = course.data!.id;
+    createdIds.push(courseId);
+
+    const courses = await service.listCourses();
+    if (courses.status !== "ok") throw new Error("emnene kunne ikke leses med service role");
+    expect(courses.value.map((c) => c.id)).toContain(courseId);
+    const saved = await service.saveChapter(courseId, {
+      number: 1,
+      title: "Kapittel",
+      learningGoals: "",
+      keyConcepts: "",
+      subchapters: [{ number: "1.1", title: "Del", noteText: "Notat" }],
+    });
+    expect(saved.status).toBe("ok");
+    const chapters = await service.listChapters(courseId);
+    if (chapters.status !== "ok") throw new Error("kapitlene kunne ikke leses med service role");
+    const subchapterId = chapters.value[0].subchapters[0].id;
+
+    const meta = { subchapterId, modelId: "claude-code/test", promptVersion: "innhold.v2", inputHash: "h" };
+    const summary = await service.addSummaryVersion({ ...meta, status: "klart", text: "Sammendrag." });
+    if (summary.status !== "ok") throw new Error("sammendraget ble ikke lagret med service role");
+    const bank = await service.addQuestionBank({
+      ...meta,
+      contentHash: "c",
+      themes: ["Alfa"],
+      questions: Array.from({ length: 10 }, (_, i) => ({
+        question: `Spørsmål ${i + 1}?`,
+        options: ["A", "B", "C", "D"],
+        correctIndex: 0,
+        explanation: "Fordi.",
+        theme: "Alfa",
+        sourceNumber: null,
+        originalText: null,
+      })),
+    });
+    expect(bank.status).toBe("ok");
+    const summaries = await service.listSummaryVersions([subchapterId]);
+    expect(summaries).toMatchObject({ status: "ok", value: [{ latestReady: { id: summary.value.id } }] });
+    const banks = await service.listQuestionBanks([subchapterId]);
+    expect(banks).toMatchObject({ status: "ok", value: [{ latestReady: { id: bank.status === "ok" ? bank.value.id : "" } }] });
+
+    // Eieren melder et spørsmål og sammendraget i appen.
+    const owner = new SupabaseDataSource(testUser, testUserId);
+    const questions = await owner.listQuizBank(subchapterId);
+    if (questions.status !== "ok") throw new Error("banken kunne ikke leses");
+    const quiz = await owner.createQuiz({ subchapterId, questionIds: questions.value.map((q) => q.id) });
+    if (quiz.status !== "ok") throw new Error(`quizen ble ikke laget: ${quiz.status}`);
+    expect(await owner.reportQuizItem(quiz.value.items[0].id, "Feil svar")).toEqual({ status: "ok", value: true });
+    expect(await owner.reportSummaryVersion(summary.value.id, "Feil definisjon")).toEqual({ status: "ok", value: true });
+
+    // Importen ser begge rapportene.
+    expect(await service.listSummaryReports([subchapterId])).toEqual({
+      status: "ok",
+      value: [{ subchapterId, summaryVersionId: summary.value.id, comment: "Feil definisjon", reportedAt: expect.any(String) }],
+    });
+    expect(await service.listQuestionReports([subchapterId])).toEqual({
+      status: "ok",
+      value: [{ subchapterId, question: quiz.value.items[0].question.question, theme: "Alfa", comment: "Feil svar", reportedAt: expect.any(String) }],
+    });
   });
 
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
