@@ -2,7 +2,7 @@
 title: 'Story 2.1: Eieren lager demodata med én kommando'
 type: 'feature'
 created: '2026-11-23'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: 'ed99d36f08acdade4cb4ae97bb9e5675052ac643'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -61,13 +61,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/application/demoData.ts` -- typer (`DemoData` med `schemaVersion: 1`), `validateDemoData(unknown)` med norske feil og stien til feltet, og `buildDemoData(data, courseCode)` som gir data og hoppede delkapitler med årsak, eller en feil -- felles skjema for eksporten og demo-adapteren (AD-3)
-- [ ] `src/application/demoData.test.ts` -- radene i matrisen med `MemoryDataSource`, at ukjente felt og ugyldige verdier avvises, kapittel 5 tas ikke med, og sorteringen
-- [ ] `scripts/export-demo.ts` -- leser fra `prod`, bygger, validerer, skriver `demo-data/demo.json` og skriver ut hoppede delkapitler -- kommandoen
-- [ ] `package.json` -- `"export-demo": "tsx scripts/export-demo.ts"`
-- [ ] `scripts/demoFiles.test.ts` -- leser `demo-data/demo.json`, validerer den, sjekker NFR-8 og at ingen tekst ligner en e-post eller UUID -- CI-testen
-- [ ] `README.md` -- avsnitt om `npm run export-demo` under importen
-- [ ] `demo-data/demo.json` -- lages ved å kjøre `npm run export-demo` mot `prod` (bare lesing). Fjern `.gitkeep`
+- [x] `src/application/demoData.ts` -- typer (`DemoData` med `schemaVersion: 1`), `validateDemoData(unknown)` med norske feil og stien til feltet, og `buildDemoData(data, courseCode)` som gir data og hoppede delkapitler med årsak, eller en feil -- felles skjema for eksporten og demo-adapteren (AD-3)
+- [x] `src/application/demoData.test.ts` -- radene i matrisen med `MemoryDataSource`, at ukjente felt og ugyldige verdier avvises, kapittel 5 tas ikke med, og sorteringen
+- [x] `scripts/export-demo.ts` -- leser fra `prod`, bygger, validerer, skriver `demo-data/demo.json` og skriver ut hoppede delkapitler -- kommandoen
+- [x] `package.json` -- `"export-demo": "tsx scripts/export-demo.ts"`
+- [x] `scripts/demoFiles.test.ts` -- leser `demo-data/demo.json`, validerer den, sjekker NFR-8 og at ingen tekst ligner en e-post eller UUID -- CI-testen
+- [x] `README.md` -- avsnitt om `npm run export-demo` under importen
+- [x] `demo-data/demo.json` -- lages ved å kjøre `npm run export-demo` mot `prod` (bare lesing). Fjern `.gitkeep`
 
 **Acceptance Criteria:**
 - Gitt `demo-data/demo.json` i repoet, når `npm test` kjører i CI, så feiler testen hvis et delkapittel har færre enn 20 spørsmål, et tema færre enn 2, eller fila ikke følger skjemaet.
@@ -96,6 +96,36 @@ Form (forkortet):
 
 ## Implementation Notes
 
+- `npm run export-demo` er kjørt mot `prod` to ganger: kode 0, 7 delkapitler (1.1–1.6, 2.1), 2.2 og 2.4 hoppet over («mangler innhold»), og den andre kjøringen ga samme SHA-256. I `prod` har IBE430 tomt læringsutbytte og eksamensformen «Muntlig», og det kopieres som det er.
+- `demo-data/demo.json` var ikke med i diffen til reviewerne (generert, ca. 100 KB). CI-testen sjekker den.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+Første review (blind, kanttilfeller, verifikasjon), 25 funn. Funn som er like fra flere reviewere, står på samme rad (22 rader): 5 rettet (patch) og 17 avvist.
+
+| # | Kilde | Funn | Verdict | Begrunnelse | Rute |
+|---|-------|------|---------|-------------|------|
+| 1 | blind | `demo.json` mangler i diffen | false | Bevisst holdt utenfor reviewen (generert). CI-testen validerer fila, og innholdet er sjekket i Implementation Notes | avvist |
+| 2 | blind, kant ×2 | `writeFileSync` direkte på målfila kan gi halv fil ved krasj | low | Skjer bare ved krasj eller full disk midt i skrivingen. Fila er i git, og CI-testen ville feilet. Rettingen er direkte (midlertidig fil og `renameSync`) | patch |
+| 3 | blind | Ingen `.gitattributes` for linjeskift | false | Git normaliserer med `autocrlf`, så `git diff` viser ingen endring. Testen normaliserer bevisst | avvist |
+| 4 | blind, kant, verif. | Skjemaet sjekker ikke rekkefølgen på delkapitler | low | Eksporten følger rekkefølgen fra `listChapters` (notatfila), og en ekstra sjekk kan avvise gyldige filer. Ingen skade i 2.2 | avvist |
+| 5 | blind, kant, verif. | `validateDemoData` godtar kapittel utenfor 1–4. Bare CI-testen sjekker det | low | Demo-adapteren i 2.2 validerer bare med skjemaet. Rettingen er én linje | patch |
+| 6 | blind, verif. | `export-demo` er ikke testet (argumenter, kode 1, ingen fil) | medium | Funnet er verifisert av verifikasjonslaget: ingen test kjører `main()`. Mønsteret finnes i `scripts/import.test.ts` | patch |
+| 7 | verif. | `invalid`-grenen i `buildDemoData` er ikke testet | medium | Funnet er verifisert av verifikasjonslaget: å fjerne valideringen gir grønne tester | patch |
+| 8 | blind | Ingen test for at eksporten ikke kjøres automatisk | low | Ingen script i `package.json` eller CI kaller den. Lite sannsynlig og ny test | avvist |
+| 9 | blind | Service role-nøkkel for en jobb som bare leser | low | Samme mønster som importen (`getDataSourceForScript`, AD-1). Koden kaller bare lesemetoder | avvist |
+| 10 | blind | Enhetstestene bruker de ekte notatfilene | low | Samme mønster som testene for importen. Er allerede et åpent punkt i `issues.md` | avvist |
+| 11 | blind | CI-testen kaster `TypeError` før valideringen | false | Vitest rapporterer det som feil, og testen «følger skjemaet» feiler med lesbar melding samtidig | avvist |
+| 12 | blind | Personverntesten ser bare etter e-post og UUID | low | Skjemaet avviser ukjente felt og krever ID-er laget av strukturen, så ingen database-ID kommer gjennom | avvist |
+| 13 | blind | Årsaken for for få per tema nevner ikke temaet | low | Temaene har ikke navn i fila. Kosmetisk | avvist |
+| 14 | blind | Validering to ganger med samme melding | low | Bevisst: valider det som faktisk skrives. Kosmetisk | avvist |
+| 15 | blind | `epic-2-context.md` sier fortsatt at `--target` må avklares | low | Specen har avgjort det. Rettingen er direkte | patch (med #5–7) |
+| 16 | blind | Status i spec og sprint-status er ulik | false | Normalt under review. Sprint-status oppdateres i steg 5 | avvist |
+| 17 | blind | Testen av rekkefølge bruker `arrayContaining` | low | Feilene er sjekket. Kosmetisk | avvist |
+| 18 | kant ×2 | `invalid` skriver ikke ut hoppede delkapitler | low | Grenen er bare mulig ved data som bryter skjemaet. Rettingen legger til et felt | avvist |
+| 19 | kant | Import mellom lesingene kan gi blandede versjoner | low | Eieren kjører begge kommandoene selv. Lite sannsynlig | avvist |
+| 20 | kant | `readFileSync` med relativ sti | low | `npm test` kjører alltid fra roten. Samme mønster som andre tester | avvist |
+| 21 | kant | Felt med `undefined` slipper gjennom `text()` | low | Verdiene fra datakilden er typet tekst. Eksportens JSON-runde fanger det | avvist |
+| 22 | verif. | `noSummary`-grenen er ikke testet | low | Kan bare nås med tom `latestReady.text`, som importen aldri lagrer | avvist |
