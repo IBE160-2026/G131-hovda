@@ -3,7 +3,7 @@ title: 'Story 2.1: Eieren lager demodata med én kommando'
 type: 'feature'
 created: '2026-11-23'
 status: 'ready-for-dev'
-baseline_commit: 'b6480da5604d17ac1177899bfea4f179989cdbcf'
+baseline_commit: 'ed99d36f08acdade4cb4ae97bb9e5675052ac643'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
