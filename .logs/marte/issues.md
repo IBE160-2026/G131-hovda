@@ -92,4 +92,5 @@
 - [x] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — før merge av 1.9b til `main`: kjør `20261122130000_summary_reports.sql` mot `prod` (krever ja fra Marte); ellers feiler lesesiden i prod (løst 2026-11-23: kjørt mot `prod`)
 - [x] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — push grenen og merge PR-en for 1.9b, og sjekk «Meld feil i sammendraget» i prod etter deploy; sett så 1-9 til `done` (pushet 2026-11-23, PR #9; merge og prod-sjekken står i eget punkt)
 - [ ] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — ingen automatisk test leser feilrapportene med service-nøkkelen slik importen gjør (1.9a og 1.9b; se deferred-work.md)
-- [ ] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — merge PR #9, sjekk «Meld feil i sammendraget» i prod etter deploy (1-9 er satt til `done` 2026-11-23 før merge)
+- [x] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — merge PR #9, sjekk «Meld feil i sammendraget» i prod etter deploy (1-9 er satt til `done` 2026-11-23 før merge) (merget 2026-11-23 som `2d73c3b`; prod-sjekken står i eget punkt)
+- [ ] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — sjekk «Meld feil i sammendraget» i prod etter deploy av `2d73c3b` (en rapport kan ikke angres)
