@@ -24,7 +24,7 @@ const {
   reportButtonLabel,
   reportedFromBankMessage,
   reportedFromQuizMessage,
-  reportSummaryLabel,
+  reportQuestionLabel,
   subchapterNotFoundMessage,
   tooFewQuestionsMessage,
   unavailableMessage,
@@ -233,7 +233,7 @@ describe("quizsiden", () => {
       const html = await render(data, courseId, "1.1", query);
       expect(html).toContain("<details");
       expect(html).toContain(`<summary`);
-      expect(html).toContain(reportSummaryLabel);
+      expect(html).toContain(reportQuestionLabel);
       expect(html).toMatch(/<label for="meld-\d+-kommentar"/);
       expect(html).toMatch(/<textarea[^>]*id="meld-\d+-kommentar"/);
       expect(html).toContain('maxLength="500"');
@@ -255,16 +255,16 @@ describe("quizsiden", () => {
   it("lar resultatet stå når spørsmålet meldes på resultatsiden, og viser ikke skjemaet igjen", async () => {
     const { data, courseId, quizId } = await quizWith([...Array(8).fill(true), false, false]);
     const before = await render(data, courseId, "1.1", { resultat: quizId });
-    expect(before).toContain(reportSummaryLabel);
+    expect(before).toContain(reportQuestionLabel);
     await reportQuizQuestion(data, courseId, "1.1", quizId, 10, null);
     const html = await render(data, courseId, "1.1", { resultat: quizId, meldt: "banken" });
     expect(html).toContain("8 av 10 riktige");
     expect(html).toContain(completedMessage);
     expect(html).toContain(reportedFromBankMessage);
-    expect(html).not.toContain(reportSummaryLabel);
+    expect(html).not.toContain(reportQuestionLabel);
     const later = await render(data, courseId, "1.1", { resultat: quizId });
     expect(later).toContain(alreadyReportedMessage);
-    expect(later).not.toContain(reportSummaryLabel);
+    expect(later).not.toContain(reportQuestionLabel);
   });
 
   it("sier at quizen ikke har noe resultat når alle spørsmålene er meldt", async () => {

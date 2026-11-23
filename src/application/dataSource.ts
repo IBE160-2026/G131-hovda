@@ -176,6 +176,16 @@ export type QuestionReport = {
   reportedAt: string;
 };
 
+/** Et sammendrag eieren har meldt som feil (1.9b). Rapporten gjelder én versjon. */
+export type SummaryReport = {
+  subchapterId: string;
+  summaryVersionId: string;
+  /** `null` når eieren ikke skrev noen kommentar. */
+  comment: string | null;
+  /** ISO-tidspunkt i UTC. */
+  reportedAt: string;
+};
+
 export type Unavailable = { status: "unavailable" };
 
 export type ReadResult<T> = { status: "ok"; value: T } | Unavailable;
@@ -268,4 +278,16 @@ export interface DataSource {
   reportQuizItem(itemId: string, comment: string | null): Promise<WriteResult<boolean>>;
   /** Spørsmålene som er meldt som feil i delkapitlene, eldste først. */
   listQuestionReports(subchapterIds: string[]): Promise<ReadResult<QuestionReport[]>>;
+  /**
+   * Melder sammendragsversjonen som feil (1.9b). Én rapport per versjon, så å melde på nytt endrer
+   * ingenting. Versjonen endres ikke. `comment` er trimmet, maks 500 tegn, eller `null`. `false` når
+   * versjonen ikke finnes eller ikke er eierens, og da er ingenting lagret. Bare `reportSummary`
+   * kaller denne.
+   */
+  reportSummaryVersion(versionId: string, comment: string | null): Promise<WriteResult<boolean>>;
+  /**
+   * Rapportene for alle versjonene av sammendragene i delkapitlene, eldste først. Om en rapport
+   * gjelder siste klare versjon, avgjør den som leser.
+   */
+  listSummaryReports(subchapterIds: string[]): Promise<ReadResult<SummaryReport[]>>;
 }

@@ -8,10 +8,14 @@ import {
   noSummaryMessage,
   outdatedMessage,
   subchapterNotFoundMessage,
+  summaryReportedMessage,
+  summaryReportLabel,
   unavailableMessage,
 } from "../../../formState";
 import { pageMain, primaryButton, textLink } from "../../../styles";
+import { reportSummaryAction } from "./actions";
 import { startQuizAction } from "./quiz/actions";
+import { ReportForm } from "./ReportForm";
 
 export const metadata: Metadata = {
   title: "Sammendrag – Studievenn",
@@ -61,7 +65,7 @@ export async function SubchapterSummary({
     );
   }
 
-  const { chapter, subchapter, summary, summaryStatus, quizReady } = result;
+  const { chapter, subchapter, summary, summaryStatus, quizReady, reported } = result;
   return (
     <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
@@ -89,6 +93,20 @@ export async function SubchapterSummary({
           </button>
         </form>
       )}
+      {summary?.text &&
+        (reported ? (
+          <p role="status" className="max-w-prose rounded-xl bg-sun px-4 py-3 font-semibold">
+            {summaryReportedMessage}
+          </p>
+        ) : (
+          <div className="max-w-prose">
+            <ReportForm
+              action={reportSummaryAction.bind(null, id, nummer, summary.id)}
+              idPrefix="meld-sammendrag"
+              label={summaryReportLabel}
+            />
+          </div>
+        ))}
     </article>
   );
 }

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import innhold1 from "../../G131-hovda/notater/IBE430/kapittel-1.innhold.md?raw";
 import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
-import { getSubchapterSummary, listChapterOverview } from "./chapterOverview";
+import { getSubchapterSummary, listChapterOverview, reportSummary } from "./chapterOverview";
 import { importChapter } from "./importChapter";
 import { subchapterInputHash } from "./summaryHash";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
@@ -265,6 +265,87 @@ describe("getSubchapterSummary", () => {
     expect(await getSubchapterSummary(data, courseId, "1.1")).toEqual({ status: "unavailable" });
     data.summaryReadsDown = false;
     data.down = true;
+    expect(await getSubchapterSummary(data, courseId, "1.1")).toEqual({ status: "unavailable" });
+  });
+});
+
+describe("reportSummary", () => {
+  const readyId = (data: MemoryDataSource, number = "1.1") => {
+    const sub = data.chapters[0].subchapters.find((s) => s.number === number)!;
+    return [...data.summaryVersions].reverse().find((v) => v.subchapterId === sub.id && v.status === "klart")!.id;
+  };
+  const reported = async (data: MemoryDataSource, courseId: string, number = "1.1") => {
+    const result = await getSubchapterSummary(data, courseId, number);
+    if (result.status !== "ok") throw new Error(result.status);
+    return result.reported;
+  };
+
+  it("melder siste klare versjon med kommentaren, og sammendraget vises som før", async () => {
+    const { data, courseId } = await smallChapter();
+    expect(await reported(data, courseId)).toBe(false);
+    const versionId = readyId(data);
+    expect(await reportSummary(data, courseId, "1.1", versionId, " Feil definisjon \r\n")).toEqual({ status: "ok" });
+    expect(data.summaryReports).toEqual([expect.objectContaining({ summaryVersionId: versionId, comment: "Feil definisjon" })]);
+    expect(await reported(data, courseId)).toBe(true);
+    expect(await reported(data, courseId, "1.4")).toBe(false);
+    const result = await getSubchapterSummary(data, courseId, "1.1");
+    if (result.status !== "ok") throw new Error(result.status);
+    expect(result.summary?.text).toBe("Sammendrag av 1.1.");
+    expect(result.summaryStatus).toBe("klart");
+  });
+
+  it("lagrer ingen ny rad når versjonen er meldt fra før, og beholder den første kommentaren", async () => {
+    const { data, courseId } = await smallChapter();
+    const versionId = readyId(data);
+    await reportSummary(data, courseId, "1.1", versionId, "Første");
+    expect(await reportSummary(data, courseId, "1.1", versionId, "Andre")).toEqual({ status: "ok" });
+    expect(data.summaryReports.map((r) => r.comment)).toEqual(["Første"]);
+  });
+
+  it("gjør tom kommentar om til null, og godtar 500 tegn", async () => {
+    const { data, courseId } = await smallChapter();
+    await reportSummary(data, courseId, "1.1", readyId(data), "   ");
+    await reportSummary(data, courseId, "1.4", readyId(data, "1.4"), "æ".repeat(500));
+    expect(data.summaryReports.map((r) => r.comment)).toEqual([null, "æ".repeat(500)]);
+  });
+
+  it("lagrer ingenting når kommentaren er på 501 tegn", async () => {
+    const { data, courseId } = await smallChapter();
+    expect(await reportSummary(data, courseId, "1.1", readyId(data), "x".repeat(501))).toEqual({ status: "invalid" });
+    expect(data.summaryReports).toEqual([]);
+  });
+
+  it("lagrer ingenting fra en gammel side, og en ny versjon er ikke merket", async () => {
+    const { data, courseId } = await smallChapter();
+    const old = readyId(data);
+    await reportSummary(data, courseId, "1.1", old, "Feil");
+    const sub = data.chapters[0].subchapters[0];
+    const { modelId, promptVersion, inputHash } = data.summaryVersions.find((v) => v.id === old)!;
+    await data.addSummaryVersion({ subchapterId: sub.id, status: "klart", text: "Rettet.", modelId, promptVersion, inputHash });
+    expect(await reported(data, courseId)).toBe(false);
+    expect(await reportSummary(data, courseId, "1.1", old, "Igjen")).toEqual({ status: "notFound" });
+    expect(data.summaryReports).toHaveLength(1);
+  });
+
+  it("gir notFound uten klar versjon, for ukjent nummer og for ukjent emne", async () => {
+    const { data, courseId } = await smallChapter();
+    expect(await reportSummary(data, courseId, "1.2", "s1", null)).toEqual({ status: "notFound" });
+    expect(await reportSummary(data, courseId, "9.9", "s1", null)).toEqual({ status: "notFound" });
+    expect(await reportSummary(data, "ukjent", "1.1", readyId(data), null)).toEqual({ status: "notFound" });
+    expect(await reported(data, courseId, "1.2")).toBe(false);
+    expect(data.summaryReports).toEqual([]);
+  });
+
+  it("gir unavailable og lagrer ingenting når rapporten feiler", async () => {
+    const { data, courseId } = await smallChapter();
+    data.summaryReportWritesDown = true;
+    expect(await reportSummary(data, courseId, "1.1", readyId(data), "Feil")).toEqual({ status: "unavailable" });
+    expect(data.summaryReports).toEqual([]);
+  });
+
+  it("gir unavailable på lesesiden når rapportene ikke kan leses", async () => {
+    const { data, courseId } = await smallChapter();
+    data.summaryReportReadsDown = true;
     expect(await getSubchapterSummary(data, courseId, "1.1")).toEqual({ status: "unavailable" });
   });
 });

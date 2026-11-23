@@ -287,6 +287,65 @@ describe("importChapter med innholdsfil", () => {
   });
 });
 
+describe("importen med sammendrag som er meldt som feil", () => {
+  /** Importerer de seks, og melder siste klare versjon for delkapitlene. */
+  async function reported(comments: Record<string, string | null>) {
+    const data = await setup();
+    const content = await contentFor(six);
+    await run(data, sixSubchapters, { content });
+    for (const [number, comment] of Object.entries(comments)) {
+      const sub = data.chapters[0].subchapters.find((s) => s.number === number)!;
+      const version = [...data.summaryVersions].reverse().find((v) => v.subchapterId === sub.id)!;
+      await data.reportSummaryVersion(version.id, comment);
+    }
+    return { data, content };
+  }
+
+  it("lister et meldt sammendrag med tittel og kommentar når teksten er uendret, uten å endre koden", async () => {
+    const { data, content } = await reported({ "1.3": null, "1.1": "Feil definisjon" });
+    const result = await run(data, sixSubchapters, { content });
+    expect(statuses(result)).toEqual(Array(6).fill("unchanged"));
+    expect(result.summaryReports).toEqual([
+      { number: "1.1", title: "En", comment: "Feil definisjon" },
+      { number: "1.3", title: "Tre", comment: null },
+    ]);
+    const report = reportImport(result);
+    const heading = report.stdout.indexOf(importMessages.summaryReportedHeading);
+    expect(heading).toBeGreaterThan(0);
+    expect(report.stdout.slice(heading + 1)).toEqual(["  1.1 En: Feil definisjon", `  1.3 Tre: ${importMessages.noComment}`]);
+    expect(report.stdout).toContain(importMessages.allUnchanged);
+    expect(report.stderr).toEqual([]);
+    expect(report.code).toBe(0);
+  });
+
+  it("lister ikke et sammendrag som er rettet i samme import, og beholder den gamle rapporten", async () => {
+    const { data } = await reported({ "1.1": "Feil definisjon" });
+    const fixed = await contentFor(six, (n) => (n === "1.1" ? "Rettet sammendrag." : `Sammendrag av ${n}.`));
+    const result = await run(data, sixSubchapters, { content: fixed });
+    expect(statuses(result)[0]).toBe("created");
+    expect(lines(result)[1]).toBe("  1.1 En: uendret, sammendrag lagt inn");
+    expect(result.summaryReports).toEqual([]);
+    expect(reportImport(result).stdout).not.toContain(importMessages.summaryReportedHeading);
+    expect(data.summaryReports).toHaveLength(1);
+  });
+
+  it("lister ikke et sammendrag som er lagt inn på nytt med force", async () => {
+    const { data, content } = await reported({ "1.2": "Feil" });
+    const result = await run(data, sixSubchapters, { content, force: "1.2" });
+    expect(result.summaryReports).toEqual([]);
+  });
+
+  it("sier fra på stderr når rapportene ikke kan leses, uten å endre koden", async () => {
+    const { data, content } = await reported({ "1.1": "Feil" });
+    data.summaryReportReadsDown = true;
+    const result = await run(data, sixSubchapters, { content });
+    expect(result.summaryReports).toBeNull();
+    const report = reportImport(result);
+    expect(report.stderr).toEqual([importMessages.summaryReportsUnavailable]);
+    expect(report.code).toBe(0);
+  });
+});
+
 describe("importExitCode", () => {
   it("gir 1 bare når et sammendrag er utdatert eller feilet", () => {
     expect(

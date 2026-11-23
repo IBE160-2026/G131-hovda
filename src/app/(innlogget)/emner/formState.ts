@@ -22,6 +22,10 @@ export const subchapterNotFoundMessage = "Fant ikke delkapittelet.";
 export const noSummaryMessage = "Dette delkapittelet har ikke noe sammendrag ennå.";
 export const outdatedMessage = "Notatet er endret etter at dette sammendraget ble laget.";
 
+// Feilrapporten på sammendraget.
+export const summaryReportLabel = "Meld feil i sammendraget";
+export const summaryReportedMessage = "Sammendraget er meldt som feil. Det vises til neste import.";
+
 // Quizen.
 export const quizNotReadyMessage = "Dette delkapittelet har ikke quiz ennå.";
 export const tooFewQuestionsMessage = "Spørsmålsbanken har for få spørsmål til en quiz.";
@@ -37,7 +41,7 @@ export const belowThresholdMessage =
 export const newQuizLabel = "Ta en ny quiz";
 
 // Feilrapporten på et quizspørsmål.
-export const reportSummaryLabel = "Meld feil i spørsmålet";
+export const reportQuestionLabel = "Meld feil i spørsmålet";
 export const reportCommentLabel = "Hva er feil? (valgfritt)";
 export const reportButtonLabel = "Send feilrapport";
 export const reportPendingLabel = "Sender …";

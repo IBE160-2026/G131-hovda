@@ -38,6 +38,9 @@ export type QuestionBankOutcome = SummaryOutcome | { number: string; status: "ch
 /** Et spørsmål som er meldt som feil, med delkapittelets nummer, så det kan rettes i innholdsfila. */
 export type ReportedQuestion = { number: string; question: string; theme: string; comment: string | null };
 
+/** Et sammendrag som er meldt som feil (1.9b) og fortsatt er siste klare versjon. */
+export type ReportedSummary = { number: string; title: string; comment: string | null };
+
 /** `file` sier om feilene er i notatfilen eller innholdsfilen. */
 export type InvalidImport = { status: "invalid"; file: "notes" | "content"; errors: string[] };
 
@@ -56,6 +59,11 @@ export type ImportChapterResult =
       skippedQuestions: number[];
       /** Spørsmålene som er meldt som feil i kapittelet (1.9a), eller `null` når de ikke kunne leses. */
       questionReports: ReportedQuestion[] | null;
+      /**
+       * Sammendragene som er meldt som feil i kapittelet (1.9b), lest etter at sammendragene er
+       * lagret, eller `null` når de ikke kunne leses.
+       */
+      summaryReports: ReportedSummary[] | null;
     }
   | InvalidImport
   | { status: "courseNotFound"; courseCode: string }
@@ -90,6 +98,8 @@ export const importMessages = {
     "Å erstatte eller fylle på spørsmål kommer i en senere story, så ingenting er skrevet for dem.",
   skippedQuestions: (numbers: number[]) =>
     `Hopper over spørsmål ${listNumbers(numbers)} fra «## Spørsmålsbank» (må avklares før bruk).`,
+  summaryReportedHeading: "Sammendrag meldt som feil (rett i innholdsfila):",
+  summaryReportsUnavailable: "Fikk ikke lest sammendragene som er meldt som feil.",
   reportedHeading: "Meldt som feil (rett i innholdsfila):",
   reportsUnavailable: "Fikk ikke lest spørsmålene som er meldt som feil.",
   noComment: "ingen kommentar",
@@ -158,6 +168,8 @@ export async function importChapter(
   const summaries = chapter
     ? await createSummaries(data, chapter, prepared.chapter, prepared.content, options.force)
     : allUnavailable(prepared.chapter);
+  // Leses etter at sammendragene er lagret, så et sammendrag som fikk en ny versjon nå, ikke listes.
+  const summaryReports = chapter ? await listReportedSummaries(data, chapter) : null;
   const questionBanks = chapter
     ? await createQuestionBanks(data, chapter, prepared.chapter, prepared.content)
     : allUnavailable(prepared.chapter);
@@ -169,7 +181,24 @@ export async function importChapter(
     questionBanks,
     skippedQuestions: prepared.ownQuestions.skipped,
     questionReports: chapter ? await listReportedQuestions(data, chapter) : null,
+    summaryReports,
   };
+}
+
+/**
+ * Sammendragene som er meldt som feil, i delkapittelrekkefølge. Bare rapporter på siste klare
+ * versjon er med, så en ny versjon (rettet tekst eller `--force`) tar delkapittelet ut av listen.
+ * `null` når rapportene eller versjonene ikke kan leses.
+ */
+async function listReportedSummaries(data: DataSource, chapter: Chapter): Promise<ReportedSummary[] | null> {
+  const ids = chapter.subchapters.map((s) => s.id);
+  const [reports, versions] = await Promise.all([data.listSummaryReports(ids), data.listSummaryVersions(ids)]);
+  if (reports.status !== "ok" || versions.status !== "ok") return null;
+  const readyIds = new Set(versions.value.flatMap((v) => (v.latestReady ? [v.latestReady.id] : [])));
+  return chapter.subchapters.flatMap((sub) => {
+    const report = reports.value.find((r) => r.subchapterId === sub.id && readyIds.has(r.summaryVersionId));
+    return report ? [{ number: sub.number, title: sub.title, comment: report.comment }] : [];
+  });
 }
 
 /**
@@ -398,7 +427,8 @@ function contentLabel(summary?: SummaryOutcome, bank?: QuestionBankOutcome): str
 /**
  * Norsk sammendrag av importen, én linje per kapittel og delkapittel. Linjen for et aktivt
  * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken. Til slutt kommer
- * spørsmålene som er meldt som feil, med delkapittel, tekst, tema og kommentar.
+ * sammendragene som er meldt som feil, med delkapittel, tittel og kommentar, og så spørsmålene som er
+ * meldt som feil, med delkapittel, tekst, tema og kommentar.
  */
 export function describeImport(
   chapter: ChapterInput,
@@ -406,6 +436,7 @@ export function describeImport(
   summaries: SummaryOutcome[] = [],
   questionBanks: QuestionBankOutcome[] = [],
   reported: ReportedQuestion[] = [],
+  reportedSummaries: ReportedSummary[] = [],
 ): string[] {
   const titles = new Map(chapter.subchapters.map((s) => [s.number, s.title]));
   const summaryByNumber = new Map(summaries.map((s) => [s.number, s]));
@@ -423,6 +454,12 @@ export function describeImport(
     summaries.every(quiet) &&
     questionBanks.every(quiet);
   if (allUnchanged) lines.push(importMessages.allUnchanged);
+  if (reportedSummaries.length > 0) {
+    lines.push(importMessages.summaryReportedHeading);
+    for (const r of reportedSummaries) {
+      lines.push(`  ${r.number} ${r.title}: ${r.comment ?? importMessages.noComment}`);
+    }
+  }
   if (reported.length > 0) {
     lines.push(importMessages.reportedHeading);
     for (const r of reported) {
@@ -435,14 +472,22 @@ export function describeImport(
 export type ImportReport = { stdout: string[]; stderr: string[]; code: 0 | 1 };
 
 /**
- * Det kommandoen skriver ut etter en vellykket lagring, og koden den avslutter med. Spørsmål som er
- * meldt som feil, endrer ikke koden.
+ * Det kommandoen skriver ut etter en vellykket lagring, og koden den avslutter med. Sammendrag og
+ * spørsmål som er meldt som feil, endrer ikke koden.
  */
 export function reportImport(result: Extract<ImportChapterResult, { status: "ok" }>): ImportReport {
   const { summaries, questionBanks } = result;
-  const stdout = describeImport(result.chapter, result.report, summaries, questionBanks, result.questionReports ?? []);
+  const stdout = describeImport(
+    result.chapter,
+    result.report,
+    summaries,
+    questionBanks,
+    result.questionReports ?? [],
+    result.summaryReports ?? [],
+  );
   if (result.skippedQuestions.length > 0) stdout.push(importMessages.skippedQuestions(result.skippedQuestions));
   const stderr: string[] = [];
+  if (result.summaryReports === null) stderr.push(importMessages.summaryReportsUnavailable);
   if (result.questionReports === null) stderr.push(importMessages.reportsUnavailable);
   if (summaries.some((s) => s.status === "outdated")) stderr.push(importMessages.summariesOutdated);
   if (summaries.some((s) => s.status === "failed")) stderr.push(importMessages.summariesFailed);

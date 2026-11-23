@@ -9,7 +9,7 @@ modell: claude-code/claude-opus-5-5
 
 ### 1.1 Det moderne globale forretningsmiljøet
 <!-- inputHash: ffbb2c8ce19cbaa222ef8ac004f6ca7acd7d7fe22097fdc94ed46bad9ea63cd4 -->
-Organisasjoner skaper verdi ved å levere et produkt eller en tjeneste. Bedrifter lager fysiske produkter, som biler og klær, mens andre lager immaterielle «produkter», som en skole som tilbyr utdanning. Uansett type skjer det gjennom en **forretningsprosess**: en rekke trinn eller aktiviteter som gjør inndata om til et resultat (output).
+Organisasjoner skaper verdi ved å levere et produkt eller en tjeneste. Bedrifter lager fysiske produkter, som biler og klær, mens andre lager immaterielle «produkter», som en skole som tilbyr utdanning. Uansett type skjer det gjennom en **prosess**: en rekke trinn eller aktiviteter som gjør inndata om til et resultat (output). Når trinnene går på tvers av to eller flere avdelinger, er det en **forretningsprosess** (se definisjonen under).
 
 **Inndata og output.** Inndata er komponentene du trenger, output er det ferdige produktet. Brett, hjul, muttere og bolter (inndata) blir et skateboard (output).
 
