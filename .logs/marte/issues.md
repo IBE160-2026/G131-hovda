@@ -90,5 +90,6 @@
 - [ ] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — bekreft lesesiden for 1.1 i `dev` etter rettingen: ny tekst, ingen melding om feil, og «Meld feil i sammendraget» tilbake
 - [ ] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — quizspørsmålet «Hvilke tre grunnleggende prosesser fokuserer de fleste diskusjoner på?» (1.1) er meldt som feil i `dev`; rett det i innholdsfila
 - [x] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — før merge av 1.9b til `main`: kjør `20261122130000_summary_reports.sql` mot `prod` (krever ja fra Marte); ellers feiler lesesiden i prod (løst 2026-11-23: kjørt mot `prod`)
-- [ ] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — push grenen og merge PR-en for 1.9b, og sjekk «Meld feil i sammendraget» i prod etter deploy; sett så 1-9 til `done`
+- [x] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — push grenen og merge PR-en for 1.9b, og sjekk «Meld feil i sammendraget» i prod etter deploy; sett så 1-9 til `done` (pushet 2026-11-23, PR #9; merge og prod-sjekken står i eget punkt)
 - [ ] 2026-11-22 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — ingen automatisk test leser feilrapportene med service-nøkkelen slik importen gjør (1.9a og 1.9b; se deferred-work.md)
+- [ ] 2026-11-23 [story-1-9b-bygg](973-2026-11-22-10-28-20-story-1-9b-bygg.md) — merge PR #9, sjekk «Meld feil i sammendraget» i prod etter deploy, og sett så 1-9 til `done`
