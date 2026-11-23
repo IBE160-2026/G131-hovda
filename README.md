@@ -37,7 +37,7 @@ npx supabase db push --remote                          # kjør nye migreringer m
 
 For `prod` kobles det til `frykrsmzrbdvijtaivcd` på samme måte, og etter `db push` tilbake til `dev`. Kjør migreringen mot `prod` før koden som bruker den, merges til `main` og deployes. Ellers får startsiden i prod feilmeldingen i stedet for kapittellisten.
 
-`npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`.
+`npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`. Testen av importens vei leser i tillegg `SUPABASE_SERVICE_ROLE_KEY` fra `.env.dev.local`, som importen.
 
 ### Importere notater, sammendrag og spørsmålsbanker
 
