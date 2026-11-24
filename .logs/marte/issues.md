@@ -103,4 +103,4 @@
 - [x] 2026-11-23 [story-2-1-spesifikasjon](970-2026-11-23-22-50-33-story-2-1-spesifikasjon.md) — merge PR #11 for kapittel 2 (`kapittel-2-innhold`) (løst 2026-11-23: merget som `ed99d36`)
 - [ ] 2026-11-23 [story-2-1-spesifikasjon](970-2026-11-23-22-50-33-story-2-1-spesifikasjon.md) — i 2.2: demofila har ingen notater eller hasher, så status kan ikke regnes med `listChapterOverview`; avgjør hvordan demoen viser status
 - [ ] 2026-11-23 [story-2-1-spesifikasjon](970-2026-11-23-22-50-33-story-2-1-spesifikasjon.md) — læringsutbyttet for IBE430 er tomt i `prod` og eksamensformen er bare «Muntlig»; fyll inn i appen og kjør `npm run export-demo` på nytt hvis demoen skal vise mer
-- [ ] 2026-11-23 [story-2-1-spesifikasjon](970-2026-11-23-22-50-33-story-2-1-spesifikasjon.md) — sett 2.1 til `done` i sprint-status når PR-en for `story-2-1-demodata` er merget
+- [ ] 2026-11-23 [story-2-1-spesifikasjon](970-2026-11-23-22-50-33-story-2-1-spesifikasjon.md) — sett 2.1 til `done` i sprint-status når PR-en for `story-2-1-demodata` er merget (PR #12)
