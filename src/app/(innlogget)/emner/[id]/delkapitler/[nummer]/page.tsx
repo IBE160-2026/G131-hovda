@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSubchapterSummary } from "@/application/chapterOverview";
-import { parseSummaryMarkdown, type InlineSegment } from "@/domain/summaryMarkdown";
 import { getDataSourceForRender } from "@/composition/server";
+import { SummaryArticle } from "../../../../../_screens/SummaryArticle";
+import { UnavailableMessage } from "../../../../../_screens/UnavailableMessage";
 import { OwnerOnly } from "../../../../OwnerOnly";
 import {
-  noSummaryMessage,
-  outdatedMessage,
   subchapterNotFoundMessage,
   summaryReportedMessage,
   summaryReportLabel,
-  unavailableMessage,
 } from "../../../formState";
 import { pageMain, primaryButton, textLink } from "../../../styles";
 import { reportSummaryAction } from "./actions";
@@ -45,13 +43,7 @@ export async function SubchapterSummary({
   if (!data) return null;
   const result = await getSubchapterSummary(data, id, nummer);
 
-  if (result.status === "unavailable") {
-    return (
-      <p role="alert" className="font-semibold text-error">
-        {unavailableMessage}
-      </p>
-    );
-  }
+  if (result.status === "unavailable") return <UnavailableMessage />;
   if (result.status === "notFound") {
     return (
       <div className="flex flex-col gap-3">
@@ -67,80 +59,36 @@ export async function SubchapterSummary({
 
   const { chapter, subchapter, summary, summaryStatus, quizReady, reported } = result;
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="text-sm font-semibold break-words text-muted">
-          Kapittel {chapter.number}: {chapter.title}
-        </p>
-        <h1 className="text-3xl leading-tight font-bold break-words sm:text-4xl">
-          {subchapter.number} <span className="font-normal">{subchapter.title}</span>
-        </h1>
-      </header>
-      {summary?.text ? (
+    <SummaryArticle
+      chapter={chapter}
+      subchapter={subchapter}
+      summary={summary}
+      summaryStatus={summaryStatus}
+      actions={
         <>
-          {summaryStatus !== "klart" && (
-            <p className="max-w-prose rounded-xl bg-sun px-4 py-3 font-semibold">{outdatedMessage}</p>
+          {quizReady && (
+            <form action={startQuizAction.bind(null, id, nummer)}>
+              <button type="submit" className={primaryButton}>
+                Ta quizen
+              </button>
+            </form>
           )}
-          <SummaryText text={summary.text} />
+          {summary?.text &&
+            (reported ? (
+              <p role="status" className="max-w-prose rounded-xl bg-sun px-4 py-3 font-semibold">
+                {summaryReportedMessage}
+              </p>
+            ) : (
+              <div className="max-w-prose">
+                <ReportForm
+                  action={reportSummaryAction.bind(null, id, nummer, summary.id)}
+                  idPrefix="meld-sammendrag"
+                  label={summaryReportLabel}
+                />
+              </div>
+            ))}
         </>
-      ) : (
-        <p className="text-lg text-muted">{noSummaryMessage}</p>
-      )}
-      {quizReady && (
-        <form action={startQuizAction.bind(null, id, nummer)}>
-          <button type="submit" className={primaryButton}>
-            Ta quizen
-          </button>
-        </form>
-      )}
-      {summary?.text &&
-        (reported ? (
-          <p role="status" className="max-w-prose rounded-xl bg-sun px-4 py-3 font-semibold">
-            {summaryReportedMessage}
-          </p>
-        ) : (
-          <div className="max-w-prose">
-            <ReportForm
-              action={reportSummaryAction.bind(null, id, nummer, summary.id)}
-              idPrefix="meld-sammendrag"
-              label={summaryReportLabel}
-            />
-          </div>
-        ))}
-    </article>
-  );
-}
-
-function Inline({ segments }: { segments: InlineSegment[] }) {
-  return segments.map((segment, i) =>
-    segment.kind === "bold" ? <strong key={i}>{segment.text}</strong> : <span key={i}>{segment.text}</span>,
-  );
-}
-
-/** Sammendraget med avsnitt, punktlister og fet tekst. React escaper teksten, så ingen HTML slipper gjennom. */
-function SummaryText({ text }: { text: string }) {
-  return (
-    <div className="flex max-w-prose flex-col gap-4 text-lg leading-relaxed break-words">
-      {parseSummaryMarkdown(text).map((block, i) =>
-        block.kind === "list" ? (
-          <ul key={i} className="flex list-disc flex-col gap-2 pl-6">
-            {block.items.map((item, j) => (
-              <li key={j}>
-                <Inline segments={item} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p key={i}>
-            {block.lines.map((line, j) => (
-              <span key={j}>
-                {j > 0 && <br />}
-                <Inline segments={line} />
-              </span>
-            ))}
-          </p>
-        ),
-      )}
-    </div>
+      }
+    />
   );
 }

@@ -65,3 +65,7 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-1-9b-eieren-sier-fra-om-feil-i-sammendrag.md`
   summary: No automated test runs the import's read of `summary_reports` (or `question_reports`) through a service-role client, so a missing grant or broken embed would only show in a manual `--target dev` import.
   evidence: `dataSource.test.ts` mocks the client, `importChapter.summaries.test.ts` uses `MemoryDataSource`, and `rls.dev.test.ts` runs `listSummaryReports` as the authenticated test user; the import CLI (`src/composition/script.ts`) uses the service key. A service-role case in `rls.dev.test.ts` asserting a reported version comes back would settle it.
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-2-2-hvem-som-helst-kan-apne-demoen-og-lese-sammendrag.md`
+  summary: The effect in `useDemoResult` (leaving «Laster …», the stale-`load` guard) and the demo wrappers' wiring of `id` and `nummer` are not covered by any automated test.
+  evidence: The repo has no DOM test setup (no jsdom or testing-library), so effects never run in tests; `demoScreens.test.ts` renders only the `*View` components with results computed in the test. The manual browser check in the spec covers it until a DOM test setup exists.
