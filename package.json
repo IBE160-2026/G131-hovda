@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:dev": "vitest run --config vitest.dev.config.ts",
     "import": "tsx scripts/import.ts",
-    "innhold:hash": "tsx scripts/contentHashes.ts"
+    "innhold:hash": "tsx scripts/contentHashes.ts",
+    "export-demo": "tsx scripts/export-demo.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

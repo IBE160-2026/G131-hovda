@@ -59,3 +59,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Midlertidig fil fra npm run export-demo
+demo-data/*.tmp

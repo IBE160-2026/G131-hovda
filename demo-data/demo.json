@@ -1,0 +1,2004 @@
+{
+  "schemaVersion": 1,
+  "course": {
+    "id": "demo-ibe430",
+    "code": "IBE430",
+    "name": "Forretningsprosesser og ERP",
+    "learningOutcomes": "Kunnskap\n- kunne modeller for forretningsprosessene innkjøp, salg, produksjon og integrerte forretningsprosesser\n- vite hvordan forretningsprosessene støttes og automatiseres av et ERP-system\n\nFerdigheter\n- kunne gjennomføre forretningsprosessene salg, innkjøp, kundeservice og produksjon i et ERP system\n- kunne koble modeller for forretningsprosessene med gjennomføring av prosessene\n- kunne beskrive arbeidsflyt, dataflyt, dokumentflyt og informasjonsflyt, både med og uten ERP-system\n\nKompetanse\n- bidra i anvendelse og vurdering av de mest sentrale aspektene ved ERP-system for informasjonsbehandling i en bedrift",
+    "examForm": "Muntlig hjemmeeksamen via videokonferanse, 15 minutter, individuell, bokstavkarakter A–F. Hjelpemidler: kun dokumentasjon fra pensum delt av faglærer i videokonferansen."
+  },
+  "chapters": [
+    {
+      "number": 1,
+      "title": "Organisasjoner, forretningsprosesser og informasjonssystemer",
+      "subchapters": [
+        {
+          "id": "demo-1.1",
+          "number": "1.1",
+          "title": "Det moderne globale forretningsmiljøet",
+          "summary": "Organisasjoner skaper verdi ved å levere et produkt eller en tjeneste. Bedrifter lager fysiske produkter, som biler og klær, mens andre lager immaterielle «produkter», som en skole som tilbyr utdanning. Uansett type skjer det gjennom en **prosess**: en rekke trinn eller aktiviteter som gjør inndata om til et resultat (output). Når trinnene går på tvers av to eller flere avdelinger, er det en **forretningsprosess** (se definisjonen under).\n\n**Inndata og output.** Inndata er komponentene du trenger, output er det ferdige produktet. Brett, hjul, muttere og bolter (inndata) blir et skateboard (output).\n\n**Tre kjerneprosesser** finnes i de fleste bedrifter:\n\n- **Anskaffelse:** organisasjonen skaffer materialene den trenger. Når behovet er kjent, fylles det ut en innkjøpsrekvisisjon, og leverandøren sender varene og en faktura.\n- **Produksjon:** varene eller tjenestene lages.\n- **Oppfyllelse:** varen eller tjenesten leveres til kunder eller forhandlere, altså å oppfylle en kundeordre.\n\nI virkeligheten er prosessene ganske komplekse og varierer mellom bransjer og bedrifter. Arbeidet går på tvers av ulike deler av organisasjonen, og arbeid bare innenfor funksjoner har store begrensninger i dagens globale konkurranse.\n\n**Definisjonen.** En forretningsprosess er en samling aktiviteter som utføres av to eller flere avdelinger for å produsere et produkt eller en tjeneste til en kunde. En prosess består av aktiviteter generelt, mens en forretningsprosess består av aktiviteter i to eller flere avdelinger.\n\n**Globalisering.** Produkter blir sjelden laget i ett land. De designes ett sted, delene produseres et annet, monteringen skjer et tredje, og service kommer fra enda et land. Bedrifter flytter for eksempel produksjon dit arbeidskraften er billigere, og forskning dit det finnes mange høyt utdannede forskere og ingeniører.\n\n**Informasjonsrevolusjonen** er økt bruk av informasjons- og kommunikasjonsteknologi (IKT) for å opprette, levere og bruke informasjon. IKT gjør det mulig å koordinere prosesser over hele verden uten at alle er på samme sted samtidig, og muliggjør, støtter og oppmuntrer slik til globalisering. Baksiden er at organisasjonen blir kritisk avhengig av IKT: virker den ikke, kan hele organisasjonen stoppe opp.\n\n**Kunnskapsarbeidere** bruker IKT til å skape, tilegne seg, bearbeide, formidle, analysere og bruke informasjon for å bli mer produktive. Eksempler er produktsjefer, salgsledere, produksjonsledere og finansanalytikere. Arbeidet er vanligvis ikke-rutinemessig og krever både:\n\n- **strukturert informasjon**, som er veldefinert og har kjent kilde, og\n- **ustrukturert informasjon**, som ikke er veldefinert eller lett tilgjengelig.\n\nNotatet har to lister over nøkkelferdigheter for kunnskapsarbeidere. Den ene er å være en effektiv deltaker i prosjektteam, se det store bildet og vite hvilken informasjon du trenger, finne den og bruke den. Den andre er å tenke strategisk, ha informasjonskompetanse og kommunisere og samarbeide godt.",
+          "themes": [
+            {
+              "id": "demo-1.1-t1"
+            },
+            {
+              "id": "demo-1.1-t2"
+            },
+            {
+              "id": "demo-1.1-t3"
+            },
+            {
+              "id": "demo-1.1-t4"
+            },
+            {
+              "id": "demo-1.1-t5"
+            },
+            {
+              "id": "demo-1.1-t6"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.1-q01",
+              "themeId": "demo-1.1-t1",
+              "question": "Hva er definisjonen på en forretningsprosess?",
+              "options": [
+                "En forretningsprosess er en samling aktiviteter som utføres i én avdeling for å lage et produkt til lageret.",
+                "En forretningsprosess er en samling aktiviteter som utføres av to eller flere avdelinger for å produsere et produkt eller en tjeneste til en kunde.",
+                "En forretningsprosess er et IT-system som registrerer alle transaksjoner som skjer i en bedrift.",
+                "En forretningsprosess er én enkelt aktivitet som en ansatt utfører for en kunde."
+              ],
+              "correctIndex": 1,
+              "explanation": "Det er brukerens egen definisjon: aktiviteter i to eller flere avdelinger som gir et produkt eller en tjeneste til en kunde."
+            },
+            {
+              "id": "demo-1.1-q02",
+              "themeId": "demo-1.1-t1",
+              "question": "Hva skiller en forretningsprosess fra en prosess generelt?",
+              "options": [
+                "En forretningsprosess har alltid bare ett trinn.",
+                "En forretningsprosess gjelder bare fysiske produkter.",
+                "Aktivitetene i en forretningsprosess utføres i to eller flere avdelinger.",
+                "En forretningsprosess utføres alltid av ett IT-system alene."
+              ],
+              "correctIndex": 2,
+              "explanation": "En prosess består av aktiviteter generelt, mens aktivitetene i en forretningsprosess utføres i to eller flere avdelinger."
+            },
+            {
+              "id": "demo-1.1-q03",
+              "themeId": "demo-1.1-t1",
+              "question": "Hva består en prosess av?",
+              "options": [
+                "Flere sekvensielle trinn eller aktiviteter som produserer et resultat",
+                "Én beslutning som ledelsen tar",
+                "Et sett med avdelinger uten felles mål",
+                "En liste over alle kontoene i regnskapet"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at en prosess består av flere sekvensielle trinn eller aktiviteter som produserer et resultat eller output."
+            },
+            {
+              "id": "demo-1.1-q04",
+              "themeId": "demo-1.1-t1",
+              "question": "Hvor utføres trinnene i forretningsprosessene i en organisasjon?",
+              "options": [
+                "Bare i ledelsen",
+                "Bare i IT-avdelingen",
+                "Bare hos leverandørene",
+                "I ulike deler av organisasjonen"
+              ],
+              "correctIndex": 3,
+              "explanation": "Forretningsprosessene består av ulike trinn som utføres i ulike deler av organisasjonen."
+            },
+            {
+              "id": "demo-1.1-q05",
+              "themeId": "demo-1.1-t2",
+              "question": "Hvilke tre grunnleggende prosesser fokuserer de fleste diskusjoner på?",
+              "options": [
+                "Rekruttering, opplæring og evaluering",
+                "Anskaffelse, produksjon og oppfyllelse",
+                "Markedsføring, salg og ettersalgsservice",
+                "Budsjettering, regnskap og revisjon"
+              ],
+              "correctIndex": 1,
+              "explanation": "Anskaffelse, produksjon og oppfyllelse regnes som kjerneprosessene i de fleste bedrifter."
+            },
+            {
+              "id": "demo-1.1-q06",
+              "themeId": "demo-1.1-t2",
+              "question": "Hva skjer i anskaffelsesprosessen?",
+              "options": [
+                "Selskapet leverer varen eller tjenesten til kundene.",
+                "Selskapet lager de ønskede varene og tjenestene.",
+                "Organisasjonen skaffer materialene den trenger for å produsere varer eller tjenester.",
+                "Selskapet ansetter nye medarbeidere."
+              ],
+              "correctIndex": 2,
+              "explanation": "I anskaffelsesprosessen skaffer organisasjonen de grunnleggende materialene den bruker i produksjonen."
+            },
+            {
+              "id": "demo-1.1-q07",
+              "themeId": "demo-1.1-t2",
+              "question": "Hva handler oppfyllelsesprosessen om?",
+              "options": [
+                "Å kjøpe inn råvarer fra leverandører",
+                "Å planlegge kapasiteten i produksjonen",
+                "Å utarbeide regnskapet for perioden",
+                "Å oppfylle en kundeordre ved å levere varen eller tjenesten"
+              ],
+              "correctIndex": 3,
+              "explanation": "Oppfyllelsesprosessen handler om å oppfylle en kundeordre, altså levere varen eller tjenesten til kunder eller forhandlere."
+            },
+            {
+              "id": "demo-1.1-q08",
+              "themeId": "demo-1.1-t2",
+              "question": "Hva fylles ut i anskaffelsesprosessen når man vet hvor mye man trenger?",
+              "options": [
+                "En innkjøpsrekvisisjon",
+                "En faktura",
+                "En kundeordre",
+                "En betaling"
+              ],
+              "correctIndex": 0,
+              "explanation": "Når behovet er kjent, fullføres en innkjøpsrekvisisjon. Leverandøren sender så varene og en faktura."
+            },
+            {
+              "id": "demo-1.1-q09",
+              "themeId": "demo-1.1-t3",
+              "question": "Hva er inndata i en prosess?",
+              "options": [
+                "Det ferdige produktet",
+                "Komponentene man trenger for å sette sammen produktet",
+                "Fakturaen fra leverandøren",
+                "Kundens bestilling av produktet"
+              ],
+              "correctIndex": 1,
+              "explanation": "Inndata er de ulike komponentene man trenger for å sette sammen produktet."
+            },
+            {
+              "id": "demo-1.1-q10",
+              "themeId": "demo-1.1-t3",
+              "question": "Brett, hjul, muttere og bolter blir til et skateboard. Hva er output her?",
+              "options": [
+                "Brettet og hjulene",
+                "Mutterne og boltene",
+                "Innkjøpsrekvisisjonen",
+                "Det ferdige skateboardet"
+              ],
+              "correctIndex": 3,
+              "explanation": "Output er resultatet, det ferdige produktet. Brett, hjul, muttere og bolter er inndata."
+            },
+            {
+              "id": "demo-1.1-q11",
+              "themeId": "demo-1.1-t4",
+              "question": "Hva er et typisk tegn på at vi lever i et globalt konkurransepreget miljø?",
+              "options": [
+                "De fleste produkter lages fra start til slutt i ett land.",
+                "Bedrifter selger bare til kunder i hjemlandet.",
+                "Et produkt designes i ett land, delene lages i et annet og det monteres i et tredje.",
+                "Service gis alltid fra samme sted som produktet lages."
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at det er sjelden et produkt designes og produseres utelukkende i ett land."
+            },
+            {
+              "id": "demo-1.1-q12",
+              "themeId": "demo-1.1-t4",
+              "question": "Hvorfor har selskaper flyttet produksjon til andre land?",
+              "options": [
+                "For å dra nytte av billigere arbeidskraft",
+                "For å slippe å bruke IKT",
+                "For å få færre kunder",
+                "For å slippe forretningsprosesser"
+              ],
+              "correctIndex": 0,
+              "explanation": "Selskaper har flyttet produksjonen til steder der arbeidskraften er billigere."
+            },
+            {
+              "id": "demo-1.1-q13",
+              "themeId": "demo-1.1-t4",
+              "question": "Hvorfor har selskaper overført forskning og utvikling til andre steder?",
+              "options": [
+                "Fordi arbeidskraften der er billigst og ufaglært",
+                "Fordi stedene har mange høyt utdannede forskere og ingeniører",
+                "Fordi kundene der ikke trenger informasjon",
+                "Fordi forskning er forbudt i hjemlandet"
+              ],
+              "correctIndex": 1,
+              "explanation": "Forskning og utvikling er flyttet til steder med et rikelig antall høyt utdannede forskere og ingeniører."
+            },
+            {
+              "id": "demo-1.1-q14",
+              "themeId": "demo-1.1-t5",
+              "question": "Hva refererer informasjonsrevolusjonen til?",
+              "options": [
+                "At bedrifter slutter å bruke internett og e-post",
+                "At all informasjon samles i ett land",
+                "At organisasjoner deler mindre informasjon enn før",
+                "Økt bruk av IKT for å opprette, levere og bruke informasjon"
+              ],
+              "correctIndex": 3,
+              "explanation": "Informasjonsrevolusjonen er økt bruk av informasjons- og kommunikasjonsteknologi for å opprette, levere og bruke informasjon."
+            },
+            {
+              "id": "demo-1.1-q15",
+              "themeId": "demo-1.1-t5",
+              "question": "Hvordan har IKT hjulpet organisasjoner med å globalisere driften?",
+              "options": [
+                "Ved å gjøre det mulig å koordinere forretningsprosesser over hele verden",
+                "Ved å flytte alle ansatte til samme sted",
+                "Ved å gjøre leverandører unødvendige",
+                "Ved å fjerne behovet for informasjon"
+              ],
+              "correctIndex": 0,
+              "explanation": "IKT gjør det mulig å koordinere prosesser som utføres over hele verden, uten at alle må være på samme sted til samme tid."
+            },
+            {
+              "id": "demo-1.1-q16",
+              "themeId": "demo-1.1-t5",
+              "question": "Hva er faren ved at organisasjoner blir kritisk avhengige av IKT?",
+              "options": [
+                "At de ansatte må jobbe på samme sted til samme tid",
+                "At de ikke lenger trenger kunnskapsarbeidere",
+                "At hele organisasjonen ikke kan fungere hvis IKT svikter",
+                "At de blir mindre produktive når IKT virker"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at hvis IKT ikke fungerer slik den skal, kan ikke hele organisasjonen fungere."
+            },
+            {
+              "id": "demo-1.1-q17",
+              "themeId": "demo-1.1-t6",
+              "question": "Hva er en kunnskapsarbeider?",
+              "options": [
+                "En som bare utfører rutinemessige oppgaver på et lager",
+                "En som bruker IKT til å skape, bearbeide, analysere og bruke informasjon for å bli mer produktiv",
+                "En som jobber uten informasjon fra andre",
+                "En som bare arbeider i forskning og utvikling"
+              ],
+              "correctIndex": 1,
+              "explanation": "En kunnskapsarbeider bruker IKT til å skape, tilegne seg, bearbeide, formidle, analysere og bruke informasjon."
+            },
+            {
+              "id": "demo-1.1-q18",
+              "themeId": "demo-1.1-t6",
+              "question": "Hvilken av disse nevnes som eksempel på en kunnskapsarbeider?",
+              "options": [
+                "Lagerarbeider",
+                "Sjåfør",
+                "Montør",
+                "Finansanalytiker"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet nevner produktsjefer, salgsledere, produksjonsledere og finansanalytikere som eksempler."
+            },
+            {
+              "id": "demo-1.1-q19",
+              "themeId": "demo-1.1-t6",
+              "question": "Hva er forskjellen på strukturert og ustrukturert informasjon?",
+              "options": [
+                "Strukturert informasjon er veldefinert med kjent kilde, ustrukturert er ikke veldefinert eller lett tilgjengelig.",
+                "Strukturert informasjon er på papir, ustrukturert informasjon er digital.",
+                "Strukturert informasjon kommer fra kunder, ustrukturert fra leverandører.",
+                "Strukturert informasjon er hemmelig, ustrukturert informasjon er offentlig."
+              ],
+              "correctIndex": 0,
+              "explanation": "Strukturert informasjon er veldefinert og kilden er kjent. Ustrukturert er ikke veldefinert eller lett tilgjengelig."
+            },
+            {
+              "id": "demo-1.1-q20",
+              "themeId": "demo-1.1-t6",
+              "question": "Hvorfor kalles kunnskapsarbeid vanligvis ikke-rutinemessig?",
+              "options": [
+                "Fordi det bare gjøres én gang i året",
+                "Fordi det alltid gjøres av maskiner",
+                "Fordi det ikke gjentas i løpet av arbeidsdagen eller uken",
+                "Fordi det ikke krever informasjon"
+              ],
+              "correctIndex": 2,
+              "explanation": "Kunnskapsarbeid er ikke-rutinemessig ved at det ikke gjentas i løpet av arbeidsdagen eller uken."
+            }
+          ]
+        },
+        {
+          "id": "demo-1.2",
+          "number": "1.2",
+          "title": "Den funksjonelle organisasjonsstrukturen",
+          "summary": "Aktivitetene i en prosess utføres av mennesker i ulike deler av organisasjonen. Måten de ansatte grupperes på, bestemmer organisasjonens struktur, og det påvirker hvor godt prosessene utføres.\n\nDen vanligste strukturen er den **funksjonelle**: organisasjonen er delt inn i funksjoner eller avdelinger som hver har ansvar for nært beslektede aktiviteter. Regnskap sender og mottar fakturaer, og lageret mottar og sender varer. Typiske avdelinger og hva de gjør:\n\n- **Innkjøp:** velger leverandør og sender bestillinger.\n- **Lager:** mottar varer, kontrollerer kvalitet, klargjør og sender varer, tar imot returer.\n- **Drift:** planlegger kapasitet og produksjon, designer arbeidsflyt, produserer og kontrollerer kvalitet.\n- **Markedsføring og salg:** finner kunder, følger opp kundeforhold, markedsfører, tar imot og setter i gang kundeordrer, yter ettersalgsservice.\n- **Forskning og utvikling:** forsker og utvikler produkter og prosesser.\n- **Finans og regnskap:** behandler inn- og utbetalinger, styrer kapitalbehov og utarbeider regnskap.\n- **Personal:** finner behov for arbeidskraft, rekrutterer, lærer opp, evaluerer og administrerer kompensasjon, rettigheter og fordeler.\n- **Informasjonssystemer:** behandler og registrerer transaksjoner og gir informasjon og verktøy for å overvåke prosesser og oppdage og løse problemer.\n\n**Ulempen** er at arbeid bare innenfor funksjoner har store begrensninger i dagens globale konkurranse. Problemene kommer av **silo-effekten** og dårlig koordinering på tvers av prosesser. Vanlige følger er forsinkelser, for stor lagerbeholdning og lite synlighet mellom avdelinger.\n\n**Silo-effekten** er når avdelinger jobber isolert, holder igjen informasjon og har konkurrerende eller motstridende mål. Hver avdeling og ansatt fokuserer så mye på sine egne aktiviteter at de ikke ser hva som er best for bedriften som helhet. Symptomene er:\n\n- dårlig flyt av informasjon og ressurser mellom avdelinger\n- dobbeltarbeid\n- lavere kvalitet: dårligere kundeservice, tregere innovasjon og lavere produktivitet\n- dårligere samhold og arbeidsmiljø",
+          "themes": [
+            {
+              "id": "demo-1.2-t1"
+            },
+            {
+              "id": "demo-1.2-t2"
+            },
+            {
+              "id": "demo-1.2-t3"
+            },
+            {
+              "id": "demo-1.2-t4"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.2-q01",
+              "themeId": "demo-1.2-t1",
+              "question": "Hva er den vanligste organisasjonsstrukturen?",
+              "options": [
+                "Funksjonsstrukturen",
+                "Prosesstrukturen",
+                "Prosjektstrukturen",
+                "Nettverksstrukturen"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at den vanligste organisasjonsstrukturen er funksjonsstrukturen."
+            },
+            {
+              "id": "demo-1.2-q02",
+              "themeId": "demo-1.2-t1",
+              "question": "Hvordan er en funksjonell organisasjon delt inn?",
+              "options": [
+                "I prosjekter som varer noen uker",
+                "I funksjoner eller avdelinger som har ansvar for nært beslektede aktiviteter",
+                "I geografiske regioner uten avdelinger",
+                "I kundegrupper med hvert sitt system"
+              ],
+              "correctIndex": 1,
+              "explanation": "Organisasjonen er delt inn i funksjoner, eller avdelinger, som hver har ansvar for et sett med nært beslektede aktiviteter."
+            },
+            {
+              "id": "demo-1.2-q03",
+              "themeId": "demo-1.2-t1",
+              "question": "Hva bestemmer organisasjonens struktur og design?",
+              "options": [
+                "Hvor mange produkter selskapet selger",
+                "Hvilket ERP-system selskapet bruker",
+                "Måten selskapet grupperer sine ansatte på",
+                "Hvor mange kunder selskapet har"
+              ],
+              "correctIndex": 2,
+              "explanation": "Måten selskapene grupperer sine ansatte på, bestemmer organisasjonens struktur og design."
+            },
+            {
+              "id": "demo-1.2-q04",
+              "themeId": "demo-1.2-t1",
+              "question": "Hvorfor er grupperingen av de ansatte viktig for prosessene?",
+              "options": [
+                "Fordi alle aktivitetene i en prosess utføres av én person",
+                "Fordi grupperingen bare påvirker lønnen",
+                "Fordi aktivitetene i prosessene utføres av kundene",
+                "Fordi den har betydning for hvor godt de ulike prosessene utføres"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at grupperingen har betydelige implikasjoner for hvor godt de ulike prosessene utføres."
+            },
+            {
+              "id": "demo-1.2-q05",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling velger leverandør og sender bestilling til leverandøren?",
+              "options": [
+                "Lager",
+                "Innkjøp",
+                "Personal",
+                "Forskning og utvikling"
+              ],
+              "correctIndex": 1,
+              "explanation": "Innkjøp velger leverandør og oppretter og sender bestillingen."
+            },
+            {
+              "id": "demo-1.2-q06",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling utfører kvalitetskontroll av mottatte varer?",
+              "options": [
+                "Innkjøp",
+                "Markedsføring og salg",
+                "Lager",
+                "Finans og regnskap"
+              ],
+              "correctIndex": 2,
+              "explanation": "Lageret henter varer fra leverandør og utfører kvalitetskontroll av mottatte varer."
+            },
+            {
+              "id": "demo-1.2-q07",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling planlegger kapasitet og produksjon?",
+              "options": [
+                "Drift",
+                "Lager",
+                "Personal",
+                "Innkjøp"
+              ],
+              "correctIndex": 0,
+              "explanation": "Drift planlegger kapasitet, designer arbeidsflyt og planlegger og utfører produksjon."
+            },
+            {
+              "id": "demo-1.2-q08",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling mottar kundeordrer og yter ettersalgsservice?",
+              "options": [
+                "Drift",
+                "Finans og regnskap",
+                "Lager",
+                "Markedsføring og salg"
+              ],
+              "correctIndex": 3,
+              "explanation": "Markedsføring og salg mottar kundeordrer, igangsetter behandlingen av dem og yter ettersalgsservice."
+            },
+            {
+              "id": "demo-1.2-q09",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling behandler innbetalinger fra kunder og utarbeider regnskap?",
+              "options": [
+                "Personal",
+                "Finans og regnskap",
+                "Innkjøp",
+                "Informasjonssystemer"
+              ],
+              "correctIndex": 1,
+              "explanation": "Finans og regnskap behandler inn- og utbetalinger, administrerer kapitalbehov og utarbeider regnskap."
+            },
+            {
+              "id": "demo-1.2-q10",
+              "themeId": "demo-1.2-t2",
+              "question": "Hvilken avdeling rekrutterer og lærer opp ansatte?",
+              "options": [
+                "Drift",
+                "Markedsføring og salg",
+                "Personal",
+                "Forskning og utvikling"
+              ],
+              "correctIndex": 2,
+              "explanation": "Personal identifiserer arbeidsstyrkebehov, rekrutterer, lærer opp og evaluerer ansatte."
+            },
+            {
+              "id": "demo-1.2-q11",
+              "themeId": "demo-1.2-t3",
+              "question": "Hva forårsaker problemene med arbeid innenfor funksjoner?",
+              "options": [
+                "Silo-effekten og dårlig koordinering av aktiviteter på tvers av prosesser",
+                "At avdelingene deler for mye informasjon med hverandre",
+                "At bedriften har én felles database",
+                "At kundene bestiller for sjelden"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at problemene er forårsaket av silo-effekten og dårlig koordinering på tvers av prosesser."
+            },
+            {
+              "id": "demo-1.2-q12",
+              "themeId": "demo-1.2-t3",
+              "question": "Hvilke vanlige problemer gir funksjonell organisering?",
+              "options": [
+                "For lite lager, for rask levering og full oversikt",
+                "For mange leverandører og for lave priser",
+                "Forsinkelser, for stor lagerbeholdning og lite synlighet på tvers av avdelinger",
+                "For få avdelinger og for mye samarbeid"
+              ],
+              "correctIndex": 2,
+              "explanation": "Vanlige problemer er forsinkelser, for stor lagerbeholdning og lite synlighet mellom eller på tvers av avdelinger."
+            },
+            {
+              "id": "demo-1.2-q13",
+              "themeId": "demo-1.2-t3",
+              "question": "Hvorfor kan begrensningene ved arbeid innenfor funksjoner ikke tolereres i dag?",
+              "options": [
+                "Fordi lovverket forbyr avdelinger",
+                "Fordi kundene ikke lenger kjøper fysiske produkter",
+                "Fordi bedrifter ikke lenger har lager",
+                "Fordi dagens globale konkurranseklima ikke tåler dem"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at begrensningene ikke kan tolereres i dagens globale konkurranseklima."
+            },
+            {
+              "id": "demo-1.2-q14",
+              "themeId": "demo-1.2-t3",
+              "question": "Hva betyr «lite synlighet» som problem i en funksjonell organisasjon?",
+              "options": [
+                "At man ser lite av det som skjer mellom eller på tvers av avdelingene",
+                "At kundene ikke ser produktene i butikken",
+                "At regnskapet ikke viser resultatet",
+                "At leverandørene ikke får fakturaen"
+              ],
+              "correctIndex": 0,
+              "explanation": "Problemet er lite synlighet mellom eller på tvers av avdelinger."
+            },
+            {
+              "id": "demo-1.2-q15",
+              "themeId": "demo-1.2-t4",
+              "question": "Hva er silo-effekten?",
+              "options": [
+                "Det er når avdelingene deler all informasjon og har felles mål for hele bedriften.",
+                "Det er når en bedrift samler alle data i én felles database for alle avdelinger.",
+                "Det er når hver avdeling og hver ansatt fokuserer så mye på sine egne aktiviteter at de ikke ser hva som er best for bedriften som helhet.",
+                "Det er når ledelsen bestemmer alt, og de ansatte ikke får ta egne beslutninger."
+              ],
+              "correctIndex": 2,
+              "explanation": "Det er brukerens egen fasit: hver avdeling ser bare sine egne aktiviteter og mister helheten av syne."
+            },
+            {
+              "id": "demo-1.2-q16",
+              "themeId": "demo-1.2-t4",
+              "question": "Hva kjennetegner avdelinger som er rammet av silo-effekten?",
+              "options": [
+                "De deler ressurser og har felles mål.",
+                "De jobber isolert, holder igjen informasjon og har konkurrerende mål.",
+                "De bruker samme system og samarbeider tett.",
+                "De har ingen egne mål."
+              ],
+              "correctIndex": 1,
+              "explanation": "Silo-effekten er mangel på kommunikasjon og samarbeid, der avdelinger jobber isolert, holder igjen informasjon og har konkurrerende eller motstridende mål."
+            },
+            {
+              "id": "demo-1.2-q17",
+              "themeId": "demo-1.2-t4",
+              "question": "Hva betyr dobbeltarbeid som konsekvens av silo-effekten?",
+              "options": [
+                "Én ansatt har to jobber i samme avdeling.",
+                "Arbeidet gjøres to ganger fordi kunden klager.",
+                "Avdelingene jobber dobbelt så raskt.",
+                "Flere avdelinger gjør det samme arbeidet uten å vite om det."
+              ],
+              "correctIndex": 3,
+              "explanation": "Dobbeltarbeid betyr at flere avdelinger gjør det samme arbeidet uten å vite om det."
+            },
+            {
+              "id": "demo-1.2-q18",
+              "themeId": "demo-1.2-t4",
+              "question": "Hva er «dårlig flyt» som symptom på silo-effekten?",
+              "options": [
+                "Informasjon og ressurser deles ikke mellom avdelinger.",
+                "Varene kommer for raskt fra leverandøren.",
+                "Kundene betaler for sent.",
+                "Produksjonen har for mange maskiner."
+              ],
+              "correctIndex": 0,
+              "explanation": "Dårlig flyt betyr at informasjon og ressurser ikke deles mellom avdelinger."
+            },
+            {
+              "id": "demo-1.2-q19",
+              "themeId": "demo-1.2-t4",
+              "question": "Hvilken konsekvens av silo-effekten kalles lavere kvalitet?",
+              "options": [
+                "Spenninger og dårligere arbeidsmiljø",
+                "Dårligere kundeservice, tregere innovasjon og lavere produktivitet",
+                "At flere avdelinger gjør samme arbeid",
+                "At informasjon ikke deles mellom avdelinger"
+              ],
+              "correctIndex": 1,
+              "explanation": "Lavere kvalitet er dårligere kundeservice, tregere innovasjon og lavere produktivitet."
+            },
+            {
+              "id": "demo-1.2-q20",
+              "themeId": "demo-1.2-t4",
+              "question": "Hva menes med «dårligere samhold» som konsekvens av silo-effekten?",
+              "options": [
+                "Dårligere kundeservice",
+                "Dobbeltarbeid mellom avdelinger",
+                "Spenninger og dårligere arbeidsmiljø",
+                "For stor lagerbeholdning"
+              ],
+              "correctIndex": 2,
+              "explanation": "Dårligere samhold betyr spenninger og dårligere arbeidsmiljø."
+            }
+          ]
+        },
+        {
+          "id": "demo-1.3",
+          "number": "1.3",
+          "title": "Betydningen av informasjonssystemer",
+          "summary": "Delkapittelet skiller mellom to typer informasjonssystemer med ulikt fokus. (Hva informasjonssystemer gjør som funksjon, står i 1.2.)\n\n**Et funksjonelt informasjonssystem** er et system for én bestemt funksjon eller avdeling. Det\n\n- er utviklet for en spesifikk avdeling,\n- håndterer oppgaver innenfor et avgrenset fagområde,\n- optimaliserer arbeidet i den enkelte funksjonen, og\n- kan fungere relativt uavhengig av andre systemer.\n\n**Et bedriftssystem**, ofte kalt **ERP**, integrerer flere funksjoner og avdelinger i én samlet løsning. Eksempler er SAP, Visma, Oracle og Microsoft Dynamics. Det\n\n- dekker hele virksomheten,\n- samler data i en felles database,\n- integrerer prosesser på tvers av avdelinger, og\n- gir bedre informasjonsflyt og koordinering.\n\nKort sagt løser funksjonelle systemer behovene til én avdeling, mens bedriftssystemer samordner informasjon og prosesser på tvers av hele organisasjonen.",
+          "themes": [
+            {
+              "id": "demo-1.3-t1"
+            },
+            {
+              "id": "demo-1.3-t2"
+            },
+            {
+              "id": "demo-1.3-t3"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.3-q01",
+              "themeId": "demo-1.3-t1",
+              "question": "Hva er et funksjonelt informasjonssystem?",
+              "options": [
+                "Et system som dekker hele virksomheten",
+                "Et system for en bestemt funksjon eller avdeling i virksomheten",
+                "Et system som bare brukes av kundene",
+                "En felles database for alle bedrifter i en bransje"
+              ],
+              "correctIndex": 1,
+              "explanation": "Et funksjonelt informasjonssystem er et system for en bestemt funksjon eller avdeling."
+            },
+            {
+              "id": "demo-1.3-q02",
+              "themeId": "demo-1.3-t1",
+              "question": "Hvem er et funksjonelt informasjonssystem utviklet for?",
+              "options": [
+                "Hele virksomheten",
+                "Leverandørene",
+                "Alle avdelingene samtidig",
+                "En spesifikk avdeling"
+              ],
+              "correctIndex": 3,
+              "explanation": "Et kjennetegn er at systemet er utviklet for en spesifikk avdeling."
+            },
+            {
+              "id": "demo-1.3-q03",
+              "themeId": "demo-1.3-t1",
+              "question": "Hvilke oppgaver håndterer et funksjonelt informasjonssystem?",
+              "options": [
+                "Oppgaver innenfor et avgrenset fagområde",
+                "Alle oppgaver i hele organisasjonen",
+                "Bare oppgaver hos kundene",
+                "Oppgaver på tvers av alle avdelinger"
+              ],
+              "correctIndex": 0,
+              "explanation": "Det håndterer oppgaver innenfor et avgrenset fagområde."
+            },
+            {
+              "id": "demo-1.3-q04",
+              "themeId": "demo-1.3-t1",
+              "question": "Hva optimaliserer et funksjonelt informasjonssystem?",
+              "options": [
+                "Samarbeidet mellom alle avdelingene",
+                "Hele kjeden fra leverandør til kunde",
+                "Arbeidsprosessene i den enkelte funksjonen",
+                "Prosessene til konkurrentene"
+              ],
+              "correctIndex": 2,
+              "explanation": "Det optimaliserer arbeidsprosessene i den enkelte funksjonen."
+            },
+            {
+              "id": "demo-1.3-q05",
+              "themeId": "demo-1.3-t1",
+              "question": "Hvordan forholder et funksjonelt informasjonssystem seg til andre systemer?",
+              "options": [
+                "Det virker bare sammen med et ERP-system.",
+                "Det kan fungere relativt uavhengig av andre systemer.",
+                "Det krever at alle avdelinger bruker det.",
+                "Det må alltid kobles til kundenes systemer."
+              ],
+              "correctIndex": 1,
+              "explanation": "Et kjennetegn er at det kan fungere relativt uavhengig av andre systemer."
+            },
+            {
+              "id": "demo-1.3-q06",
+              "themeId": "demo-1.3-t1",
+              "question": "Hvilke behov løser funksjonelle informasjonssystemer, kort oppsummert?",
+              "options": [
+                "Behovet for å integrere hele organisasjonen",
+                "Behovet for én felles database",
+                "Behovene til en spesifikk avdeling",
+                "Behovet for samordning på tvers av avdelinger"
+              ],
+              "correctIndex": 2,
+              "explanation": "Kort oppsummert løser funksjonelle informasjonssystemer behovene til en spesifikk avdeling."
+            },
+            {
+              "id": "demo-1.3-q07",
+              "themeId": "demo-1.3-t2",
+              "question": "Hva kalles et bedriftssystem ofte?",
+              "options": [
+                "ERP",
+                "Funksjonelt informasjonssystem",
+                "Kontoplan",
+                "Silo"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at et bedriftssystem ofte kalles ERP."
+            },
+            {
+              "id": "demo-1.3-q08",
+              "themeId": "demo-1.3-t2",
+              "question": "Hva gjør et bedriftssystem?",
+              "options": [
+                "Det støtter bare én avdeling.",
+                "Det erstatter alle de ansatte.",
+                "Det integrerer flere funksjoner og avdelinger i en samlet løsning.",
+                "Det fungerer helt uavhengig av avdelingene."
+              ],
+              "correctIndex": 2,
+              "explanation": "Et bedriftssystem integrerer flere funksjoner og avdelinger i en samlet løsning."
+            },
+            {
+              "id": "demo-1.3-q09",
+              "themeId": "demo-1.3-t2",
+              "question": "Hvilket av disse er et eksempel på et bedriftssystem?",
+              "options": [
+                "E-post",
+                "Internett",
+                "En kontoplan",
+                "SAP"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet nevner SAP, Visma, Oracle og Microsoft Dynamics som eksempler."
+            },
+            {
+              "id": "demo-1.3-q10",
+              "themeId": "demo-1.3-t2",
+              "question": "Hvilken liste inneholder bare eksempler på bedriftssystemer?",
+              "options": [
+                "SAP, Visma, Oracle og Microsoft Dynamics",
+                "Internett, e-post, tale og video",
+                "Innkjøp, lager, drift og salg",
+                "Resultatregnskap, balanse, kontoplan og faktura"
+              ],
+              "correctIndex": 0,
+              "explanation": "SAP, Visma, Oracle og Microsoft Dynamics er eksemplene på bedriftssystemer i notatet."
+            },
+            {
+              "id": "demo-1.3-q11",
+              "themeId": "demo-1.3-t2",
+              "question": "Hvor samler et bedriftssystem dataene?",
+              "options": [
+                "I hver avdelings egne regneark",
+                "I en felles database",
+                "Hos leverandøren",
+                "Bare på papir"
+              ],
+              "correctIndex": 1,
+              "explanation": "Et kjennetegn ved bedriftssystemer er at de samler data i en felles database."
+            },
+            {
+              "id": "demo-1.3-q12",
+              "themeId": "demo-1.3-t2",
+              "question": "Hvor mye av virksomheten dekker et bedriftssystem?",
+              "options": [
+                "Bare økonomiavdelingen",
+                "Bare lageret",
+                "Bare én funksjon om gangen",
+                "Hele virksomheten"
+              ],
+              "correctIndex": 3,
+              "explanation": "Et bedriftssystem dekker hele virksomheten."
+            },
+            {
+              "id": "demo-1.3-q13",
+              "themeId": "demo-1.3-t2",
+              "question": "Hva gir et bedriftssystem bedre av?",
+              "options": [
+                "Silo-effekt og isolasjon",
+                "Informasjonsflyt og koordinering",
+                "Lagerbeholdning og forsinkelser",
+                "Dobbeltarbeid og konkurranse mellom avdelinger"
+              ],
+              "correctIndex": 1,
+              "explanation": "Bedriftssystemer gir bedre informasjonsflyt og koordinering."
+            },
+            {
+              "id": "demo-1.3-q14",
+              "themeId": "demo-1.3-t2",
+              "question": "Hva integrerer et bedriftssystem på tvers av avdelinger?",
+              "options": [
+                "Prosesser",
+                "Lønnsavtaler",
+                "Kontorlokaler",
+                "Konkurrentenes data"
+              ],
+              "correctIndex": 0,
+              "explanation": "Et bedriftssystem integrerer prosesser på tvers av avdelinger."
+            },
+            {
+              "id": "demo-1.3-q15",
+              "themeId": "demo-1.3-t3",
+              "question": "Hva har funksjonelle informasjonssystemer og bedriftssystemer til felles?",
+              "options": [
+                "Begge dekker hele virksomheten.",
+                "Begge er utviklet for én avdeling.",
+                "Begge er typer informasjonssystemer.",
+                "Begge er måter å føre regnskap på."
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at begge er typer informasjonssystemer, men med ulikt fokus."
+            },
+            {
+              "id": "demo-1.3-q16",
+              "themeId": "demo-1.3-t3",
+              "question": "Hva skiller funksjonelle informasjonssystemer fra bedriftssystemer?",
+              "options": [
+                "Bare det ene er et informasjonssystem.",
+                "De brukes i ulike land.",
+                "Det ene brukes bare av kundene.",
+                "De har ulikt fokus og bruksområde."
+              ],
+              "correctIndex": 3,
+              "explanation": "Begge er informasjonssystemer, men de har ulikt fokus og bruksområde."
+            },
+            {
+              "id": "demo-1.3-q17",
+              "themeId": "demo-1.3-t3",
+              "question": "Hvilken påstand stemmer med oppsummeringen i notatet?",
+              "options": [
+                "Funksjonelle systemer løser behovene til én avdeling, mens bedriftssystemer samordner hele organisasjonen.",
+                "Funksjonelle systemer samordner hele organisasjonen, mens bedriftssystemer løser behovene til én avdeling.",
+                "Begge typer systemer løser bare behovene til én avdeling.",
+                "Ingen av systemene håndterer informasjon på tvers."
+              ],
+              "correctIndex": 0,
+              "explanation": "Funksjonelle systemer løser behovene til en spesifikk avdeling, mens bedriftssystemer integrerer og samordner på tvers av hele organisasjonen."
+            },
+            {
+              "id": "demo-1.3-q18",
+              "themeId": "demo-1.3-t3",
+              "question": "Lageret har et eget system som bare håndterer lageroppgaver og fungerer uavhengig av andre systemer. Hvilken type system er det?",
+              "options": [
+                "Et bedriftssystem",
+                "Et funksjonelt informasjonssystem",
+                "En kontoplan",
+                "En forretningsprosess"
+              ],
+              "correctIndex": 1,
+              "explanation": "Et system for én avdeling som fungerer relativt uavhengig, er et funksjonelt informasjonssystem."
+            },
+            {
+              "id": "demo-1.3-q19",
+              "themeId": "demo-1.3-t3",
+              "question": "En bedrift samler data fra innkjøp, lager og regnskap i én felles database. Hvilken type system bruker den?",
+              "options": [
+                "Et funksjonelt informasjonssystem",
+                "En silo",
+                "Et bedriftssystem (ERP)",
+                "En dokumentflyt"
+              ],
+              "correctIndex": 2,
+              "explanation": "Et bedriftssystem samler data i en felles database og integrerer flere avdelinger."
+            },
+            {
+              "id": "demo-1.3-q20",
+              "themeId": "demo-1.3-t3",
+              "question": "Hvilket kjennetegn hører til bedriftssystemer og ikke til funksjonelle informasjonssystemer?",
+              "options": [
+                "Utviklet for en spesifikk avdeling",
+                "Håndterer et avgrenset fagområde",
+                "Kan fungere relativt uavhengig av andre systemer",
+                "Integrerer prosesser på tvers av avdelinger"
+              ],
+              "correctIndex": 3,
+              "explanation": "Å integrere prosesser på tvers av avdelinger er et kjennetegn ved bedriftssystemer. De tre andre gjelder funksjonelle systemer."
+            }
+          ]
+        },
+        {
+          "id": "demo-1.4",
+          "number": "1.4",
+          "title": "Flyter i forretningsprosesser",
+          "summary": "Flere flyter er knyttet til en prosess. Ressurser og informasjon flyter gjennom organisasjonen for å skape verdi, og flytene må fungere sammen for at virksomheten skal levere effektivt.\n\nDe viktigste flytene i notatet er:\n\n- **informasjonsflyt:** data og informasjon\n- **materialflyt:** varer og råvarer\n- **pengestrøm:** inn- og utbetalinger\n- **arbeidsflyt:** aktivitetene som utføres\n\nFlytene i læringsmålet henger sammen med disse:\n\n- **Fysisk flyt** er materialflyten.\n- **Dataflyt** er rådata som flyter mellom personer og systemer.\n- **Dokumentflyt** er for eksempel at en faktura sendes.\n- **Informasjonsflyt** er kunnskap til beslutninger.\n\nNotatet gir også en rekkefølge for ERP-systemet og flytene: 1. informasjonsflyt, 2. ERP-system, 3. data- og dokumentflyt, 4. fysisk flyt. Notatet sier ikke hva rekkefølgen gjelder.",
+          "themes": [
+            {
+              "id": "demo-1.4-t1"
+            },
+            {
+              "id": "demo-1.4-t2"
+            },
+            {
+              "id": "demo-1.4-t3"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.4-q01",
+              "themeId": "demo-1.4-t1",
+              "question": "Hvor mange flyter er knyttet til en prosess?",
+              "options": [
+                "Bare én flyt",
+                "Flere flyter",
+                "Ingen flyter",
+                "Alltid nøyaktig to flyter"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at flere flyter er knyttet til en prosess."
+            },
+            {
+              "id": "demo-1.4-q02",
+              "themeId": "demo-1.4-t1",
+              "question": "Hva flyter gjennom organisasjonen i en forretningsprosess?",
+              "options": [
+                "Bare penger",
+                "Bare varer",
+                "Ulike typer ressurser og informasjon",
+                "Bare de ansatte"
+              ],
+              "correctIndex": 2,
+              "explanation": "I en forretningsprosess flyter ulike typer ressurser og informasjon gjennom organisasjonen."
+            },
+            {
+              "id": "demo-1.4-q03",
+              "themeId": "demo-1.4-t1",
+              "question": "Hvorfor flyter ressurser og informasjon gjennom organisasjonen?",
+              "options": [
+                "For å skape verdi",
+                "For å øke lagerbeholdningen",
+                "For å skape silo-effekt",
+                "For å slippe å føre regnskap"
+              ],
+              "correctIndex": 0,
+              "explanation": "Ressurser og informasjon flyter gjennom organisasjonen for å skape verdi."
+            },
+            {
+              "id": "demo-1.4-q04",
+              "themeId": "demo-1.4-t1",
+              "question": "Hva må til for at virksomheten skal levere produkter eller tjenester effektivt?",
+              "options": [
+                "At hver flyt styres helt for seg",
+                "At pengestrømmen stoppes",
+                "At bare materialflyten fungerer",
+                "At flytene fungerer sammen"
+              ],
+              "correctIndex": 3,
+              "explanation": "Flytene må fungere sammen for at virksomheten skal kunne levere effektivt."
+            },
+            {
+              "id": "demo-1.4-q05",
+              "themeId": "demo-1.4-t1",
+              "question": "Hvilken påstand om flytene i en forretningsprosess stemmer?",
+              "options": [
+                "Hver prosess har bare én flyt.",
+                "Flytene henger sammen og må fungere sammen.",
+                "Flyter gjelder bare fysiske varer.",
+                "Flyter har ingenting med verdi å gjøre."
+              ],
+              "correctIndex": 1,
+              "explanation": "Flere flyter er knyttet til en prosess, og de må fungere sammen for å skape verdi."
+            },
+            {
+              "id": "demo-1.4-q06",
+              "themeId": "demo-1.4-t2",
+              "question": "Hvilke fire flyter nevnes som de viktigste?",
+              "options": [
+                "Kundeflyt, lagerflyt, lønnsflyt og kontoflyt",
+                "Dataflyt, e-postflyt, videoflyt og taleflyt",
+                "Informasjonsflyt, materialflyt, pengestrøm og arbeidsflyt",
+                "Innkjøpsflyt, produksjonsflyt, salgsflyt og personalflyt"
+              ],
+              "correctIndex": 2,
+              "explanation": "De viktigste flytene er informasjonsflyt, materialflyt, pengestrøm og arbeidsflyt."
+            },
+            {
+              "id": "demo-1.4-q07",
+              "themeId": "demo-1.4-t2",
+              "question": "Hva består informasjonsflyten av?",
+              "options": [
+                "Data og informasjon",
+                "Varer og råvarer",
+                "Inn- og utbetalinger",
+                "Aktivitetene som utføres"
+              ],
+              "correctIndex": 0,
+              "explanation": "Informasjonsflyt er flyten av data og informasjon."
+            },
+            {
+              "id": "demo-1.4-q08",
+              "themeId": "demo-1.4-t2",
+              "question": "Hva består materialflyten av?",
+              "options": [
+                "Data og informasjon",
+                "Varer og råvarer",
+                "Inn- og utbetalinger",
+                "Aktivitetene som utføres"
+              ],
+              "correctIndex": 1,
+              "explanation": "Materialflyt er flyten av varer og råvarer."
+            },
+            {
+              "id": "demo-1.4-q09",
+              "themeId": "demo-1.4-t2",
+              "question": "Hva består pengestrømmen av?",
+              "options": [
+                "Data og informasjon",
+                "Varer og råvarer",
+                "Inn- og utbetalinger",
+                "Aktivitetene som utføres"
+              ],
+              "correctIndex": 2,
+              "explanation": "Pengestrømmen er inn- og utbetalinger."
+            },
+            {
+              "id": "demo-1.4-q10",
+              "themeId": "demo-1.4-t2",
+              "question": "Hva består arbeidsflyten av?",
+              "options": [
+                "Data og informasjon",
+                "Varer og råvarer",
+                "Inn- og utbetalinger",
+                "Aktivitetene som utføres"
+              ],
+              "correctIndex": 3,
+              "explanation": "Arbeidsflyt er aktivitetene som utføres."
+            },
+            {
+              "id": "demo-1.4-q11",
+              "themeId": "demo-1.4-t2",
+              "question": "En leverandør sender råvarer til fabrikken. Hvilken av de viktigste flytene er dette?",
+              "options": [
+                "Pengestrøm",
+                "Informasjonsflyt",
+                "Materialflyt",
+                "Arbeidsflyt"
+              ],
+              "correctIndex": 2,
+              "explanation": "Varer og råvarer hører til materialflyten."
+            },
+            {
+              "id": "demo-1.4-q12",
+              "themeId": "demo-1.4-t2",
+              "question": "Bedriften betaler leverandøren. Hvilken av de viktigste flytene er dette?",
+              "options": [
+                "Pengestrøm",
+                "Materialflyt",
+                "Informasjonsflyt",
+                "Arbeidsflyt"
+              ],
+              "correctIndex": 0,
+              "explanation": "Inn- og utbetalinger hører til pengestrømmen."
+            },
+            {
+              "id": "demo-1.4-q13",
+              "themeId": "demo-1.4-t3",
+              "question": "Hva tilsvarer fysisk flyt?",
+              "options": [
+                "Pengestrøm",
+                "Informasjonsflyt",
+                "Dokumentflyt",
+                "Materialflyt"
+              ],
+              "correctIndex": 3,
+              "explanation": "I læringsmålet tilsvarer fysisk flyt materialflyt."
+            },
+            {
+              "id": "demo-1.4-q14",
+              "themeId": "demo-1.4-t3",
+              "question": "Hva er dataflyt?",
+              "options": [
+                "Flyt av rådata mellom personer og systemer",
+                "Flyt av varer mellom lager og kunde",
+                "Kunnskap for beslutninger",
+                "Inn- og utbetalinger"
+              ],
+              "correctIndex": 0,
+              "explanation": "Dataflyt er flyt av rådata mellom personer og systemer."
+            },
+            {
+              "id": "demo-1.4-q15",
+              "themeId": "demo-1.4-t3",
+              "question": "Hva er et eksempel på dokumentflyt?",
+              "options": [
+                "At en vare plukkes på lageret",
+                "At en faktura sendes",
+                "At en maskin lager et produkt",
+                "At råvarer kjøres til fabrikken"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet gir at en faktura sendes som eksempel på dokumentflyt."
+            },
+            {
+              "id": "demo-1.4-q16",
+              "themeId": "demo-1.4-t3",
+              "question": "Hva er informasjonsflyt i læringsmålets betydning?",
+              "options": [
+                "Flyt av rådata mellom systemer",
+                "Varer og råvarer",
+                "Kunnskap for beslutninger",
+                "En faktura som sendes"
+              ],
+              "correctIndex": 2,
+              "explanation": "Informasjonsflyt er kunnskap for beslutninger."
+            },
+            {
+              "id": "demo-1.4-q17",
+              "themeId": "demo-1.4-t3",
+              "question": "Hva er forskjellen på dataflyt og informasjonsflyt?",
+              "options": [
+                "Dataflyt er kunnskap for beslutninger, informasjonsflyt er rådata.",
+                "Det er to navn på materialflyt.",
+                "Dataflyt er rådata mellom personer og systemer, informasjonsflyt er kunnskap for beslutninger.",
+                "Dataflyt gjelder bare fakturaer."
+              ],
+              "correctIndex": 2,
+              "explanation": "Dataflyt er rådata, mens informasjonsflyt er kunnskap som brukes til beslutninger."
+            },
+            {
+              "id": "demo-1.4-q18",
+              "themeId": "demo-1.4-t3",
+              "question": "Hvilke fire flyter nevnes i læringsmålet for kapittelet?",
+              "options": [
+                "Materialflyt, pengestrøm, arbeidsflyt og kundeflyt",
+                "Innkjøpsflyt, produksjonsflyt, salgsflyt og regnskapsflyt",
+                "Dataflyt, kontoflyt, lønnsflyt og lagerflyt",
+                "Fysisk flyt, dataflyt, dokumentflyt og informasjonsflyt"
+              ],
+              "correctIndex": 3,
+              "explanation": "Læringsmålet nevner fysisk flyt, dataflyt, dokumentflyt og informasjonsflyt."
+            },
+            {
+              "id": "demo-1.4-q19",
+              "themeId": "demo-1.4-t3",
+              "question": "En kunde får tilsendt en faktura. Hvilken av flytene i læringsmålet er dette?",
+              "options": [
+                "Dokumentflyt",
+                "Fysisk flyt",
+                "Dataflyt",
+                "Informasjonsflyt"
+              ],
+              "correctIndex": 0,
+              "explanation": "At en faktura sendes, er notatets eksempel på dokumentflyt."
+            },
+            {
+              "id": "demo-1.4-q20",
+              "themeId": "demo-1.4-t3",
+              "question": "Varer fraktes fra lageret til kunden. Hvilken av flytene i læringsmålet er dette?",
+              "options": [
+                "Dokumentflyt",
+                "Fysisk flyt",
+                "Dataflyt",
+                "Informasjonsflyt"
+              ],
+              "correctIndex": 1,
+              "explanation": "Fysisk flyt er materialflyt, altså flyten av varer."
+            }
+          ]
+        },
+        {
+          "id": "demo-1.5",
+          "number": "1.5",
+          "title": "Forretningssystemenes rolle i organisasjoner",
+          "summary": "Notatet her er kort. Bedriftssystemer er essensielle for å se organisasjoner fra et **prosessperspektiv**. De kobler sammen arbeidet som gjøres på tvers av organisasjonen, og gir:\n\n- **koordinering**\n- **datatilgang**\n- **synlighet** på tvers av prosessen",
+          "themes": [
+            {
+              "id": "demo-1.5-t1"
+            },
+            {
+              "id": "demo-1.5-t2"
+            },
+            {
+              "id": "demo-1.5-t3"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.5-q01",
+              "themeId": "demo-1.5-t1",
+              "question": "Hva er bedriftssystemer essensielle for?",
+              "options": [
+                "Å se organisasjoner fra et prosessperspektiv",
+                "Å dele organisasjonen inn i siloer",
+                "Å erstatte alle avdelingene",
+                "Å føre lønnslister for hånd"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at bedriftssystemer er essensielle for å se organisasjoner fra et prosessperspektiv."
+            },
+            {
+              "id": "demo-1.5-q02",
+              "themeId": "demo-1.5-t1",
+              "question": "Hvilket perspektiv på organisasjonen gjør bedriftssystemer mulig?",
+              "options": [
+                "Bare det funksjonelle perspektivet",
+                "Prosessperspektivet",
+                "Et rent geografisk perspektiv",
+                "Et perspektiv der hver avdeling ses for seg"
+              ],
+              "correctIndex": 1,
+              "explanation": "Bedriftssystemer er essensielle for å se organisasjoner fra et prosessperspektiv."
+            },
+            {
+              "id": "demo-1.5-q03",
+              "themeId": "demo-1.5-t1",
+              "question": "Hvorfor gjør bedriftssystemer det mulig å se organisasjonen fra et prosessperspektiv?",
+              "options": [
+                "Fordi de holder avdelingene adskilt",
+                "Fordi de bare viser én avdeling om gangen",
+                "Fordi de kobler sammen arbeidet som gjøres på tvers av organisasjonen",
+                "Fordi de fjerner alle prosessene"
+              ],
+              "correctIndex": 2,
+              "explanation": "Bedriftssystemene kobler sammen arbeidet på tvers av organisasjonen, så man ser hele prosessen."
+            },
+            {
+              "id": "demo-1.5-q04",
+              "themeId": "demo-1.5-t1",
+              "question": "Hvilken påstand om bedriftssystemer og prosessperspektivet stemmer?",
+              "options": [
+                "Bedriftssystemer gjør prosessperspektivet unødvendig.",
+                "Prosessperspektivet krever at man ikke bruker bedriftssystemer.",
+                "Bedriftssystemer brukes bare til å se én funksjon.",
+                "Bedriftssystemer er essensielle for å se organisasjonen fra et prosessperspektiv."
+              ],
+              "correctIndex": 3,
+              "explanation": "Det er hovedpoenget i notatet."
+            },
+            {
+              "id": "demo-1.5-q05",
+              "themeId": "demo-1.5-t1",
+              "question": "Hva er forretningssystemenes rolle i organisasjoner, kort fortalt?",
+              "options": [
+                "De kobler sammen arbeidet på tvers og gir koordinering, datatilgang og synlighet.",
+                "De gir hver avdeling sitt eget system som ikke deler data.",
+                "De erstatter forretningsprosessene.",
+                "De brukes bare av regnskapsavdelingen."
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at bedriftssystemene kobler sammen arbeidet og gir koordinering, datatilgang og synlighet."
+            },
+            {
+              "id": "demo-1.5-q06",
+              "themeId": "demo-1.5-t1",
+              "question": "Hva hjelper bedriftssystemer organisasjonen med å se?",
+              "options": [
+                "Bare sin egen avdeling",
+                "Bare konkurrentenes priser",
+                "Hele prosessen på tvers av avdelingene",
+                "Bare hver ansatts timeliste"
+              ],
+              "correctIndex": 2,
+              "explanation": "Med et prosessperspektiv og synlighet på tvers ser organisasjonen hele prosessen."
+            },
+            {
+              "id": "demo-1.5-q07",
+              "themeId": "demo-1.5-t2",
+              "question": "Hva kobler bedriftssystemer sammen?",
+              "options": [
+                "Bare datamaskinene på kontoret",
+                "Bare kundene med hverandre",
+                "Bare ledergruppen",
+                "Arbeidet som gjøres på tvers av organisasjonen"
+              ],
+              "correctIndex": 3,
+              "explanation": "Bedriftssystemer kobler sammen arbeidet som gjøres på tvers av organisasjonen."
+            },
+            {
+              "id": "demo-1.5-q08",
+              "themeId": "demo-1.5-t2",
+              "question": "Hvor gjøres arbeidet som bedriftssystemer kobler sammen?",
+              "options": [
+                "På tvers av organisasjonen",
+                "Bare i én avdeling",
+                "Bare hos leverandøren",
+                "Bare i ledelsen"
+              ],
+              "correctIndex": 0,
+              "explanation": "Arbeidet gjøres på tvers av organisasjonen, og bedriftssystemene kobler det sammen."
+            },
+            {
+              "id": "demo-1.5-q09",
+              "themeId": "demo-1.5-t2",
+              "question": "Hvilken påstand om bedriftssystemer stemmer?",
+              "options": [
+                "De sørger for at hver avdeling jobber isolert.",
+                "De kobler sammen arbeid i ulike deler av organisasjonen.",
+                "De gjør koordinering vanskeligere.",
+                "De begrenser tilgangen til data."
+              ],
+              "correctIndex": 1,
+              "explanation": "Bedriftssystemer kobler sammen arbeidet på tvers og gir koordinering og datatilgang."
+            },
+            {
+              "id": "demo-1.5-q10",
+              "themeId": "demo-1.5-t2",
+              "question": "Avdelingene i en organisasjon jobber hver for seg. Hva kan et bedriftssystem bidra med?",
+              "options": [
+                "Å gjøre avdelingene enda mer adskilt",
+                "Å fjerne behovet for prosesser",
+                "Å koble sammen arbeidet deres på tvers av organisasjonen",
+                "Å skjule data mellom avdelingene"
+              ],
+              "correctIndex": 2,
+              "explanation": "Bedriftssystemer kobler sammen arbeidet som gjøres på tvers av organisasjonen."
+            },
+            {
+              "id": "demo-1.5-q11",
+              "themeId": "demo-1.5-t2",
+              "question": "Hvilket uttrykk beskriver best hva bedriftssystemer gjør med arbeidet i organisasjonen?",
+              "options": [
+                "De kobler det sammen.",
+                "De deler det opp.",
+                "De stopper det.",
+                "De flytter det ut av landet."
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at bedriftssystemer kobler sammen arbeidet på tvers av organisasjonen."
+            },
+            {
+              "id": "demo-1.5-q12",
+              "themeId": "demo-1.5-t2",
+              "question": "Hva er det motsatte av det bedriftssystemer gjør?",
+              "options": [
+                "At arbeidet kobles sammen på tvers av organisasjonen",
+                "At prosessen får koordinering",
+                "At arbeidet i hver avdeling holdes adskilt fra resten",
+                "At de ansatte får tilgang til data"
+              ],
+              "correctIndex": 2,
+              "explanation": "Bedriftssystemer kobler sammen arbeidet. Å holde det adskilt er det motsatte."
+            },
+            {
+              "id": "demo-1.5-q13",
+              "themeId": "demo-1.5-t3",
+              "question": "Hvilke tre ting gir bedriftssystemer på tvers av prosessen?",
+              "options": [
+                "Siloer, forsinkelser og dobbeltarbeid",
+                "Koordinering, datatilgang og synlighet",
+                "Lønn, ferie og opplæring",
+                "Råvarer, maskiner og lokaler"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at bedriftssystemer gir koordinering, datatilgang og synlighet på tvers av prosessen."
+            },
+            {
+              "id": "demo-1.5-q14",
+              "themeId": "demo-1.5-t3",
+              "question": "Hva gir bedriftssystemer tilgang til på tvers av prosessen?",
+              "options": [
+                "Lønnskontoene",
+                "Lagerlokalene",
+                "Data",
+                "Leverandørenes kontorer"
+              ],
+              "correctIndex": 2,
+              "explanation": "Bedriftssystemer gir datatilgang på tvers av prosessen."
+            },
+            {
+              "id": "demo-1.5-q15",
+              "themeId": "demo-1.5-t3",
+              "question": "Hva betyr det at bedriftssystemer gir synlighet på tvers av prosessen?",
+              "options": [
+                "At kontorene får glassvegger",
+                "At kundene ser alle interne data",
+                "At bare ledelsen ser prosessen",
+                "At man ser hva som skjer i hele prosessen, ikke bare i sin egen del"
+              ],
+              "correctIndex": 3,
+              "explanation": "Synlighet på tvers av prosessen betyr at man ser hele prosessen."
+            },
+            {
+              "id": "demo-1.5-q16",
+              "themeId": "demo-1.5-t3",
+              "question": "Hva gir bedriftssystemer når det gjelder samspillet mellom delene av en prosess?",
+              "options": [
+                "Koordinering",
+                "Konkurranse",
+                "Isolasjon",
+                "Dobbeltarbeid"
+              ],
+              "correctIndex": 0,
+              "explanation": "Bedriftssystemer gir koordinering på tvers av prosessen."
+            },
+            {
+              "id": "demo-1.5-q17",
+              "themeId": "demo-1.5-t3",
+              "question": "Hvor gir bedriftssystemer koordinering, datatilgang og synlighet?",
+              "options": [
+                "Bare innenfor én avdeling",
+                "På tvers av prosessen",
+                "Bare i regnskapet",
+                "Bare hos kundene"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier «på tvers av prosessen»."
+            },
+            {
+              "id": "demo-1.5-q18",
+              "themeId": "demo-1.5-t3",
+              "question": "Hvilket utsagn beskriver datatilgang i et bedriftssystem?",
+              "options": [
+                "Hver avdeling har data bare for seg selv.",
+                "Data er bare tilgjengelige på papir.",
+                "Dataene er tilgjengelige på tvers av prosessen.",
+                "Bare IT-avdelingen ser dataene."
+              ],
+              "correctIndex": 2,
+              "explanation": "Bedriftssystemer gir datatilgang på tvers av prosessen."
+            },
+            {
+              "id": "demo-1.5-q19",
+              "themeId": "demo-1.5-t3",
+              "question": "En selger ser i systemet om varen er på lager, uten å spørre lageret. Hva gir bedriftssystemet her?",
+              "options": [
+                "Silo-effekt",
+                "Dobbeltarbeid",
+                "Mindre koordinering",
+                "Datatilgang og synlighet på tvers av prosessen"
+              ],
+              "correctIndex": 3,
+              "explanation": "Selgeren får data fra en annen del av prosessen, altså datatilgang og synlighet på tvers."
+            },
+            {
+              "id": "demo-1.5-q20",
+              "themeId": "demo-1.5-t3",
+              "question": "Hvilken kombinasjon beskriver best bedriftssystemenes rolle?",
+              "options": [
+                "Holde avdelingene adskilt og gi hver sin database",
+                "Erstatte alle prosesser med én avdeling",
+                "Koble sammen arbeidet og gi koordinering, datatilgang og synlighet",
+                "Gi hver avdeling egne mål"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet beskriver nettopp denne rollen for bedriftssystemer."
+            }
+          ]
+        },
+        {
+          "id": "demo-1.6",
+          "number": "1.6",
+          "title": "Den økonomiske effekten av prosesstegene",
+          "summary": "Prosesser påvirker organisasjonens økonomi, og det vises i regnskapet: resultatregnskapet og balansen.\n\n**Kontoplanen** er en systematisk oversikt over alle kontoene en bedrift bruker i regnskapet. Kontoene er nummerert og gruppert etter hva de brukes til, så alle økonomiske hendelser kan registreres og følges opp på en standardisert måte.\n\n**Når påvirker et prosesstrinn økonomien?** Når det skaper en økonomisk transaksjon, altså endrer bedriftens eiendeler, gjeld, egenkapital, inntekter eller kostnader. Ikke alle trinn gjør det. En bestilling påvirker normalt ikke regnskapet, mens levering, fakturering og betaling gjør det.\n\n**De to dokumentene:**\n\n- **Resultatregnskapet** viser inntekter og kostnader over en periode: inntekter − kostnader = resultat. Det påvirkes når en inntekt eller kostnad oppstår.\n- **Balansen** viser hva bedriften eier, og hvordan eiendelene er finansiert, på et bestemt tidspunkt. Den endres for eksempel når en faktura betales.\n\nVed salg eller lønnskostnad endres begge. Koblingen er at alle økonomiske hendelser i en forretningsprosess til slutt registreres i regnskapet og påvirker resultatregnskapet, balansen eller begge. Derfor er ERP- og bedriftssystemer ofte tett integrert med regnskapssystemet.\n\nEn bedrift er lovpålagt å føre finansregnskap.",
+          "themes": [
+            {
+              "id": "demo-1.6-t1"
+            },
+            {
+              "id": "demo-1.6-t2"
+            },
+            {
+              "id": "demo-1.6-t3"
+            },
+            {
+              "id": "demo-1.6-t4"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-1.6-q01",
+              "themeId": "demo-1.6-t1",
+              "question": "Hva er en kontoplan?",
+              "options": [
+                "En plan for når bedriften skal betale lønn",
+                "En systematisk oversikt over alle kontoene en bedrift bruker i regnskapet",
+                "En liste over bedriftens kunder",
+                "Et budsjett for neste år"
+              ],
+              "correctIndex": 1,
+              "explanation": "Kontoplanen er en systematisk oversikt over alle kontoene i regnskapet."
+            },
+            {
+              "id": "demo-1.6-q02",
+              "themeId": "demo-1.6-t1",
+              "question": "Hvordan er kontoene i kontoplanen ordnet?",
+              "options": [
+                "Etter kundenavn",
+                "Etter datoen de ble opprettet",
+                "Nummerert og gruppert etter hva de brukes til",
+                "Tilfeldig"
+              ],
+              "correctIndex": 2,
+              "explanation": "Kontoene er nummerert og gruppert etter hva de brukes til."
+            },
+            {
+              "id": "demo-1.6-q03",
+              "themeId": "demo-1.6-t1",
+              "question": "Hva gjør kontoplanen mulig?",
+              "options": [
+                "Å registrere og følge opp alle økonomiske hendelser på en standardisert måte",
+                "Å planlegge produksjonen",
+                "Å rekruttere nye ansatte",
+                "Å velge leverandør"
+              ],
+              "correctIndex": 0,
+              "explanation": "Kontoplanen gjør det mulig å registrere og følge opp alle økonomiske hendelser standardisert."
+            },
+            {
+              "id": "demo-1.6-q04",
+              "themeId": "demo-1.6-t1",
+              "question": "Hvorfor er det nyttig at kontoplanen er standardisert?",
+              "options": [
+                "Fordi bedriften da slipper å føre regnskap",
+                "Fordi alle kunder da får samme pris",
+                "Fordi lageret da blir mindre",
+                "Fordi alle økonomiske hendelser da registreres og følges opp på samme måte"
+              ],
+              "correctIndex": 3,
+              "explanation": "Kontoplanen sørger for at økonomiske hendelser registreres på en standardisert måte."
+            },
+            {
+              "id": "demo-1.6-q05",
+              "themeId": "demo-1.6-t2",
+              "question": "Når påvirker et prosesstrinn økonomien?",
+              "options": [
+                "Hver gang en ansatt sender en e-post",
+                "Når det skaper en økonomisk transaksjon, altså når verdier endres i bedriften",
+                "Bare når bedriften ansetter noen",
+                "Aldri"
+              ],
+              "correctIndex": 1,
+              "explanation": "Et prosesstrinn påvirker økonomien når det skaper en økonomisk transaksjon."
+            },
+            {
+              "id": "demo-1.6-q06",
+              "themeId": "demo-1.6-t2",
+              "question": "Hva endrer et prosesstrinn som er en økonomisk hendelse?",
+              "options": [
+                "Eiendeler, gjeld, egenkapital, inntekter eller kostnader",
+                "Bare antall ansatte",
+                "Bare kundenes adresser",
+                "Bare organisasjonskartet"
+              ],
+              "correctIndex": 0,
+              "explanation": "En økonomisk hendelse endrer bedriftens eiendeler, gjeld, egenkapital, inntekter eller kostnader."
+            },
+            {
+              "id": "demo-1.6-q07",
+              "themeId": "demo-1.6-t2",
+              "question": "Hvilket prosesstrinn påvirker normalt ikke regnskapet?",
+              "options": [
+                "Levering",
+                "Fakturering",
+                "Bestilling",
+                "Betaling"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at en bestilling normalt ikke påvirker regnskapet."
+            },
+            {
+              "id": "demo-1.6-q08",
+              "themeId": "demo-1.6-t2",
+              "question": "Hvilke prosesstrinn påvirker regnskapet?",
+              "options": [
+                "Bare bestilling",
+                "Ingen prosesstrinn",
+                "Bare bestilling og forespørsel",
+                "Levering, fakturering og betaling"
+              ],
+              "correctIndex": 3,
+              "explanation": "Levering, fakturering og betaling påvirker regnskapet, mens en bestilling normalt ikke gjør det."
+            },
+            {
+              "id": "demo-1.6-q09",
+              "themeId": "demo-1.6-t2",
+              "question": "Hvilken påstand om prosesstrinn stemmer?",
+              "options": [
+                "Ikke alle prosesstrinn er økonomiske hendelser.",
+                "Alle prosesstrinn er økonomiske hendelser.",
+                "Ingen prosesstrinn påvirker regnskapet.",
+                "Bare bestillinger er økonomiske hendelser."
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at ikke alle prosesstrinn er økonomiske hendelser."
+            },
+            {
+              "id": "demo-1.6-q10",
+              "themeId": "demo-1.6-t3",
+              "question": "Hva viser resultatregnskapet?",
+              "options": [
+                "Hva bedriften eier på et bestemt tidspunkt",
+                "Bedriftens inntekter og kostnader over en periode",
+                "Alle kontoene bedriften bruker",
+                "Bedriftens ansatte og lønn"
+              ],
+              "correctIndex": 1,
+              "explanation": "Resultatregnskapet viser inntekter og kostnader over en periode."
+            },
+            {
+              "id": "demo-1.6-q11",
+              "themeId": "demo-1.6-t3",
+              "question": "Hvordan regnes resultatet ut?",
+              "options": [
+                "Eiendeler minus gjeld",
+                "Inntekter pluss kostnader",
+                "Inntekter minus kostnader",
+                "Kostnader minus inntekter"
+              ],
+              "correctIndex": 2,
+              "explanation": "Inntekter − kostnader = resultat."
+            },
+            {
+              "id": "demo-1.6-q12",
+              "themeId": "demo-1.6-t3",
+              "question": "Hva viser balansen?",
+              "options": [
+                "Inntekter og kostnader over en periode",
+                "Alle kontoene i regnskapet",
+                "Hvor mange varer som er solgt",
+                "Hva bedriften eier, og hvordan det er finansiert, på et bestemt tidspunkt"
+              ],
+              "correctIndex": 3,
+              "explanation": "Balansen viser hva bedriften eier og hvordan eiendelene er finansiert, på et bestemt tidspunkt."
+            },
+            {
+              "id": "demo-1.6-q13",
+              "themeId": "demo-1.6-t3",
+              "question": "Når kan et prosesstrinn påvirke resultatregnskapet?",
+              "options": [
+                "Når en inntekt eller kostnad oppstår",
+                "Når en kunde ringer",
+                "Når en bestilling registreres",
+                "Når kontoplanen oppdateres"
+              ],
+              "correctIndex": 0,
+              "explanation": "Et prosesstrinn påvirker resultatregnskapet når en inntekt eller kostnad oppstår."
+            },
+            {
+              "id": "demo-1.6-q14",
+              "themeId": "demo-1.6-t3",
+              "question": "Hvilket regnskap endres ved betaling av en faktura?",
+              "options": [
+                "Bare resultatregnskapet",
+                "Balansen",
+                "Kontoplanen",
+                "Ingen av regnskapene"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at balansen endres ved eksempelvis betaling av faktura."
+            },
+            {
+              "id": "demo-1.6-q15",
+              "themeId": "demo-1.6-t3",
+              "question": "Hva endres ved et salg eller en lønnskostnad?",
+              "options": [
+                "Bare balansen",
+                "Bare kontoplanen",
+                "Både resultatregnskapet og balansen",
+                "Ingen av regnskapene"
+              ],
+              "correctIndex": 2,
+              "explanation": "Både resultatregnskapet og balansen endres ved salg eller lønnskostnad."
+            },
+            {
+              "id": "demo-1.6-q16",
+              "themeId": "demo-1.6-t3",
+              "question": "Hva er forskjellen i tid mellom resultatregnskapet og balansen?",
+              "options": [
+                "Resultatregnskapet gjelder et tidspunkt, balansen en periode.",
+                "Begge gjelder alltid et helt år.",
+                "Ingen av dem har noe med tid å gjøre.",
+                "Resultatregnskapet gjelder en periode, balansen et bestemt tidspunkt."
+              ],
+              "correctIndex": 3,
+              "explanation": "Resultatregnskapet viser en periode, mens balansen viser et bestemt tidspunkt."
+            },
+            {
+              "id": "demo-1.6-q17",
+              "themeId": "demo-1.6-t4",
+              "question": "Hvilket regnskap er en bedrift lovpålagt å føre?",
+              "options": [
+                "Lagerregnskap",
+                "Finansregnskap.",
+                "Personalregnskap",
+                "Prosjektregnskap"
+              ],
+              "correctIndex": 1,
+              "explanation": "Det er brukerens egen fasit: en bedrift er lovpålagt å føre finansregnskap."
+            },
+            {
+              "id": "demo-1.6-q18",
+              "themeId": "demo-1.6-t4",
+              "question": "Hvor registreres alle økonomiske hendelser i en forretningsprosess til slutt?",
+              "options": [
+                "I kundeordren",
+                "I personalmappen",
+                "I regnskapet",
+                "I innkjøpsrekvisisjonen"
+              ],
+              "correctIndex": 2,
+              "explanation": "Alle økonomiske hendelser i en forretningsprosess registreres til slutt i regnskapet."
+            },
+            {
+              "id": "demo-1.6-q19",
+              "themeId": "demo-1.6-t4",
+              "question": "Hvorfor er ERP- og bedriftssystemer ofte tett integrert med regnskapssystemet?",
+              "options": [
+                "Fordi alle økonomiske hendelser i en forretningsprosess til slutt registreres i regnskapet",
+                "Fordi regnskapssystemet styrer produksjonen",
+                "Fordi kundene fører regnskapet selv",
+                "Fordi bestillinger alltid endrer balansen"
+              ],
+              "correctIndex": 0,
+              "explanation": "Koblingen mellom prosesser og regnskap er grunnen til den tette integrasjonen."
+            },
+            {
+              "id": "demo-1.6-q20",
+              "themeId": "demo-1.6-t4",
+              "question": "Hvilke regnskaper påvirker en økonomisk hendelse i en forretningsprosess?",
+              "options": [
+                "Bare kontoplanen",
+                "Ingen regnskaper",
+                "Resultatregnskapet, balansen eller begge deler",
+                "Bare budsjettet"
+              ],
+              "correctIndex": 2,
+              "explanation": "En økonomisk hendelse påvirker enten resultatregnskapet, balansen eller begge deler."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Forretningssystemer",
+      "subchapters": [
+        {
+          "id": "demo-2.1",
+          "number": "2.1",
+          "title": "Forretningssystemer",
+          "summary": "Bedriftssystemer (ES) har én hovedrolle: å **administrere og utføre forretningsprosesser**. I dagens konkurransepregede globale miljø er det vanskelig å se for seg hvordan selskaper skulle fungert uten dem. Et ES består av **maskinvare, programvare og en database**.\n\n**Utviklingen.** Systemene har gått fra frittstående systemer på store, dyre datamaskiner, til pakkede applikasjoner og distribuerte systemer på billigere, mindre maskiner. Notatet beskriver tre steg:\n\n- dyre **stormaskiner** i de tidlige dagene\n- et paradigmeskifte til kostnadseffektive og skalerbare **trelags klient-server-applikasjoner**\n- dagens systemer basert på **tjenesteorientert arkitektur (SOA)**\n\n**Globalisering og BPR.** Paradigmeskiftet i dataarkitektur skjedde samtidig med globalisering og **reengineering av forretningsprosesser (BPR)**. På 1980-tallet begynte bedrifter å utvide globalt og å se organisasjoner fra et prosessperspektiv i stedet for et funksjonelt perspektiv. BPR kom på 1990-tallet som en måte å omorientere driften rundt forretningsprosesser, så den globale, distribuerte organisasjonen ble lettere å administrere og kontrollere.\n\n**ERP-systemer** (Enterprise Resource Planning) er verdens største og mest komplekse ES. I IBE430 er et ERP-system et IT-system som støtter og automatiserer forretningsprosesser ved å integrere aktiviteter og dele data i hele organisasjonen. ERP-systemer:\n\n- fokuserer først og fremst på den **interne driften** og integrerer funksjonelle og tverrfunksjonelle prosesser\n- dekker typisk drift (produksjon), personaladministrasjon, økonomi og regnskap, salg og distribusjon og innkjøp\n\nProgramvaren i alle ERP-systemer består av tre typer moduler: **brukergrensesnitt (klient)**, **applikasjonslogikk (applikasjon)** og **datahåndtering**. Den kan kjøre på stormaskin, i en klient-server-arkitektur eller i en SOA.\n\nEtter hvert som flere bedrifter kjøpte ERP-systemer, ble neste steg å koble dem sammen, så de kunne støtte prosesser mellom og blant bedrifter. ERP er **hjertet og sjelen** i de fleste bedrifters ES-landskap, og utvides med **CRM, SCM, SRM og PLM** for å samarbeide med leverandører og kunder. **PLM-systemer** hjelper selskaper med å ta nye produktideer fra det virtuelle tegnebrettet helt til produksjonsanlegget.\n\n**Applikasjonspakker og andre løsninger.** Samlingen av disse systemene kalles en **applikasjonspakke**. Suiteleverandører som SAP og Oracle tilbyr omfattende samlinger som dekker de fleste standard forretningsprosessene i et selskap. De fleste bedrifter bruker i dag både programpakker og nisjeapplikasjoner:\n\n- **Programpakker** har de fleste prosessene som trengs for å drive et selskap, i en tett integrert pakke.\n- **De beste løsningene** har ofte litt bedre funksjonalitet, men koster ekstra å integrere med andre applikasjoner og systemer.\n- **Nisjeapplikasjoner** leveres av mindre **ISV-er**. De bygger oppå eller mellom programpakkene og de beste applikasjonene og håndterer svært spesifikke forretningsprosesser.",
+          "themes": [
+            {
+              "id": "demo-2.1-t1"
+            },
+            {
+              "id": "demo-2.1-t2"
+            },
+            {
+              "id": "demo-2.1-t3"
+            },
+            {
+              "id": "demo-2.1-t4"
+            },
+            {
+              "id": "demo-2.1-t5"
+            },
+            {
+              "id": "demo-2.1-t6"
+            },
+            {
+              "id": "demo-2.1-t7"
+            }
+          ],
+          "questions": [
+            {
+              "id": "demo-2.1-q01",
+              "themeId": "demo-2.1-t1",
+              "question": "Hva er bedriftssystemenes rolle ifølge notatet?",
+              "options": [
+                "Å erstatte de ansatte i alle funksjonelle avdelinger",
+                "Å administrere og utføre forretningsprosesser",
+                "Å lagre regnskapet for revisoren hvert år",
+                "Å styre maskinene i produksjonsanlegget"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at bedriftssystemers rolle er å administrere og utføre forretningsprosesser."
+            },
+            {
+              "id": "demo-2.1-q02",
+              "themeId": "demo-2.1-t1",
+              "question": "Hvilke komponenter inngår i et bedriftssystem?",
+              "options": [
+                "Brukere, leverandører og kunder",
+                "Avdelinger, prosesser og ledelse",
+                "Nettverk, skjermer og skrivere",
+                "Maskinvare, programvare og en database"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at komponentene i et ES inkluderer maskinvare, programvare og en database."
+            },
+            {
+              "id": "demo-2.1-q03",
+              "themeId": "demo-2.1-t2",
+              "question": "Hvordan har bedriftssystemene utviklet seg?",
+              "options": [
+                "Fra frittstående systemer på store, dyre datamaskiner til pakkede applikasjoner og distribuerte systemer på billigere, mindre systemer",
+                "Fra distribuerte systemer på mange små maskiner til ett felles system på en stor, dyr stormaskin",
+                "Fra pakkede applikasjoner til frittstående systemer som hver avdeling utvikler selv på egne maskiner",
+                "Fra papirbaserte rutiner direkte til tjenesteorienterte systemer uten noen steg imellom"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet beskriver utviklingen fra frittstående systemer på store, dyre maskiner til pakkede og distribuerte systemer på billigere, mindre maskiner."
+            },
+            {
+              "id": "demo-2.1-q04",
+              "themeId": "demo-2.1-t2",
+              "question": "Hva slags applikasjoner kom med paradigmeskiftet etter de dyre stormaskinene?",
+              "options": [
+                "Frittstående applikasjoner for hver enkelt avdeling",
+                "Nisjeapplikasjoner fra mindre leverandører",
+                "Kostnadseffektive og skalerbare trelags klient-server-applikasjoner",
+                "Regnearkbaserte applikasjoner på hver ansatts maskin"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at paradigmeskiftet gikk fra dyre stormaskiner til kostnadseffektive og skalerbare trelags klient-server-applikasjoner."
+            },
+            {
+              "id": "demo-2.1-q05",
+              "themeId": "demo-2.1-t2",
+              "question": "Hva bygger dagens bedriftssystemer på ifølge notatet?",
+              "options": [
+                "Frittstående stormaskiner",
+                "Tjenesteorientert arkitektur (SOA)",
+                "Ett regneark per avdeling",
+                "Trelags klient-server alene"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet beskriver utviklingen fram til dagens SOA-baserte systemer."
+            },
+            {
+              "id": "demo-2.1-q06",
+              "themeId": "demo-2.1-t3",
+              "question": "Hvilke forretningstrender skjedde samtidig med paradigmeskiftet innen dataarkitektur?",
+              "options": [
+                "Automatisering og utsetting av IT-drift",
+                "Digitalisering og overgang til netthandel",
+                "Globalisering og reengineering av forretningsprosesser (BPR)",
+                "Sentralisering og nedbemanning av avdelinger"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at paradigmeskiftet skjedde samtidig med globalisering og BPR."
+            },
+            {
+              "id": "demo-2.1-q07",
+              "themeId": "demo-2.1-t3",
+              "question": "Hvilket perspektiv begynte bedrifter å se organisasjoner fra på 1980-tallet?",
+              "options": [
+                "Et funksjonelt perspektiv snarere enn et prosessperspektiv",
+                "Et økonomisk perspektiv snarere enn et teknisk perspektiv",
+                "Et lokalt perspektiv snarere enn et globalt perspektiv",
+                "Et prosessperspektiv snarere enn et funksjonelt perspektiv"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at bedrifter begynte å se på organisasjoner fra et prosessperspektiv snarere enn et funksjonelt perspektiv."
+            },
+            {
+              "id": "demo-2.1-q08",
+              "themeId": "demo-2.1-t3",
+              "question": "Hva var BPR en måte å gjøre på 1990-tallet?",
+              "options": [
+                "Å omorientere driften rundt forretningsprosesser for bedre å styre den globale, distribuerte organisasjonen",
+                "Å dele organisasjonen inn i flere funksjonelle avdelinger med hvert sitt system",
+                "Å flytte all produksjon tilbake til ett land for å få bedre kontroll",
+                "Å bytte ut alle stormaskiner med regneark i hver avdeling"
+              ],
+              "correctIndex": 0,
+              "explanation": "BPR dukket opp som en måte å omorientere driften rundt forretningsprosesser for å administrere og kontrollere den globale, distribuerte organisasjonen."
+            },
+            {
+              "id": "demo-2.1-q09",
+              "themeId": "demo-2.1-t4",
+              "question": "Beskriv definisjonen av ERP i IBE430.",
+              "options": [
+                "Et ERP-system er et regnskapssystem som samler økonomidata fra hver avdeling og lager rapporter til ledelsen én gang i måneden.",
+                "Et ERP-system er et IT-system som støtter og automatiserer forretningsprosesser ved å integrere aktiviteter og dele data i hele organisasjonen.",
+                "Et ERP-system er et IT-system som kobler bedriften til kundene og leverandørene, men som ikke brukes i den interne driften.",
+                "Et ERP-system er en samling frittstående programmer der hver avdeling har sitt eget system med egne data."
+              ],
+              "correctIndex": 1,
+              "explanation": "Dette er definisjonen av ERP i IBE430: et IT-system som støtter og automatiserer prosesser ved å integrere aktiviteter og dele data."
+            },
+            {
+              "id": "demo-2.1-q10",
+              "themeId": "demo-2.1-t4",
+              "question": "Hva kjennetegner ERP-systemer blant bedriftssystemene?",
+              "options": [
+                "De er de minste og enkleste bedriftssystemene",
+                "De er systemer som bare små bedrifter bruker",
+                "De er nisjeapplikasjoner for svært spesifikke prosesser",
+                "De er verdens største og mest komplekse bedriftssystemer"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at ERP-systemer er verdens største og mest komplekse ES."
+            },
+            {
+              "id": "demo-2.1-q11",
+              "themeId": "demo-2.1-t4",
+              "question": "Hva fokuserer ERP-systemer først og fremst på?",
+              "options": [
+                "Den interne driften i en organisasjon",
+                "Samarbeidet med kunder og leverandører",
+                "Utviklingen av nye produktideer",
+                "Markedsføringen av bedriftens produkter"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at ERP-systemer primært fokuserer på den interne driften i en organisasjon."
+            },
+            {
+              "id": "demo-2.1-q12",
+              "themeId": "demo-2.1-t4",
+              "question": "Hva ble neste steg etter hvert som flere bedrifter kjøpte ERP-systemer?",
+              "options": [
+                "Å erstatte ERP-systemene med frittstående systemer i hver avdeling",
+                "Å koble systemene sammen så de kunne støtte prosesser mellom og blant bedrifter",
+                "Å flytte ERP-systemene tilbake til store, dyre stormaskiner",
+                "Å begrense ERP-systemene til bare økonomi og regnskap"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at neste trinn var å koble systemene sammen så de kunne støtte prosesser mellom og blant bedrifter."
+            },
+            {
+              "id": "demo-2.1-q13",
+              "themeId": "demo-2.1-t5",
+              "question": "Hvilke tre typer moduler består programvaren i alle ERP-systemer av?",
+              "options": [
+                "Maskinvare, programvare og en database",
+                "Innkjøp, produksjon og salg",
+                "Brukergrensesnitt (klient), applikasjonslogikk (applikasjon) og datahåndtering",
+                "Organisasjonsdata, masterdata og transaksjonsdata"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at programvaren i alle ERP-systemer består av brukergrensesnitt (klient), applikasjonslogikk (applikasjon) og datahåndtering."
+            },
+            {
+              "id": "demo-2.1-q14",
+              "themeId": "demo-2.1-t5",
+              "question": "Hvilke arkitekturer kan programvaren til et ERP-system kjøre på?",
+              "options": [
+                "Bare på én stor, dyr stormaskin",
+                "Bare i nettleseren på hver ansatts maskin",
+                "Bare hos leverandøren som en nisjeapplikasjon",
+                "Stormaskin, klient-server eller tjenesteorientert arkitektur (SOA)"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at programvaren kan kjøre på stormaskin, i en klient-server-arkitektur eller i en SOA."
+            },
+            {
+              "id": "demo-2.1-q15",
+              "themeId": "demo-2.1-t6",
+              "question": "Hva hjelper PLM-systemer selskaper med?",
+              "options": [
+                "Å ta nye produktideer fra det virtuelle tegnebrettet helt til produksjonsanlegget",
+                "Å holde oversikt over lønn og ferie for alle ansatte i selskapet",
+                "Å sende fakturaer til kundene når varene er levert fra lageret",
+                "Å velge den billigste leverandøren for hver innkjøpsordre"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at PLM-systemer hjelper selskaper med å ta nye produktideer fra det virtuelle tegnebrettet til produksjonsanlegget."
+            },
+            {
+              "id": "demo-2.1-q16",
+              "themeId": "demo-2.1-t6",
+              "question": "Hva tilbyr suiteleverandører som SAP og Oracle?",
+              "options": [
+                "Enkeltstående nisjeapplikasjoner for svært spesifikke prosesser",
+                "Omfattende samlinger av applikasjoner som dekker de fleste standard forretningsprosessene",
+                "Bare maskinvare og databaser som kundene bygger egne systemer på",
+                "Rådgivning om reengineering av prosesser, men ingen programvare"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at suiteleverandører som SAP og Oracle tilbyr omfattende samlinger som dekker de fleste standard forretningsprosessene i et selskap."
+            },
+            {
+              "id": "demo-2.1-q17",
+              "themeId": "demo-2.1-t6",
+              "question": "Hva utvider og kompletterer ERP-prosessene for å samarbeide med leverandører og kunder?",
+              "options": [
+                "Drift, økonomi og innkjøp",
+                "Klient, applikasjon og datahåndtering",
+                "CRM-, SCM-, SRM- og PLM-funksjonalitet",
+                "Globalisering og BPR"
+              ],
+              "correctIndex": 2,
+              "explanation": "Notatet sier at ERP-prosesser utvides og kompletteres av CRM-, SCM-, SRM- og PLM-funksjonalitet for å samarbeide med leverandører og kunder."
+            },
+            {
+              "id": "demo-2.1-q18",
+              "themeId": "demo-2.1-t7",
+              "question": "Hva er fordelen med programpakker?",
+              "options": [
+                "De har alltid bedre funksjonalitet enn alle andre løsninger",
+                "De lages av mindre leverandører for svært spesifikke prosesser",
+                "De koster ingenting å integrere med andre systemer",
+                "De har de fleste prosessene som trengs for å drive et selskap, i en tett integrert pakke"
+              ],
+              "correctIndex": 3,
+              "explanation": "Notatet sier at programpakker har fordelen av å inneholde de fleste prosessene som trengs, i en tett integrert pakke."
+            },
+            {
+              "id": "demo-2.1-q19",
+              "themeId": "demo-2.1-t7",
+              "question": "Hva kjennetegner de beste løsningene sammenlignet med programpakker?",
+              "options": [
+                "Litt bedre funksjonalitet, men ekstra kostnad for å integrere med andre applikasjoner og systemer",
+                "Dårligere funksjonalitet, men ingen kostnad for å integrere med andre applikasjoner og systemer",
+                "Samme funksjonalitet, men de kan bare brukes av de største selskapene i verden",
+                "Alle forretningsprosessene i én pakke, men bare for den interne driften i selskapet"
+              ],
+              "correctIndex": 0,
+              "explanation": "Notatet sier at de beste løsningene har litt bedre funksjonalitet, men kommer med ekstra kostnad ved å integrere."
+            },
+            {
+              "id": "demo-2.1-q20",
+              "themeId": "demo-2.1-t7",
+              "question": "Hvem leverer nisjeapplikasjoner?",
+              "options": [
+                "Suiteleverandører som SAP og Oracle",
+                "Mindre ISV-er",
+                "Bedriftens egen økonomiavdeling",
+                "Leverandørene av stormaskiner"
+              ],
+              "correctIndex": 1,
+              "explanation": "Notatet sier at nisjeapplikasjoner leveres av mindre ISV-er som bygger oppå eller mellom programpakker og de beste applikasjonene."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

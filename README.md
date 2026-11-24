@@ -68,4 +68,18 @@ Importen leser nøklene fra `.env.dev.local` eller `.env.prod.local` i prosjektr
 - En rettet tekst med samme hash gir en ny versjon. Tidligere klare versjoner tas aldri bort. Hver versjon lagrer modellen (`modell`) og instruksjonsversjonen (`instruksjon`) fra fila.
 - `--force <n.m>` legger inn sammendraget for ett delkapittel på nytt selv om det er uendret. Delkapittelet må høre til kapittelet som importeres, ha notater og stå i innholdsfila. `--force` gjelder bare sammendraget, ikke spørsmålsbanken.
 
+### Lage demodata
+
+Demoen bruker den frosne fila `demo-data/demo.json` med IBE430 kapittel 1–4. Den lages med én lokal kommando:
+
+```sh
+npm run export-demo   # leser IBE430 fra prod og skriver demo-data/demo.json
+```
+
+- Eksporten leser alltid fra `prod` med nøklene i `.env.prod.local`, uten `--target` og uten bekreftelse, fordi den bare leser. Den skriver aldri til databasen.
+- Bare delkapitler som er «klart» i kapittellisten, tas med, og bare når de har minst 20 aktive spørsmål og minst 2 per tema. Utskriften lister hvert delkapittel som hoppes over, med årsak, og hvor mange delkapitler som er skrevet. Kapitler uten klare delkapitler tas ikke med.
+- Fila har emnet (kode, navn, læringsutbytte, eksamensform), kapitlene og delkapitlene med siste klare sammendrag og de aktive spørsmålene med tema, fire alternativer, riktig svar og forklaring. Den har ingen e-post, bruker-ID, database-ID-er, notater, hasher, tidspunkter, svar eller framdrift. ID-ene lages av strukturen, for eksempel `demo-1.2-q01`.
+- Dataene valideres mot skjemaet i `src/application/demoData.ts` før noe skrives. Ugyldige data, ingen klare delkapitler, manglende emne eller databasefeil gir en norsk melding, kode 1 og ingen endring i `demo-data/`. Samme innhold gir byte for byte samme fil.
+- Eksporten kjøres aldri automatisk, heller ikke ved build eller deploy. Endres notatene eller innholdet, kjør `npm run export-demo` og commit fila. `npm test` sjekker fila i repoet i CI.
+
 Planleggingen ligger i `G131-hovda/planning-artifacts/`, og kildenotatene for emnene i `G131-hovda/notater/`.
