@@ -82,4 +82,13 @@ npm run export-demo   # leser IBE430 fra prod og skriver demo-data/demo.json
 - Dataene valideres mot skjemaet i `src/application/demoData.ts` før noe skrives. Ugyldige data, ingen klare delkapitler, manglende emne eller databasefeil gir en norsk melding, kode 1 og ingen endring i `demo-data/`. Samme innhold gir byte for byte samme fil.
 - Eksporten kjøres aldri automatisk, heller ikke ved build eller deploy. Endres notatene eller innholdet, kjør `npm run export-demo` og commit fila. `npm test` sjekker fila i repoet i CI.
 
+### Demoen
+
+Knappen «Prøv demoen» på forsiden åpner `/demo`, der hvem som helst kan prøve appen med IBE430 uten konto. Demoen har emnelisten, emnekortet med eksamensform, læringsutbytte, framdrift og kapittellisten, og lesesiden for sammendragene.
+
+- Demosidene kjører i nettleseren med en egen komposisjonsrot, `src/composition/demo.ts`, som bruker `DemoDataSource` på `demo-data/demo.json` og `DemoClock` med den faste datoen 2026-12-01. De bruker de samme brukstilfellene og skjermkomponentene (`src/app/_screens/`) som appen.
+- Demoen sender ingen forespørsler til Supabase og lagrer ingenting. Knapper som oppretter, endrer eller sletter, feilrapporter og «Logg ut» vises ikke. Quizen kommer i story 2.3.
+- `src/composition/demo.test.ts` følger importene fra komposisjonsroten og fra alle filene under `src/app/demo/`, og feiler i CI hvis demoen kan nå Supabase-adapteren, en `@supabase/*`-pakke eller `@/composition/server`.
+- Er demofila ugyldig, viser alle demosidene feilmeldingen i stedet for innhold.
+
 Planleggingen ligger i `G131-hovda/planning-artifacts/`, og kildenotatene for emnene i `G131-hovda/notater/`.

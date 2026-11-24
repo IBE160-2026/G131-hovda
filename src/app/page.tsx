@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { secondaryButton } from "./(innlogget)/emner/styles";
 import { RedirectIfOwner } from "./RedirectIfOwner";
 
 const features = [
@@ -37,12 +38,15 @@ export default function Home() {
           Studievenn gjør notatene dine om til sammendrag og quiz, og hjelper
           deg å holde planen fram mot eksamen.
         </p>
-        <div>
+        <div className="flex flex-wrap gap-4">
           <Link
             href="/logg-inn"
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-6 py-3 text-base font-semibold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Logg inn
+          </Link>
+          <Link href="/demo" className={secondaryButton}>
+            Prøv demoen
           </Link>
         </div>
       </header>
