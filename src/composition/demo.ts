@@ -4,20 +4,33 @@
 import type { Clock } from "@/application/clock";
 import type { DataSource } from "@/application/dataSource";
 import { DemoClock } from "@/adapters/clock/demoClock";
-import { DemoDataSource } from "@/adapters/demo/dataSource";
+import { DemoDataSource, type DemoStorage } from "@/adapters/demo/dataSource";
 import demoFile from "../../demo-data/demo.json";
 
 export type Demo = { data: DataSource; clock: Clock };
 
-/** Demoen med innholdet `input`, som valideres. Ugyldig innhold gir `unavailable` på alle lesinger. */
-export function createDemo(input: unknown): Demo {
-  return { data: new DemoDataSource(input), clock: new DemoClock() };
+/**
+ * Demoen med innholdet `input`, som valideres. Ugyldig innhold gir `unavailable` på alle lesinger.
+ * Quiztilstanden i besøket speiles til `storage`. Uten det ligger den bare i minnet.
+ */
+export function createDemo(input: unknown, storage?: DemoStorage | null): Demo {
+  return { data: new DemoDataSource(input, storage), clock: new DemoClock() };
+}
+
+/** `sessionStorage` i nettleseren, så tilstanden bare ligger i fanen. Ellers, eller når den ikke kan nås, ingenting. */
+function sessionStore(): DemoStorage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
 }
 
 let demo: Demo | null = null;
 
 /** Datakilden og klokka for demoen med `demo-data/demo.json`. Fila valideres første gang. */
 export function getDemo(): Demo {
-  demo ??= createDemo(demoFile);
+  demo ??= createDemo(demoFile, sessionStore());
   return demo;
 }

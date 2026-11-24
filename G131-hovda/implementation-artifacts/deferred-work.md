@@ -69,3 +69,7 @@
 - source_spec: `G131-hovda/implementation-artifacts/spec-2-2-hvem-som-helst-kan-apne-demoen-og-lese-sammendrag.md`
   summary: The effect in `useDemoResult` (leaving «Laster …», the stale-`load` guard) and the demo wrappers' wiring of `id` and `nummer` are not covered by any automated test.
   evidence: The repo has no DOM test setup (no jsdom or testing-library), so effects never run in tests; `demoScreens.test.ts` renders only the `*View` components with results computed in the test. The manual browser check in the spec covers it until a DOM test setup exists.
+
+- source_spec: `G131-hovda/implementation-artifacts/spec-2-3-den-demobesokende-tar-quiz-og-ser-framdriften.md`
+  summary: `useDemoNavigate` (reload when the target address equals the current one, `router.push` otherwise) is not covered by any automated test.
+  evidence: It needs a DOM environment and a mocked `next/navigation`, which the repo does not have; the tests render only `DemoQuizView`. The manual CDP check in the spec (start, answer, reload) covers it until a DOM test setup exists.

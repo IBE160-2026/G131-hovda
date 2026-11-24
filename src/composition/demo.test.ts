@@ -105,6 +105,8 @@ describe("demoen når ikke Supabase eller serverroten", () => {
         "app/demo/page.tsx",
         "app/demo/emner/[id]/page.tsx",
         "app/demo/emner/[id]/delkapitler/[nummer]/page.tsx",
+        "app/demo/emner/[id]/delkapitler/[nummer]/quiz/page.tsx",
+        "app/demo/emner/[id]/delkapitler/[nummer]/quiz/DemoQuiz.tsx",
       ]),
     );
   });
