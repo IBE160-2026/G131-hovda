@@ -108,6 +108,46 @@ describe("selectQuizQuestions", () => {
     expect(ids).not.toEqual(bank.slice(0, 10).map((q) => q.id));
     expect([...ids].sort()).toEqual(bank.slice(0, 10).map((q) => q.id).sort());
   });
+
+  it("gir de samme spørsmålene i en annen rekkefølge i den tredje quizen på en bank med 20", () => {
+    // Et fast, stokkende `random` (lineær kongruensgenerator), så testen er deterministisk.
+    let seed = 42;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const lastUsed = new Map<string, string>();
+    const take = (at: string) => {
+      const ids = selectQuizQuestions(bank, { lastUsed, carryThemeId: null }, random)!;
+      for (const id of ids) lastUsed.set(id, at);
+      return ids;
+    };
+    const first = take("2026-11-20T10:00:00Z");
+    const second = take("2026-11-20T11:00:00Z");
+    expect(new Set([...first, ...second]).size).toBe(20);
+    const third = take("2026-11-20T12:00:00Z");
+    // De eldste (fra første quiz) kommer igjen, men på andre plasser.
+    expect([...third].sort()).toEqual([...first].sort());
+    expect(third).not.toEqual(first);
+    // Uten stokking innen samme tidspunkt ville den tredje fulgt bankens rekkefølge.
+    expect(third).not.toEqual(bank.map((q) => q.id).filter((id) => first.includes(id)));
+    expect(third.filter((id, i) => first[i] !== id).length).toBeGreaterThan(QUIZ_LENGTH / 2);
+  });
+
+  it("stokker bare innen samme tidspunkt, så de eldste fortsatt kommer før de nyere", () => {
+    const older = bank.slice(0, 5).map((q) => q.id);
+    const lastUsed = usedAt([
+      ...older.map((id): [string, string] => [id, "2026-11-20T10:00:00Z"]),
+      ...bank.slice(5).map((q): [string, string] => [q.id, "2026-11-20T11:00:00Z"]),
+    ]);
+    for (const random of [() => 0, () => 0.5, Math.random]) {
+      const ids = selectQuizQuestions(bank, { lastUsed, carryThemeId: null }, random)!;
+      expect([...ids.slice(0, 5)].sort()).toEqual([...older].sort());
+      expect(ids.slice(5).every((id) => !older.includes(id))).toBe(true);
+    }
+    // Med `() => 0` stokkes de eldste bort fra bankens rekkefølge.
+    expect(selectQuizQuestions(bank, { lastUsed, carryThemeId: null }, () => 0)!.slice(0, 5)).not.toEqual(older);
+  });
 });
 
 describe("chooseReplacement", () => {

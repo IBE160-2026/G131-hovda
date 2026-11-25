@@ -62,8 +62,9 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
 }
 
 /**
- * Spørsmålene eieren aldri har fått først, så de som ble brukt for lengst siden. Ubrukte stokkes
- * med `random` når den er med, ellers beholdes rekkefølgen i banken.
+ * Spørsmålene eieren aldri har fått først, så de som ble brukt for lengst siden. Med `random`
+ * stokkes de ubrukte, og de som ble brukt like lenge siden, stokkes innbyrdes, så en brukt opp bank
+ * gir en ny rekkefølge. De eldste kommer fortsatt først. Uten `random` beholdes bankens rekkefølge.
  */
 function byLeastRecentlyUsed<T extends BankQuestion>(
   questions: readonly T[],
@@ -71,9 +72,18 @@ function byLeastRecentlyUsed<T extends BankQuestion>(
   random?: () => number,
 ): T[] {
   const unused = questions.filter((q) => !lastUsed.has(q.id));
-  const used = questions
-    .filter((q) => lastUsed.has(q.id))
-    .sort((a, b) => lastUsed.get(a.id)!.localeCompare(lastUsed.get(b.id)!));
+  // Gruppert på tidspunktet, i bankens rekkefølge innen hver gruppe, eldste gruppe først.
+  const groups = new Map<string, T[]>();
+  for (const q of questions) {
+    const at = lastUsed.get(q.id);
+    if (at === undefined) continue;
+    const group = groups.get(at);
+    if (group) group.push(q);
+    else groups.set(at, [q]);
+  }
+  const used = [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([, group]) => (random ? shuffled(group, random) : group));
   return [...(random ? shuffled(unused, random) : unused), ...used];
 }
 

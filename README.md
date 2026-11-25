@@ -84,10 +84,12 @@ npm run export-demo   # leser IBE430 fra prod og skriver demo-data/demo.json
 
 ### Demoen
 
-Knappen «Prøv demoen» på forsiden åpner `/demo`, der hvem som helst kan prøve appen med IBE430 uten konto. Demoen har emnelisten, emnekortet med eksamensform, læringsutbytte, framdrift og kapittellisten, og lesesiden for sammendragene.
+Knappen «Prøv demoen» på forsiden åpner `/demo`, der hvem som helst kan prøve appen med IBE430 uten konto. Demoen har emnelisten, emnekortet med eksamensform, læringsutbytte, framdrift og kapittellisten, lesesiden for sammendragene og quizen med «Ta quizen».
 
-- Demosidene kjører i nettleseren med en egen komposisjonsrot, `src/composition/demo.ts`, som bruker `DemoDataSource` på `demo-data/demo.json` og `DemoClock` med den faste datoen 2026-12-01. De bruker de samme brukstilfellene og skjermkomponentene (`src/app/_screens/`) som appen.
-- Demoen sender ingen forespørsler til Supabase og lagrer ingenting. Knapper som oppretter, endrer eller sletter, feilrapporter og «Logg ut» vises ikke. Quizen kommer i story 2.3.
+- Demosidene kjører i nettleseren med en egen komposisjonsrot, `src/composition/demo.ts`, som bruker `DemoDataSource` på `demo-data/demo.json` og `DemoClock` med den faste datoen 2026-12-01. De bruker de samme brukstilfellene og skjermkomponentene (`src/app/_screens/`) som appen, også quizskjermen (`_screens/Quiz.tsx`).
+- Quizen har de samme reglene som i appen, fra de uendrede brukstilfellene i `src/application/quiz.ts`: 10 spørsmål, riktig svar og forklaring ved feil, et nytt spørsmål om samme tema, resultatet som «8 av 10 riktige» og avkrysning ved minst 80 %. Framdriften på emnekortet og «gjennomført» kommer fra avkrysningene i besøket. Når banken er brukt opp, kommer spørsmålene igjen i en annen rekkefølge, som i appen.
+- Quizene, svarene og avkrysningene ligger i minnet og i `sessionStorage` i fanen (nøkkelen `studievenn-demo`). En omlasting fortsetter quizen der den var, mens en ny fane eller et nytt besøk starter tomt (en duplisert fane tar med seg tilstanden). Ugyldig eller utdatert tilstand gir en ny, tom tilstand, og kan ikke `sessionStorage` brukes (for eksempel i privat modus), virker quizen bare i minnet.
+- Demoen sender ingen forespørsler til Supabase og lagrer ingenting på serveren, i `localStorage` eller i cookies. Knapper som oppretter, endrer eller sletter, feilrapporter og «Logg ut» vises ikke.
 - `src/composition/demo.test.ts` følger importene fra komposisjonsroten og fra alle filene under `src/app/demo/`, og feiler i CI hvis demoen kan nå Supabase-adapteren, en `@supabase/*`-pakke eller `@/composition/server`.
 - Er demofila ugyldig, viser alle demosidene feilmeldingen i stedet for innhold.
 
