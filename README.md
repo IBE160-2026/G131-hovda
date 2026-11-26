@@ -55,6 +55,14 @@ Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak 
 - **Forventet i dag** er det minste av planlagt og antall delkapitler som er gjennomført eller har notater, så delkapitler uten notater aldri gir etterslep.
 - **Etterslep** = forventet − gjennomførte. Ved etterslep vises veien tilbake med samme tempo som dagens forslag (⌈R₀ / D⌉ + 1, høyst 3 om dagen, også i helgen), for eksempel «2 delkapitler i kveld, så er du i rute søndag».
 
+Øverst på startsiden står dagens forslag, for eksempel «I kveld: delkapittel 1.2, deretter quiz.», med «Start økta» til lesesiden:
+
+- **Hvilke:** de neste klare delkapitlene som ikke er gjennomført, i nummerrekkefølge. Klart betyr at quizen kan tas.
+- **Hvor mange:** ⌈R₀ / D⌉, minst 1, og ett til ved etterslep, høyst 3.
+- **Helg:** lørdag og søndag foreslås noe bare ved etterslep.
+- **Repetisjon:** er ingen ikke-gjennomførte delkapitler klare, foreslås en ny quiz på de som ble gjennomført for lengst siden.
+- **Fast til midnatt:** forslaget regnes ut fra avkrysningene fra før i dag (norsk tid). Et delkapittel som fullføres i løpet av dagen, blir stående, merket «gjennomført». Klar-status og notater leses slik de er nå, så en import i løpet av dagen kan endre forslaget.
+
 ### Importere notater, sammendrag og spørsmålsbanker
 
 Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene og spørsmålsbankene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:

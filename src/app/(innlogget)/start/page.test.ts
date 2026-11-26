@@ -8,7 +8,17 @@ vi.mock("@/composition/server", () => ({ getDataSourceForRender, getClock: () =>
 vi.mock("./actions", () => ({ logOut: async () => {} }));
 
 const { ActiveCourse } = await import("./page");
-const { completedBadge, goalReachedMessage, onTrackMessage, unavailableMessage } = await import("../emner/formState");
+const {
+  completedBadge,
+  flexibleDayMessage,
+  goalReachedMessage,
+  nothingReadyMessage,
+  onTrackMessage,
+  reviewText,
+  sessionDoneMessage,
+  suggestionText,
+  unavailableMessage,
+} = await import("../emner/formState");
 const { subchapterInputHash } = await import("@/application/summaryHash");
 
 const course = {
@@ -49,8 +59,8 @@ async function render(
   ready: ReadyHashes | { status: "unavailable" } = {},
   // Spørsmålsbankene har de samme klare hashene som sammendragene hvis ikke annet er oppgitt.
   banks: ReadyHashes | { status: "unavailable" } = ready,
-  // Delkapitlene som er krysset av, eller at avkrysningene ikke kan leses.
-  completed: string[] | { status: "unavailable" } = [],
+  // Delkapitlene som er krysset av (kl. 10 UTC 21.11, eller tidspunktet per ID), eller at avkrysningene ikke kan leses.
+  completed: string[] | Record<string, string> | { status: "unavailable" } = [],
   // Studieplanen for emnet, eller at den ikke kan leses.
   plan: unknown = ok(null),
 ) {
@@ -61,15 +71,17 @@ async function render(
     listSummaryVersions: listSummaryVersions.mockReset().mockImplementation(async (ids: string[]) => versions(ready, ids)),
     listQuestionBanks: listQuestionBanks.mockReset().mockImplementation(async (ids: string[]) => versions(banks, ids)),
     getStudyPlan: getStudyPlan.mockReset().mockResolvedValue(plan),
-    listCompletions: listCompletions.mockReset().mockImplementation(async (ids: string[]) =>
-      "status" in completed
-        ? completed
-        : ok(
-            ids
-              .filter((id) => completed.includes(id))
-              .map((subchapterId) => ({ subchapterId, quizId: `z-${subchapterId}`, completedAt: "2026-11-21T10:00:00Z" })),
-          ),
-    ),
+    listCompletions: listCompletions.mockReset().mockImplementation(async (ids: string[]) => {
+      if ("status" in completed) return completed;
+      const at: Record<string, string> = Array.isArray(completed)
+        ? Object.fromEntries(completed.map((id) => [id, "2026-11-21T10:00:00Z"]))
+        : completed;
+      return ok(
+        ids
+          .filter((id) => id in at)
+          .map((subchapterId) => ({ subchapterId, quizId: `z-${subchapterId}`, completedAt: at[subchapterId] })),
+      );
+    }),
   });
   return renderToStaticMarkup(await ActiveCourse());
 }
@@ -376,5 +388,107 @@ describe("foran eller bak planen på startsiden", () => {
       expect(text).toContain("2 av 9 gjennomført");
       expect(text).not.toMatch(/planen|i rute/);
     }
+  });
+});
+
+describe("dagens forslag på startsiden", () => {
+  // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10, ni delkapitler med notater.
+  const plan = ok({ courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 1, r0: 8, d: 10 });
+  const href = (n: string) => `/emner/c1/delkapitler/${n}`;
+  let readyAll: ReadyHashes;
+  const show = (day: string, completed: string[] | Record<string, string>, ready: ReadyHashes = readyAll, studyPlan: unknown = plan) => {
+    today = day;
+    return render(ok(course), ok([course]), ok(chapterWith(9)), ready, ready, completed, studyPlan);
+  };
+  /** Forslagsseksjonen, eller tom streng når den ikke vises. */
+  const suggestionOf = (html: string) => html.match(/<section aria-labelledby="dagens-forslag"[\s\S]*?<\/section>/)?.[0] ?? "";
+  const textOf = (html: string) => suggestionOf(html).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const startHref = (html: string) => suggestionOf(html).match(/<a [^>]*href="([^"]*)"[^>]*>Start økta<\/a>/)?.[1] ?? null;
+
+  beforeEach(async () => {
+    getDataSourceForRender.mockReset();
+    const hash = await subchapterInputHash({ learningGoals: "", keyConcepts: "" }, "Notat");
+    readyAll = Object.fromEntries(ids(9).map((id) => [id, hash]));
+  });
+
+  it("står øverst, over framdriften, med «Start økta» til lesesiden", async () => {
+    const html = await show("2026-11-26", ["d1"]);
+    expect(textOf(html)).toContain("Dagens forslag");
+    expect(textOf(html)).toContain("I kveld: delkapittel 1.2, deretter quiz.");
+    expect(suggestionOf(html)).toContain(`href="${href("1.2")}"`);
+    expect(startHref(html)).toBe(href("1.2"));
+    expect(html.indexOf("dagens-forslag")).toBeLessThan(html.indexOf('aria-label="Framdrift"'));
+    // Kapittellisten står fortsatt under, så eieren kan velge selv.
+    expect(html.indexOf("dagens-forslag")).toBeLessThan(html.indexOf('id="kapitler"'));
+  });
+
+  it("gir ett til ved etterslep", async () => {
+    const text = textOf(await show("2026-12-03", ["d1", "d2"]));
+    expect(text).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+  });
+
+  it("foreslår ingenting på en fleksibel dag i rute", async () => {
+    const done = { d1: "2026-11-20T10:00:00Z", d2: "2026-11-27T17:00:00Z", d3: "2026-11-27T18:00:00Z" };
+    const html = await show("2026-11-28", done);
+    expect(textOf(html)).toContain(flexibleDayMessage);
+    expect(startHref(html)).toBeNull();
+  });
+
+  it("hopper over delkapitler som ikke er klare", async () => {
+    const ready = Object.fromEntries(Object.entries(readyAll).filter(([id]) => id !== "d2"));
+    expect(textOf(await show("2026-11-26", ["d1"], ready))).toContain("I kveld: delkapittel 1.3, deretter quiz.");
+  });
+
+  it("foreslår et utdatert delkapittel, fordi quizen kan tas", async () => {
+    const html = await show("2026-11-26", ["d1"], { ...readyAll, d2: "gammel-hash" });
+    expect(textOf(html)).toContain("I kveld: delkapittel 1.2, deretter quiz.");
+    expect(startHref(html)).toBe(href("1.2"));
+  });
+
+  it("lister tre delkapitler med komma og «og»", () => {
+    expect(suggestionText(["2.1", "3.1", "4.1"])).toBe("I kveld: delkapittel 2.1, 3.1 og 4.1, med quiz etter hvert.");
+    expect(reviewText(["1.3", "1.1"])).toBe("I kveld: repetisjon med ny quiz på delkapittel 1.3 og 1.1.");
+  });
+
+  it("foreslår repetisjon på gjennomførte når ingen ikke-gjennomførte er klare", async () => {
+    const done = { d1: "2026-11-21T10:00:00Z", d2: "2026-11-20T10:00:00Z" };
+    const html = await show("2026-11-26", done, { d1: readyAll.d1, d2: readyAll.d2 });
+    expect(textOf(html)).toContain("I kveld: repetisjon med ny quiz på delkapittel 1.2.");
+    expect(startHref(html)).toBe(href("1.2"));
+    expect(suggestionOf(html)).not.toContain(completedBadge);
+  });
+
+  it("sier fra når ingenting er klart", async () => {
+    expect(textOf(await show("2026-11-26", ["d1"], {}))).toContain(nothingReadyMessage);
+  });
+
+  it("ligger fast når delkapittelet fullføres i løpet av dagen, og merkes som gjennomført", async () => {
+    // 1.2 krysset av kl. 14 i Oslo samme dag.
+    const html = await show("2026-11-26", { d1: "2026-11-20T10:00:00Z", d2: "2026-11-26T13:00:00Z" });
+    expect(textOf(html)).toContain("I kveld: delkapittel 1.2, deretter quiz.");
+    expect(textOf(html)).toContain(completedBadge);
+    expect(textOf(html)).toContain(sessionDoneMessage);
+    expect(startHref(html)).toBeNull();
+  });
+
+  it("lar «Start økta» gå til det neste når det første er gjort i dag", async () => {
+    // Etterslep 3.12 gir 1.3 og 1.4. 1.3 er gjort i kveld.
+    const html = await show("2026-12-03", { d1: "2026-11-20T10:00:00Z", d2: "2026-11-27T10:00:00Z", d3: "2026-12-03T17:00:00Z" });
+    expect(textOf(html)).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+    expect(startHref(html)).toBe(href("1.4"));
+  });
+
+  it("vises ikke uten plan, eller når planen ikke kan leses", async () => {
+    for (const studyPlan of [ok(null), { status: "unavailable" }]) {
+      const html = await show("2026-11-26", ["d1"], readyAll, studyPlan);
+      expect(suggestionOf(html)).toBe("");
+      expect(html).toContain('aria-label="Framdrift"');
+    }
+  });
+
+  it("vises ikke når delkapitlene ikke kan leses", async () => {
+    today = "2026-11-26";
+    const html = await render(ok(course), ok([course]), ok(chapterWith(9)), readyAll, readyAll, { status: "unavailable" }, plan);
+    expect(suggestionOf(html)).toBe("");
   });
 });

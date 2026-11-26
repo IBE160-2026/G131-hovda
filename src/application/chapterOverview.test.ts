@@ -140,11 +140,11 @@ describe("listChapterOverview", () => {
     sub1.noteText = "Notat en, endret";
     const overview = await listChapterOverview(data, courseId);
     if (overview.status !== "ok") throw new Error("utilgjengelig");
-    expect(overview.value[0].subchapters.map((s) => [s.number, s.status, s.completed])).toEqual([
-      ["1.1", "utdatert", true],
-      ["1.2", "mangler innhold", false],
-      ["1.3", "mangler notater", false],
-      ["1.4", "mangler innhold", true],
+    expect(overview.value[0].subchapters.map((s) => [s.number, s.status, s.completed, s.completedAt])).toEqual([
+      ["1.1", "utdatert", true, "2026-11-21T11:00:00Z"],
+      ["1.2", "mangler innhold", false, null],
+      ["1.3", "mangler notater", false, null],
+      ["1.4", "mangler innhold", true, "2026-11-21T10:00:00Z"],
     ]);
   });
 

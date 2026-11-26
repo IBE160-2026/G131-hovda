@@ -205,6 +205,62 @@ export function planStatus(
   return { kind: "behind", backlog, perDay, onTrackOn: null };
 }
 
+/** Et aktivt delkapittel slik dagens forslag trenger det. */
+export type SuggestionCandidate = {
+  number: string;
+  /** Om quizen kan tas: samlet status «klart» eller «utdatert» (AD-8). */
+  ready: boolean;
+  /** Fra `hasNotes`. */
+  hasNotes: boolean;
+  /** Når delkapittelet ble krysset av (ISO-tidspunkt), eller `null`. */
+  completedAt: string | null;
+};
+
+/**
+ * Dagens forslag. `subchapters` gjelder (delkapitler i kveld) og `review` (ny quiz på gjennomførte)
+ * har numrene i rekkefølgen de skal tas. Senere epics kan legge til flere slags.
+ */
+export type DailySuggestion =
+  | { kind: "subchapters"; numbers: string[] }
+  | { kind: "review"; numbers: string[] }
+  | { kind: "flexibleDay" }
+  | { kind: "nothingReady" };
+
+/**
+ * Dagens forslag (FR-10 del 2, AD-15), regnet ut fra tilstanden ved starten av dagen i Oslo: bare
+ * avkrysninger fra før `today` teller, så forslaget ligger fast til midnatt. `subchapters` er i
+ * nummerrekkefølge. Antallet er `dailySuggestionSize`. På en fleksibel dag foreslås noe bare ved
+ * etterslep. Er ingen ikke-gjennomførte delkapitler klare, foreslås repetisjon av de klare som ble
+ * gjennomført for lengst siden.
+ */
+export function dailySuggestion(
+  plan: PlanInput,
+  subchapters: readonly SuggestionCandidate[],
+  today: string,
+): DailySuggestion {
+  const doneAtStart = (s: SuggestionCandidate) => s.completedAt !== null && osloDate(s.completedAt) < today;
+  const status = planStatus(
+    plan,
+    {
+      completed: subchapters.filter(doneAtStart).length,
+      reachable: subchapters.filter((s) => doneAtStart(s) || s.hasNotes).length,
+    },
+    today,
+  );
+  const behind = status.kind === "behind";
+  if (!behind && !isStudyDay(today)) return { kind: "flexibleDay" };
+
+  const size = dailySuggestionSize(plan.r0, plan.d, behind);
+  const open = subchapters.filter((s) => s.ready && !doneAtStart(s));
+  if (open.length > 0) return { kind: "subchapters", numbers: open.slice(0, size).map((s) => s.number) };
+
+  const review = subchapters
+    .filter((s) => s.ready && doneAtStart(s))
+    .sort((a, b) => Date.parse(a.completedAt!) - Date.parse(b.completedAt!));
+  if (review.length > 0) return { kind: "review", numbers: review.slice(0, size).map((s) => s.number) };
+  return { kind: "nothingReady" };
+}
+
 function dateOf(day: number): string {
   return utcDateFormat.format(day * MS_PER_DAY);
 }
