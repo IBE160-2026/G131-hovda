@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const getDataSourceForRender = vi.fn();
-vi.mock("@/composition/server", () => ({ getDataSourceForRender }));
+// Dagens dato i Oslo for planformelen. Endres i testene for foran/bak.
+let today = "2026-12-03";
+vi.mock("@/composition/server", () => ({ getDataSourceForRender, getClock: () => ({ today: () => today }) }));
 vi.mock("./actions", () => ({ logOut: async () => {} }));
 
 const { ActiveCourse } = await import("./page");
-const { completedBadge, goalReachedMessage, unavailableMessage } = await import("../emner/formState");
+const { completedBadge, goalReachedMessage, onTrackMessage, unavailableMessage } = await import("../emner/formState");
 const { subchapterInputHash } = await import("@/application/summaryHash");
 
 const course = {
@@ -297,5 +299,82 @@ describe("framdriften på startsiden", () => {
     expect(await render(ok(course), ok([course]))).not.toContain("Eksamensdato");
     const unavailable = { status: "unavailable" };
     expect(await render(ok(course), ok([course]), ok([]), {}, {}, [], unavailable)).not.toContain("Eksamensdato");
+  });
+});
+
+describe("foran eller bak planen på startsiden", () => {
+  // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10, ni delkapitler med notater.
+  const plan = ok({ courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 1, r0: 8, d: 10 });
+  const show = (completed: number, day: string, studyPlan: unknown = plan) => {
+    today = day;
+    return render(ok(course), ok([course]), ok(chapterWith(9)), {}, {}, ids(completed), studyPlan);
+  };
+  /** Teksten i framdriftsindikatoren, uten tagger. */
+  const progressOf = (html: string) =>
+    (html.match(/<section aria-label="Framdrift"[\s\S]*?<\/section>/)?.[0] ?? "").replace(/<[^>]+>/g, " ");
+
+  beforeEach(() => {
+    getDataSourceForRender.mockReset();
+    today = "2026-12-03";
+  });
+
+  it("viser etterslepet markert, med veien tilbake, under andelen", async () => {
+    const html = await show(2, "2026-12-03");
+    const text = progressOf(html);
+    expect(text).toContain("3 delkapitler bak planen.");
+    expect(text).toContain("2 delkapitler i kveld, så er du i rute søndag.");
+    expect(text.indexOf("gjennomført, mål")).toBeLessThan(text.indexOf("bak planen"));
+    expect(html).toMatch(/<div class="[^"]*bg-sun[^"]*"><p class="font-semibold">3 delkapitler bak planen\.<\/p>/);
+    expect(text).not.toMatch(/ikke gjort/);
+  });
+
+  it("sier at etterslepet tas igjen litt etter litt når eksamen er for nær", async () => {
+    const text = progressOf(await show(1, "2026-12-09"));
+    expect(text).toContain("8 delkapitler bak planen.");
+    expect(text).toContain("2 delkapitler om dagen tar deg nærmere planen.");
+  });
+
+  it("bruker entall og «i morgen» når én kveld er nok", async () => {
+    const text = progressOf(await show(4, "2026-12-03"));
+    expect(text).toContain("1 delkapittel bak planen.");
+    expect(text).toContain("2 delkapitler i kveld, så er du i rute i morgen.");
+  });
+
+  it("gir ikke etterslep for delkapitler uten notater, og ber aldri om flere enn som kan tas", async () => {
+    // d1–d4 er gjennomført (d4 uten notater), d5 har notater, d6–d9 mangler notater: N = 5.
+    const subchapters = chapterWith(9)[0].subchapters.map((s, i) =>
+      i === 3 ? { ...s, noteText: "  " } : i >= 5 ? { ...s, noteText: i === 5 ? "*Ingen notater ennå.*" : "" } : s,
+    );
+    const withGaps = ok([{ ...chapterWith(9)[0], subchapters }]);
+    const render5 = (completed: number) =>
+      render(ok(course), ok([course]), withGaps, {}, {}, ids(completed), plan).then(progressOf);
+    // 3.12: planlagt 5, forventet min(5, 5) = 5.
+    today = "2026-12-03";
+    const behind = await render5(4);
+    expect(behind).toContain("1 delkapittel bak planen.");
+    expect(behind).toContain("1 delkapittel i kveld, så er du i rute i morgen.");
+    // 4.12: planlagt 6, men forventet er fortsatt 5.
+    today = "2026-12-04";
+    expect(await render5(5)).toContain(onTrackMessage);
+  });
+
+  it("viser forspranget", async () => {
+    const text = progressOf(await show(5, "2026-11-30"));
+    expect(text).toContain("2 delkapitler foran planen.");
+    expect(text).toContain("5 av 9 gjennomført");
+  });
+
+  it("viser at eieren er i rute", async () => {
+    const html = await show(1, "2026-11-26");
+    expect(progressOf(html)).toContain(onTrackMessage);
+    expect(html).not.toContain("bg-sun");
+  });
+
+  it("viser framdriften uten foran/bak uten plan, eller når planen ikke kan leses", async () => {
+    for (const studyPlan of [ok(null), { status: "unavailable" }]) {
+      const text = progressOf(await show(2, "2026-12-03", studyPlan));
+      expect(text).toContain("2 av 9 gjennomført");
+      expect(text).not.toMatch(/planen|i rute/);
+    }
   });
 });

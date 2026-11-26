@@ -49,6 +49,12 @@ Eksamensdatoen og planstart legges inn under «Eksamensdato og planstart» på �
 
 Eksamensdatoen må være etter planstart, og D må være minst 1. Endres eksamensdatoen mens planstart står som før, starter den nye planen i dag. Endres ingen av datoene, lagres ingenting. Startsiden viser eksamensdatoen under eksamensformen. Demoen har ingen plan ennå.
 
+Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak planen:
+
+- **Planlagt i dag** = G₀ + ⌈R₀ × d / D⌉, der d er studiedagene fra planstart til og med i går. Dagens økt gir derfor ikke etterslep før dagen er over.
+- **Forventet i dag** er det minste av planlagt og antall delkapitler som er gjennomført eller har notater, så delkapitler uten notater aldri gir etterslep.
+- **Etterslep** = forventet − gjennomførte. Ved etterslep vises veien tilbake med samme tempo som dagens forslag (⌈R₀ / D⌉ + 1, høyst 3 om dagen, også i helgen), for eksempel «2 delkapitler i kveld, så er du i rute søndag».
+
 ### Importere notater, sammendrag og spørsmålsbanker
 
 Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene og spørsmålsbankene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:

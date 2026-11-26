@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-09-2026 22:11
-last_updated: 11-26-2026 11:34
+last_updated: 11-26-2026 12:08
 project: G131-hovda
 project_key: NOKEY
 tracking_system: file-system
@@ -55,7 +55,7 @@ development_status:
 
   epic-3: in-progress
   3-1-eieren-legger-inn-eksamensdato-og-planstart: done
-  3-2-eieren-ser-om-planen-holdes-foran-eller-bak: backlog
+  3-2-eieren-ser-om-planen-holdes-foran-eller-bak: review
   3-3-startsiden-viser-dagens-forslag: backlog
   3-4-demoen-viser-dagens-forslag-og-foran-bak: backlog
   epic-3-retrospective: optional
