@@ -47,7 +47,7 @@ Eksamensdatoen og planstart legges inn under «Eksamensdato og planstart» på �
 - **R₀:** resten av de aktive delkapitlene
 - **D:** studiedager (mandag–fredag) fra og med planstart til og med dagen før eksamensdatoen
 
-Eksamensdatoen må være etter planstart, og D må være minst 1. Endres eksamensdatoen mens planstart står som før, starter den nye planen i dag. Endres ingen av datoene, lagres ingenting. Startsiden viser eksamensdatoen under eksamensformen. Demoen har ingen plan ennå.
+Eksamensdatoen må være etter planstart, og D må være minst 1. Endres eksamensdatoen mens planstart står som før, starter den nye planen i dag. Endres ingen av datoene, lagres ingenting. Startsiden viser eksamensdatoen under eksamensformen. Demoen har en fast plan (se «Demoen»).
 
 Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak planen:
 
@@ -103,15 +103,16 @@ npm run export-demo   # leser IBE430 fra prod og skriver demo-data/demo.json
 
 - Eksporten leser alltid fra `prod` med nøklene i `.env.prod.local`, uten `--target` og uten bekreftelse, fordi den bare leser. Den skriver aldri til databasen.
 - Bare delkapitler som er «klart» i kapittellisten, tas med, og bare når de har minst 20 aktive spørsmål og minst 2 per tema. Utskriften lister hvert delkapittel som hoppes over, med årsak, og hvor mange delkapitler som er skrevet. Kapitler uten klare delkapitler tas ikke med.
-- Fila har emnet (kode, navn, læringsutbytte, eksamensform), kapitlene og delkapitlene med siste klare sammendrag og de aktive spørsmålene med tema, fire alternativer, riktig svar og forklaring. Den har ingen e-post, bruker-ID, database-ID-er, notater, hasher, tidspunkter, svar eller framdrift. ID-ene lages av strukturen, for eksempel `demo-1.2-q01`.
+- Fila har emnet (kode, navn, læringsutbytte, eksamensform), planinndataene for demoen (`plan`: eksamensdato 2026-12-10, planstart 2026-11-30 og demo-dag 2026-12-01, faste verdier i `DEMO_PLAN`), kapitlene og delkapitlene med siste klare sammendrag og de aktive spørsmålene med tema, fire alternativer, riktig svar og forklaring. Den har ingen e-post, bruker-ID, database-ID-er, notater, hasher, tidspunkter, svar eller framdrift. ID-ene lages av strukturen, for eksempel `demo-1.2-q01`.
 - Dataene valideres mot skjemaet i `src/application/demoData.ts` før noe skrives. Ugyldige data, ingen klare delkapitler, manglende emne eller databasefeil gir en norsk melding, kode 1 og ingen endring i `demo-data/`. Samme innhold gir byte for byte samme fil.
 - Eksporten kjøres aldri automatisk, heller ikke ved build eller deploy. Endres notatene eller innholdet, kjør `npm run export-demo` og commit fila. `npm test` sjekker fila i repoet i CI.
 
 ### Demoen
 
-Knappen «Prøv demoen» på forsiden åpner `/demo`, der hvem som helst kan prøve appen med IBE430 uten konto. Demoen har emnelisten, emnekortet med eksamensform, læringsutbytte, framdrift og kapittellisten, lesesiden for sammendragene og quizen med «Ta quizen».
+Knappen «Prøv demoen» på forsiden åpner `/demo`, der hvem som helst kan prøve appen med IBE430 uten konto. Demoen har emnelisten, emnekortet med dagens forslag, framdrift med foran/bak, eksamensform, eksamensdato, læringsutbytte og kapittellisten, lesesiden for sammendragene og quizen med «Ta quizen».
 
-- Demosidene kjører i nettleseren med en egen komposisjonsrot, `src/composition/demo.ts`, som bruker `DemoDataSource` på `demo-data/demo.json` og `DemoClock` med den faste datoen 2026-12-01. De bruker de samme brukstilfellene og skjermkomponentene (`src/app/_screens/`) som appen, også quizskjermen (`_screens/Quiz.tsx`).
+- Demosidene kjører i nettleseren med en egen komposisjonsrot, `src/composition/demo.ts`, som bruker `DemoDataSource` på `demo-data/demo.json` og `DemoClock` med demo-dagen i fila (2026-12-01). De bruker de samme brukstilfellene og skjermkomponentene (`src/app/_screens/`) som appen, også quizskjermen (`_screens/Quiz.tsx`) og dagens forslag (`_screens/DailySuggestion.tsx`).
+- Studieplanen i demoen regnes ut fra `plan` i fila med samme øyeblikksbilde som `startPlan`: ingen delkapitler er gjennomført før planstart, så G₀ = 0, R₀ er alle delkapitlene og D = 8. Med de 7 delkapitlene i fila nå ligger den oppdiktede studenten derfor 1 delkapittel bak, forslaget er 1.1 og 1.2, og veien tilbake er «2 delkapitler i kveld, så er du i rute i morgen». Alle besøkende ser det samme. Et delkapittel som fullføres i besøket, oppdaterer framdriften, men forslaget ligger fast, fordi demo-dagen aldri er over.
 - Quizen har de samme reglene som i appen, fra de uendrede brukstilfellene i `src/application/quiz.ts`: 10 spørsmål, riktig svar og forklaring ved feil, et nytt spørsmål om samme tema, resultatet som «8 av 10 riktige» og avkrysning ved minst 80 %. Framdriften på emnekortet og «gjennomført» kommer fra avkrysningene i besøket. Når banken er brukt opp, kommer spørsmålene igjen i en annen rekkefølge, som i appen.
 - Quizene, svarene og avkrysningene ligger i minnet og i `sessionStorage` i fanen (nøkkelen `studievenn-demo`). En omlasting fortsetter quizen der den var, mens en ny fane eller et nytt besøk starter tomt (en duplisert fane tar med seg tilstanden). Ugyldig eller utdatert tilstand gir en ny, tom tilstand, og kan ikke `sessionStorage` brukes (for eksempel i privat modus), virker quizen bare i minnet.
 - Demoen sender ingen forespørsler til Supabase og lagrer ingenting på serveren, i `localStorage` eller i cookies. Knapper som oppretter, endrer eller sletter, feilrapporter og «Logg ut» vises ikke.

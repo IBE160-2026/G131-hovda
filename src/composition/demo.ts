@@ -11,10 +11,12 @@ export type Demo = { data: DataSource; clock: Clock };
 
 /**
  * Demoen med innholdet `input`, som valideres. Ugyldig innhold gir `unavailable` på alle lesinger.
- * Quiztilstanden i besøket speiles til `storage`. Uten det ligger den bare i minnet.
+ * Quiztilstanden i besøket speiles til `storage`. Uten det ligger den bare i minnet. Klokka står på
+ * demo-dagen i fila.
  */
 export function createDemo(input: unknown, storage?: DemoStorage | null): Demo {
-  return { data: new DemoDataSource(input, storage), clock: new DemoClock() };
+  const data = new DemoDataSource(input, storage);
+  return { data, clock: new DemoClock(data.today) };
 }
 
 /** `sessionStorage` i nettleseren, så tilstanden bare ligger i fanen. Ellers, eller når den ikke kan nås, ingenting. */
