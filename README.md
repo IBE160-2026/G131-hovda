@@ -39,6 +39,16 @@ For `prod` kobles det til `frykrsmzrbdvijtaivcd` på samme måte, og etter `db p
 
 `npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`.
 
+### Eksamensdato og planstart
+
+Eksamensdatoen og planstart legges inn under «Eksamensdato og planstart» på «Endre emne» (`/emner/<id>`), med egen knapp, så navnet kan endres uten at planen starter på nytt. Står planstart tom, starter planen i dag (norsk tid, Europe/Oslo). Da lagres et øyeblikksbilde i tabellen `study_plans`, én plan per emne:
+
+- **G₀:** aktive delkapitler gjennomført før planstart (datoen i Oslo for avkrysningen)
+- **R₀:** resten av de aktive delkapitlene
+- **D:** studiedager (mandag–fredag) fra og med planstart til og med dagen før eksamensdatoen
+
+Eksamensdatoen må være etter planstart, og D må være minst 1. Endres eksamensdatoen mens planstart står som før, starter den nye planen i dag. Endres ingen av datoene, lagres ingenting. Startsiden viser eksamensdatoen under eksamensformen. Demoen har ingen plan ennå.
+
 ### Importere notater, sammendrag og spørsmålsbanker
 
 Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene og spørsmålsbankene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:

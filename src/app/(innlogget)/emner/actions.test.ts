@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getDataSource = vi.fn();
-vi.mock("@/composition/server", () => ({ getDataSource }));
+const getClock = () => ({ today: () => "2026-11-26" });
+vi.mock("@/composition/server", () => ({ getDataSource, getClock }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`redirect:${url}`);
   },
 }));
 
-const { createCourseAction, updateCourseAction, deleteCourseAction, chooseCourseAction } =
+const { createCourseAction, updateCourseAction, deleteCourseAction, chooseCourseAction, startPlanAction } =
   await import("./actions");
-const { initialCourseFormState } = await import("./formState");
+const { initialCourseFormState, initialStudyPlanFormState, studyPlanSavedMessage, studyPlanUnchangedMessage } =
+  await import("./formState");
+const { MemoryDataSource } = await import("@/application/testing/MemoryDataSource");
+const { studyPlanMessages } = await import("@/domain/studyPlan");
 
 function form(values: Record<string, string>) {
   const data = new FormData();
@@ -125,5 +129,65 @@ describe("emnehandlingene", () => {
     getDataSource.mockResolvedValue(data);
     await expect(chooseCourseAction(form({ id: "c1" }))).rejects.toThrow("redirect:/start");
     expect(data.setActiveCourse).toHaveBeenCalledWith("c1");
+  });
+});
+
+describe("handlingen for eksamensdato og planstart", () => {
+  beforeEach(() => getDataSource.mockReset());
+
+  async function memory() {
+    const data = new MemoryDataSource();
+    const created = await data.createCourse({ code: "IBE430", name: "V", learningOutcomes: "", examForm: "" });
+    if (created.status !== "ok") throw new Error(created.status);
+    getDataSource.mockResolvedValue(data);
+    return { data, courseId: created.value.id };
+  }
+
+  it("sender uinnloggede til forsiden uten å skrive noe", async () => {
+    getDataSource.mockResolvedValue(null);
+    await expect(
+      startPlanAction("c1", initialStudyPlanFormState(), form({ examDate: "2026-12-10", planStart: "" })),
+    ).rejects.toThrow(/^redirect:\/$/);
+  });
+
+  it("lagrer planen med planstart i dag og viser den lagrede planen", async () => {
+    const { data, courseId } = await memory();
+    const state = await startPlanAction(courseId, initialStudyPlanFormState(), form({ examDate: "2026-12-10", planStart: "" }));
+    expect(state).toEqual({
+      values: { examDate: "2026-12-10", planStart: "2026-11-26" },
+      errors: {},
+      formError: null,
+      message: studyPlanSavedMessage,
+      attempt: 1,
+    });
+    expect(data.studyPlans).toHaveLength(1);
+  });
+
+  it("sier at planen er uendret når datoene er de samme", async () => {
+    const { data, courseId } = await memory();
+    const values = { examDate: "2026-12-10", planStart: "2026-11-26" };
+    const first = await startPlanAction(courseId, initialStudyPlanFormState(), form(values));
+    const writes = data.planWrites;
+    const second = await startPlanAction(courseId, first, form(values));
+    expect(data.planWrites).toBe(writes);
+    expect(second.message).toBe(studyPlanUnchangedMessage);
+    expect(second.attempt).toBe(2);
+  });
+
+  it("viser feilen ved eksamensdatoen og beholder verdiene", async () => {
+    const { data, courseId } = await memory();
+    const values = { examDate: "2026-11-20", planStart: "" };
+    const state = await startPlanAction(courseId, initialStudyPlanFormState(), form(values));
+    expect(state).toMatchObject({ values, errors: { examDate: studyPlanMessages.examNotAfterStart }, message: null });
+    expect(data.studyPlans).toEqual([]);
+  });
+
+  it("sier fra når databasen er nede, og når emnet ikke finnes", async () => {
+    const { data, courseId } = await memory();
+    data.planWritesDown = true;
+    const down = await startPlanAction(courseId, initialStudyPlanFormState(), form({ examDate: "2026-12-10", planStart: "" }));
+    expect(down.formError).toBe("Noe gikk galt. Prøv igjen senere.");
+    const missing = await startPlanAction("c99", initialStudyPlanFormState(), form({ examDate: "2026-12-10", planStart: "" }));
+    expect(missing.formError).toBe("Fant ikke emnet. Det kan være slettet.");
   });
 });

@@ -22,6 +22,7 @@ const listChapters = vi.fn();
 const listSummaryVersions = vi.fn();
 const listQuestionBanks = vi.fn();
 const listCompletions = vi.fn();
+const getStudyPlan = vi.fn();
 
 /** Siste klare versjon per delkapittel-ID, med `inputHash`. Delkapitler som ikke er med, har ingen. */
 type ReadyHashes = Record<string, string>;
@@ -48,6 +49,8 @@ async function render(
   banks: ReadyHashes | { status: "unavailable" } = ready,
   // Delkapitlene som er krysset av, eller at avkrysningene ikke kan leses.
   completed: string[] | { status: "unavailable" } = [],
+  // Studieplanen for emnet, eller at den ikke kan leses.
+  plan: unknown = ok(null),
 ) {
   getDataSourceForRender.mockResolvedValue({
     getActiveCourse: async () => active,
@@ -55,6 +58,7 @@ async function render(
     listChapters: listChapters.mockReset().mockResolvedValue(chapters),
     listSummaryVersions: listSummaryVersions.mockReset().mockImplementation(async (ids: string[]) => versions(ready, ids)),
     listQuestionBanks: listQuestionBanks.mockReset().mockImplementation(async (ids: string[]) => versions(banks, ids)),
+    getStudyPlan: getStudyPlan.mockReset().mockResolvedValue(plan),
     listCompletions: listCompletions.mockReset().mockImplementation(async (ids: string[]) =>
       "status" in completed
         ? completed
@@ -278,5 +282,20 @@ describe("framdriften på startsiden", () => {
     expect(html).toContain('role="alert"');
     expect(html).not.toContain("<progress");
     expect(html).not.toContain("Kapittel 1: Organisasjoner");
+  });
+
+  it("viser eksamensdatoen under eksamensformen når emnet har en plan", async () => {
+    const plan = ok({ courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 7, r0: 2, d: 10 });
+    const html = await render(ok(course), ok([course]), ok([]), {}, {}, [], plan);
+    expect(getStudyPlan).toHaveBeenCalledTimes(1);
+    expect(getStudyPlan).toHaveBeenCalledWith("c1");
+    expect(html).toContain('Eksamensdato:</span> <time dateTime="2026-12-10">10. desember 2026</time>');
+    expect(html.indexOf("Eksamensform:")).toBeLessThan(html.indexOf("Eksamensdato:"));
+  });
+
+  it("viser ingen eksamensdato uten plan, eller når planen ikke kan leses", async () => {
+    expect(await render(ok(course), ok([course]))).not.toContain("Eksamensdato");
+    const unavailable = { status: "unavailable" };
+    expect(await render(ok(course), ok([course]), ok([]), {}, {}, [], unavailable)).not.toContain("Eksamensdato");
   });
 });

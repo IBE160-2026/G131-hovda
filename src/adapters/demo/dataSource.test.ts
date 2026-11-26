@@ -56,7 +56,7 @@ describe("DemoDataSource med demo-data/demo.json", () => {
     expect(bank.status === "ok" && bank.value.length).toBeGreaterThanOrEqual(20);
   });
 
-  it("lagrer aldri emner, kapitler, sammendrag, banker eller feilrapporter", async () => {
+  it("lagrer aldri emner, kapitler, sammendrag, banker, feilrapporter eller studieplaner", async () => {
     expect(await data.createCourse()).toEqual({ status: "unavailable" });
     expect(await data.setActiveCourse()).toEqual({ status: "unavailable" });
     expect(await data.saveChapter()).toEqual({ status: "unavailable" });
@@ -64,6 +64,8 @@ describe("DemoDataSource med demo-data/demo.json", () => {
     expect(await data.addQuestionBank()).toEqual({ status: "unavailable" });
     expect(await data.reportSummaryVersion()).toEqual({ status: "unavailable" });
     expect(await data.reportQuizItem()).toEqual({ status: "unavailable" });
+    expect(await data.saveStudyPlan()).toEqual({ status: "unavailable" });
+    expect(await data.getStudyPlan()).toEqual({ status: "ok", value: null });
     expect(await data.listCourses()).toEqual({ status: "ok", value: [expect.objectContaining({ code: "IBE430" })] });
   });
 });
@@ -303,6 +305,7 @@ describe("DemoDataSource med en ugyldig fil", () => {
     expect(await data.listSummaryVersions(["demo-1.2"])).toEqual(unavailable);
     expect(await data.listQuestionBanks(["demo-1.2"])).toEqual(unavailable);
     expect(await data.listQuizBank("demo-1.2")).toEqual(unavailable);
+    expect(await data.getStudyPlan()).toEqual(unavailable);
     expect(await listChapterOverview(data, courseId)).toEqual(unavailable);
     expect(await getSubchapterSummary(data, courseId, "1.2")).toEqual(unavailable);
   });

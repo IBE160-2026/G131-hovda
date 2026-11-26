@@ -1,6 +1,6 @@
 // Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
 // question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items, subchapter_completions,
-// question_reports og summary_reports mot
+// question_reports, summary_reports og study_plans mot
 // Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data.
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
@@ -612,6 +612,64 @@ describe("RLS i dev", () => {
     expect(after.data).toEqual([]);
   });
 
+  it("gir testkontoen ingen av eierens studieplaner", async () => {
+    const { data, error } = await testUser.from("study_plans").select("id, owner_id");
+    expect(error).toBeNull();
+    expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+  });
+
+  it("stopper en studieplan med en annen eier eller for et emne som ikke er testkontoens", async () => {
+    const other = "00000000-0000-0000-0000-000000000000";
+    const plan = { course_id: other, exam_date: "2026-12-10", plan_start: "2026-11-26", g0: 0, r0: 1, d: 10 };
+    const foreignOwner = await testUser.from("study_plans").insert({ owner_id: other, ...plan });
+    expect(foreignOwner.error?.code).toBe("42501");
+    const foreignCourse = await testUser.from("study_plans").insert(plan);
+    expect(foreignCourse.error?.code).toBe("23503");
+  });
+
+  it("endrer ingen av eierens studieplaner", async () => {
+    // RLS skjuler radene som ikke er testkontoens, så oppdateringen treffer ingen av dem.
+    const updated = await testUser
+      .from("study_plans")
+      .update({ exam_date: "2030-01-01" })
+      .neq("owner_id", testUserId)
+      .select("id");
+    expect(updated.error).toBeNull();
+    expect(updated.data).toEqual([]);
+  });
+
+  it("lagrer, erstatter og leser planen gjennom adapteren, og sletter den bare med emnet", async () => {
+    const code = `SP${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const course = await testUser.from("courses").insert({ code, name: "Studieplan" }).select("id").single();
+    expect(course.error).toBeNull();
+    const courseId = course.data!.id;
+    createdIds.push(courseId);
+    const data = new SupabaseDataSource(testUser, testUserId);
+
+    expect(await data.getStudyPlan(courseId)).toEqual({ status: "ok", value: null });
+    const first = { courseId, examDate: "2026-12-10", planStart: "2026-11-26", g0: 7, r0: 2, d: 10 };
+    expect(await data.saveStudyPlan(first)).toEqual({ status: "ok", value: first });
+    const second = { ...first, examDate: "2026-12-11", d: 11 };
+    expect(await data.saveStudyPlan(second)).toEqual({ status: "ok", value: second });
+    expect(await data.getStudyPlan(courseId)).toEqual({ status: "ok", value: second });
+
+    const rows = await testUser.from("study_plans").select("id, owner_id").eq("course_id", courseId);
+    expect(rows.error).toBeNull();
+    expect(rows.data).toEqual([{ id: expect.any(String), owner_id: testUserId }]);
+
+    // Databasen stopper en eksamensdato som ikke er etter planstart.
+    expect(await data.saveStudyPlan({ ...first, examDate: "2026-11-26" })).toEqual({ status: "unavailable" });
+
+    // Planen kan ikke slettes direkte, bare med emnet.
+    const deleted = await testUser.from("study_plans").delete().eq("course_id", courseId).select("id");
+    expect(deleted.error?.code).toBe("42501");
+    const removed = await testUser.from("courses").delete().eq("id", courseId);
+    expect(removed.error).toBeNull();
+    const after = await testUser.from("study_plans").select("id").eq("course_id", courseId);
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual([]);
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
@@ -631,6 +689,7 @@ describe("RLS i dev", () => {
       "subchapter_completions",
       "question_reports",
       "summary_reports",
+      "study_plans",
     ]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");

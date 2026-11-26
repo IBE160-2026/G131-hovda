@@ -186,6 +186,22 @@ export type SummaryReport = {
   reportedAt: string;
 };
 
+/**
+ * Studieplanen for et emne (FR-3 del 2, AD-15): eksamensdatoen, planstart og øyeblikksbildet ved
+ * planstart. Ett emne har én plan. Datoene er rene datoer, `ÅÅÅÅ-MM-DD`.
+ */
+export type StudyPlan = {
+  courseId: string;
+  examDate: string;
+  planStart: string;
+  /** Aktive delkapitler gjennomført før planstart. */
+  g0: number;
+  /** Aktive delkapitler som ikke var gjennomført ved planstart. */
+  r0: number;
+  /** Studiedager fra og med planstart til og med dagen før eksamensdatoen. */
+  d: number;
+};
+
 export type Unavailable = { status: "unavailable" };
 
 export type ReadResult<T> = { status: "ok"; value: T } | Unavailable;
@@ -290,4 +306,11 @@ export interface DataSource {
    * gjelder siste klare versjon, avgjør den som leser.
    */
   listSummaryReports(subchapterIds: string[]): Promise<ReadResult<SummaryReport[]>>;
+  /** Studieplanen for emnet. `null` når emnet ikke har noen plan, ikke finnes eller ikke er eierens. */
+  getStudyPlan(courseId: string): Promise<ReadResult<StudyPlan | null>>;
+  /**
+   * Lagrer planen for emnet. Finnes det alt en plan, erstattes den (én plan per emne).
+   * Bare `startPlan` kaller denne.
+   */
+  saveStudyPlan(plan: StudyPlan): Promise<WriteResult<StudyPlan>>;
 }

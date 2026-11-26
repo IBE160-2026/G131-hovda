@@ -25,6 +25,7 @@ import type {
   QuizStatus,
   ReadResult,
   SaveChapterReport,
+  StudyPlan,
   SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
@@ -177,6 +178,28 @@ type QuizRow = {
 };
 
 type CompletionRow = { subchapter_id: string; quiz_id: string; completed_at: string };
+
+type StudyPlanRow = {
+  course_id: string;
+  exam_date: string;
+  plan_start: string;
+  g0: number;
+  r0: number;
+  d: number;
+};
+
+const studyPlanColumns = "course_id, exam_date, plan_start, g0, r0, d";
+
+function toStudyPlan(row: StudyPlanRow): StudyPlan {
+  return {
+    courseId: row.course_id,
+    examDate: row.exam_date,
+    planStart: row.plan_start,
+    g0: row.g0,
+    r0: row.r0,
+    d: row.d,
+  };
+}
 
 type QuestionReportRow = {
   comment: string | null;
@@ -904,6 +927,44 @@ export class SupabaseDataSource implements DataSource {
           return row ? [{ subchapterId: row.subchapter_id, quizId: row.quiz_id, completedAt: row.completed_at }] : [];
         }),
       };
+    });
+  }
+
+  getStudyPlan(courseId: string): Promise<ReadResult<StudyPlan | null>> {
+    return guarded(async () => {
+      const { data, error } = await this.client
+        .from("study_plans")
+        .select(studyPlanColumns)
+        .eq("owner_id", this.ownerId)
+        .eq("course_id", courseId)
+        .maybeSingle();
+      if (isInvalidId(error)) return { status: "ok", value: null };
+      if (error) return unavailable;
+      return { status: "ok", value: data ? toStudyPlan(data as StudyPlanRow) : null };
+    });
+  }
+
+  saveStudyPlan(plan: StudyPlan): Promise<WriteResult<StudyPlan>> {
+    return guarded(async () => {
+      // Én plan per emne: en ny plan erstatter den gamle (unique (owner_id, course_id)).
+      const { data, error } = await this.client
+        .from("study_plans")
+        .upsert(
+          {
+            owner_id: this.ownerId,
+            course_id: plan.courseId,
+            exam_date: plan.examDate,
+            plan_start: plan.planStart,
+            g0: plan.g0,
+            r0: plan.r0,
+            d: plan.d,
+          },
+          { onConflict: "owner_id,course_id" },
+        )
+        .select(studyPlanColumns)
+        .single();
+      if (error || !data) return unavailable;
+      return { status: "ok", value: toStudyPlan(data as StudyPlanRow) };
     });
   }
 }

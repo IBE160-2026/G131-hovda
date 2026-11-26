@@ -975,3 +975,42 @@ describe("SupabaseDataSource med quizer", () => {
     expect(await data.listQuestionReports(["d1"])).toEqual({ status: "unavailable" });
   });
 });
+
+describe("SupabaseDataSource med studieplaner", () => {
+  const planRow = { course_id: "c1", exam_date: "2026-12-10", plan_start: "2026-11-26", g0: 7, r0: 2, d: 10 };
+  const plan = { courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 7, r0: 2, d: 10 };
+
+  it("henter planen for emnet, filtrert på eier og emne", async () => {
+    const { client, queries } = fakeClient(() => ({ data: planRow }));
+    expect(await new SupabaseDataSource(client, "eier").getStudyPlan("c1")).toEqual({ status: "ok", value: plan });
+    expect(queries[0].table).toBe("study_plans");
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "course_id", "c1"]);
+  });
+
+  it("gir null uten plan eller for en ugyldig id", async () => {
+    expect(await new SupabaseDataSource(fakeClient(() => ({ data: null })).client, "eier").getStudyPlan("c1")).toEqual({
+      status: "ok",
+      value: null,
+    });
+    const invalid = fakeClient(() => ({ error: { code: "22P02" } })).client;
+    expect(await new SupabaseDataSource(invalid, "eier").getStudyPlan("x")).toEqual({ status: "ok", value: null });
+  });
+
+  it("lagrer planen med upsert på eier og emne, så den gamle erstattes", async () => {
+    const { client, queries } = fakeClient(() => ({ data: planRow }));
+    expect(await new SupabaseDataSource(client, "eier").saveStudyPlan(plan)).toEqual({ status: "ok", value: plan });
+    expect(queries[0].calls[0]).toEqual([
+      "upsert",
+      { owner_id: "eier", ...planRow },
+      { onConflict: "owner_id,course_id" },
+    ]);
+  });
+
+  it("gir unavailable når planen ikke kan leses eller lagres", async () => {
+    const { client } = fakeClient(() => ({ error: { code: "XX000" } }));
+    const data = new SupabaseDataSource(client, "eier");
+    expect(await data.getStudyPlan("c1")).toEqual({ status: "unavailable" });
+    expect(await data.saveStudyPlan(plan)).toEqual({ status: "unavailable" });
+  });
+});

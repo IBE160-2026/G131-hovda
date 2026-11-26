@@ -23,6 +23,7 @@ import type {
   QuizQuestion,
   QuizResultInput,
   SaveChapterReport,
+  StudyPlan,
   SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
@@ -99,6 +100,12 @@ export class MemoryDataSource implements DataSource {
   summaryReportReadsDown = false;
   /** Antall skrivinger av kapitler og delkapitler, så testene kan se at uendrede rader ikke røres. */
   chapterWrites = 0;
+  /** Studieplanene, én per emne. */
+  studyPlans: StudyPlan[] = [];
+  /** Feiler lagringen av studieplanen. */
+  planWritesDown = false;
+  /** Antall lagringer av studieplaner, så testene kan se at ingenting lagres. */
+  planWrites = 0;
   private nextId = 1;
 
   private unavailable() {
@@ -154,6 +161,7 @@ export class MemoryDataSource implements DataSource {
     this.quizzes = this.quizzes.filter((q) => !removedQuizIds.has(q.id));
     this.quizItems = this.quizItems.filter((i) => !removedQuizIds.has(i.quizId));
     this.completions = this.completions.filter((c) => !removedSubIds.has(c.subchapterId));
+    this.studyPlans = this.studyPlans.filter((p) => p.courseId !== id);
     const keptQuestions = new Set(this.quizQuestions.map((q) => q.id));
     this.questionReports = this.questionReports.filter((r) => keptQuestions.has(r.questionId));
     if (this.activeId === id) this.activeId = null;
@@ -520,5 +528,20 @@ export class MemoryDataSource implements DataSource {
       return completion ? [{ ...completion }] : [];
     });
     return { status: "ok" as const, value };
+  }
+
+  async getStudyPlan(courseId: string) {
+    if (this.down) return this.unavailable();
+    const plan = this.studyPlans.find((p) => p.courseId === courseId);
+    return { status: "ok" as const, value: plan ? { ...plan } : null };
+  }
+
+  async saveStudyPlan(plan: StudyPlan) {
+    if (this.down || this.planWritesDown) return this.unavailable();
+    // Som FK-en i databasen: planen må høre til et emne som finnes.
+    if (!this.courses.some((c) => c.id === plan.courseId)) return this.unavailable();
+    this.planWrites++;
+    this.studyPlans = [...this.studyPlans.filter((p) => p.courseId !== plan.courseId), { ...plan }];
+    return { status: "ok" as const, value: { ...plan } };
   }
 }

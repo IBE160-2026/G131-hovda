@@ -84,12 +84,14 @@ export async function ActiveCourse() {
     );
   }
 
-  const chapters = await listChapterOverview(data, course.id);
+  const [chapters, plan] = await Promise.all([listChapterOverview(data, course.id), data.getStudyPlan(course.id)]);
+  // Kan planen ikke leses, vises emnet uten eksamensdato.
+  const examDate = plan.status === "ok" ? plan.value?.examDate : undefined;
   return (
     <>
       <Progress chapters={chapters} />
       <p className="text-sm font-semibold text-muted">Aktivt emne</p>
-      <CourseHeader course={course} />
+      <CourseHeader course={course} examDate={examDate} />
       <div>
         <Link href="/emner" className={secondaryButton}>
           Bytt emne
