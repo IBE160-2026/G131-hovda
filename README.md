@@ -62,7 +62,7 @@ Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak 
 - **Helg:** lørdag og søndag foreslås noe bare ved etterslep.
 - **Repetisjon:** er ingen ikke-gjennomførte delkapitler klare, foreslås en ny quiz på de som ble gjennomført for lengst siden.
 - **Fast til midnatt:** forslaget regnes ut fra avkrysningene fra før i dag (norsk tid). Et delkapittel som fullføres i løpet av dagen, blir stående, merket «gjennomført». Klar-status og notater leses slik de er nå, så en import i løpet av dagen kan endre forslaget.
-- **Etter eksamensdatoen:** forslaget sier bare «Fullført.».
+- **Etter eksamensdatoen:** forslaget sier «Fullført. Du kan fortsatt lese og ta quiz i listen under.». Resten av appen virker som før, og en ny eksamensdato gir en ny plan.
 
 ### Importere notater, sammendrag og spørsmålsbanker
 
