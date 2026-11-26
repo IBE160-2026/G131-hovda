@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-09-2026 22:11
-last_updated: 11-26-2026 19:05
+last_updated: 11-26-2026 19:20
 project: G131-hovda
 project_key: NOKEY
 tracking_system: file-system
@@ -58,7 +58,7 @@ development_status:
   3-2-eieren-ser-om-planen-holdes-foran-eller-bak: done
   3-3-startsiden-viser-dagens-forslag: done
   3-4-demoen-viser-dagens-forslag-og-foran-bak: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   epic-4: backlog
   4-1-importen-legger-inn-gjennomgangsspørsmålene: backlog
@@ -80,3 +80,20 @@ development_status:
 
   epic-6: backlog
   epic-6-retrospective: optional
+action_items:
+  - id: "epic-3-retro-item-1-framdriften-etter-eksamensdatoen-ingen-f"
+    epic: 3
+    action: "Framdriften etter eksamensdatoen: ingen foran/bak (eller tekst som passer
+      til «Fullført.») etter eksamensdatoen, med test som sjekker forslaget og framdriften
+      sammen (F1)"
+    owner: "Marte (tekst), dev (bmad-build)"
+    status: open
+    ref: "G131-hovda/implementation-artifacts/epic-3-retro-2026-11-26.md"
+  - id: "epic-3-retro-item-2-framdriften-når-kveldens-økt-er-gjort-ik"
+    epic: 3
+    action: "Framdriften når kveldens økt er gjort: ikke be om mer «i kveld» når forslaget
+      sier «Dagens økt er gjort.», etter Martes valg i S1, med test med avkrysninger
+      fra samme dag (F2)"
+    owner: "Marte (valg), dev (bmad-build)"
+    status: open
+    ref: "G131-hovda/implementation-artifacts/epic-3-retro-2026-11-26.md"
