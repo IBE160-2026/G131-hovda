@@ -54,7 +54,8 @@ export function StudyPlanForm({ action, initialState }: Props) {
           Planstart (valgfri)
         </label>
         <p id="planStart-hjelp" className="text-sm text-muted">
-          Står feltet tomt, starter planen i dag. Det du alt har gjennomført, teller ikke som etterslep.
+          Står feltet tomt, starter planen i dag. Endrer du eksamensdatoen uten å endre planstart, starter planen
+          på nytt i dag. Det du alt har gjennomført, teller ikke som etterslep.
         </p>
         <input
           id="planStart"
