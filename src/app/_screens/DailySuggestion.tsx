@@ -6,6 +6,7 @@ import { dailySuggestion } from "@/domain/studyPlan";
 import {
   completedBadge,
   dailySuggestionHeading,
+  finishedMessage,
   flexibleDayMessage,
   nothingReadyMessage,
   reviewText,
@@ -47,7 +48,8 @@ export function DailySuggestion({
   );
 
   let body;
-  if (suggestion.kind === "flexibleDay") body = <p>{flexibleDayMessage}</p>;
+  if (suggestion.kind === "finished") body = <p className="font-semibold">{finishedMessage}</p>;
+  else if (suggestion.kind === "flexibleDay") body = <p>{flexibleDayMessage}</p>;
   else if (suggestion.kind === "nothingReady") body = <p>{nothingReadyMessage}</p>;
   else {
     const review = suggestion.kind === "review";

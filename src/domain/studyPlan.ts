@@ -224,20 +224,23 @@ export type DailySuggestion =
   | { kind: "subchapters"; numbers: string[] }
   | { kind: "review"; numbers: string[] }
   | { kind: "flexibleDay" }
-  | { kind: "nothingReady" };
+  | { kind: "nothingReady" }
+  /** Eksamensdatoen er passert. */
+  | { kind: "finished" };
 
 /**
  * Dagens forslag (FR-10 del 2, AD-15), regnet ut fra tilstanden ved starten av dagen i Oslo: bare
  * avkrysninger fra før `today` teller, så forslaget ligger fast til midnatt. `subchapters` er i
  * nummerrekkefølge. Antallet er `dailySuggestionSize`. På en fleksibel dag foreslås noe bare ved
  * etterslep. Er ingen ikke-gjennomførte delkapitler klare, foreslås repetisjon av de klare som ble
- * gjennomført for lengst siden.
+ * gjennomført for lengst siden. Etter eksamensdatoen er planen fullført, og ingenting foreslås.
  */
 export function dailySuggestion(
   plan: PlanInput,
   subchapters: readonly SuggestionCandidate[],
   today: string,
 ): DailySuggestion {
+  if (today > plan.examDate) return { kind: "finished" };
   const doneAtStart = (s: SuggestionCandidate) => s.completedAt !== null && osloDate(s.completedAt) < today;
   const status = planStatus(
     plan,

@@ -10,6 +10,7 @@ vi.mock("./actions", () => ({ logOut: async () => {} }));
 const { ActiveCourse } = await import("./page");
 const {
   completedBadge,
+  finishedMessage,
   flexibleDayMessage,
   goalReachedMessage,
   nothingReadyMessage,
@@ -460,6 +461,13 @@ describe("dagens forslag på startsiden", () => {
 
   it("sier fra når ingenting er klart", async () => {
     expect(textOf(await show("2026-11-26", ["d1"], {}))).toContain(nothingReadyMessage);
+  });
+
+  it("sier «Fullført.» uten knapp etter eksamensdatoen", async () => {
+    const html = await show("2026-12-11", ["d1", "d2"]);
+    expect(textOf(html)).toContain(finishedMessage);
+    expect(textOf(html)).not.toContain("I kveld");
+    expect(startHref(html)).toBeNull();
   });
 
   it("ligger fast når delkapittelet fullføres i løpet av dagen, og merkes som gjennomført", async () => {

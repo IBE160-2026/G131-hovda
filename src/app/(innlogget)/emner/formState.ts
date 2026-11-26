@@ -131,6 +131,8 @@ export const startSessionLabel = "Start økta";
 export const sessionDoneMessage = "Dagens økt er gjort.";
 export const flexibleDayMessage = "I dag er en fleksibel dag. Du kan velge et delkapittel selv i listen under.";
 export const nothingReadyMessage = "Ingen delkapitler er klare ennå.";
+/** Etter eksamensdatoen. */
+export const finishedMessage = "Fullført.";
 
 /** «3.2», «3.2 og 3.3» eller «3.2, 3.3 og 3.4». */
 function numberList(numbers: readonly string[]): string {

@@ -318,6 +318,12 @@ describe("dailySuggestion", () => {
     });
   });
 
+  it("er fullført etter eksamensdatoen, men ikke på den", () => {
+    const done = { "1.1": before, "1.2": before };
+    expect(dailySuggestion(plan, subs(done), "2026-12-11")).toEqual({ kind: "finished" });
+    expect(dailySuggestion(plan, subs(done), "2026-12-10")).toMatchObject({ kind: "subchapters" });
+  });
+
   it("gir vanlig antall ved forsprang på en studiedag", () => {
     // Man 30.11: d = 2, planlagt 3, 5 gjennomført.
     const done = Object.fromEntries(["1.1", "1.2", "1.3", "1.4", "1.5"].map((n) => [n, before]));
