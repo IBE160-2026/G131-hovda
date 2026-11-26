@@ -9,7 +9,9 @@ vi.mock("./actions", () => ({ logOut: async () => {} }));
 
 const { ActiveCourse } = await import("./page");
 const {
+  catchUpTomorrowText,
   completedBadge,
+  finishedMessage,
   flexibleDayMessage,
   goalReachedMessage,
   nothingReadyMessage,
@@ -317,17 +319,21 @@ describe("framdriften på startsiden", () => {
 describe("foran eller bak planen på startsiden", () => {
   // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10, ni delkapitler med notater.
   const plan = ok({ courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 1, r0: 8, d: 10 });
+  // Alle delkapitlene er klare, så «i kveld» (det som er igjen av dagens forslag) er hele forslaget.
+  let readyAll: ReadyHashes;
   const show = (completed: number, day: string, studyPlan: unknown = plan) => {
     today = day;
-    return render(ok(course), ok([course]), ok(chapterWith(9)), {}, {}, ids(completed), studyPlan);
+    return render(ok(course), ok([course]), ok(chapterWith(9)), readyAll, readyAll, ids(completed), studyPlan);
   };
   /** Teksten i framdriftsindikatoren, uten tagger. */
   const progressOf = (html: string) =>
     (html.match(/<section aria-label="Framdrift"[\s\S]*?<\/section>/)?.[0] ?? "").replace(/<[^>]+>/g, " ");
 
-  beforeEach(() => {
+  beforeEach(async () => {
     getDataSourceForRender.mockReset();
     today = "2026-12-03";
+    const hash = await subchapterInputHash({ learningGoals: "", keyConcepts: "" }, "Notat");
+    readyAll = Object.fromEntries(ids(9).map((id) => [id, hash]));
   });
 
   it("viser etterslepet markert, med veien tilbake, under andelen", async () => {
@@ -358,8 +364,10 @@ describe("foran eller bak planen på startsiden", () => {
       i === 3 ? { ...s, noteText: "  " } : i >= 5 ? { ...s, noteText: i === 5 ? "*Ingen notater ennå.*" : "" } : s,
     );
     const withGaps = ok([{ ...chapterWith(9)[0], subchapters }]);
+    // Bare d1–d5 har innhold, så forslaget 3.12 er 1.5.
+    const ready = Object.fromEntries(ids(5).map((id) => [id, readyAll[id]]));
     const render5 = (completed: number) =>
-      render(ok(course), ok([course]), withGaps, {}, {}, ids(completed), plan).then(progressOf);
+      render(ok(course), ok([course]), withGaps, ready, ready, ids(completed), plan).then(progressOf);
     // 3.12: planlagt 5, forventet min(5, 5) = 5.
     today = "2026-12-03";
     const behind = await render5(4);
@@ -497,5 +505,112 @@ describe("dagens forslag på startsiden", () => {
     today = "2026-11-26";
     const html = await render(ok(course), ok([course]), ok(chapterWith(9)), readyAll, readyAll, { status: "unavailable" }, plan);
     expect(suggestionOf(html)).toBe("");
+  });
+});
+
+describe("forslaget og framdriften sammen på startsiden", () => {
+  // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10, ni delkapitler med notater.
+  const plan = ok({ courseId: "c1", examDate: "2026-12-10", planStart: "2026-11-26", g0: 1, r0: 8, d: 10 });
+  const before = "2026-11-21T10:00:00Z";
+  const tonight = (hour: number) => `2026-12-03T${hour}:00:00Z`;
+  let readyAll: ReadyHashes;
+  const show = async (day: string, completed: Record<string, string>, ready: ReadyHashes = readyAll) => {
+    today = day;
+    const html = await render(ok(course), ok([course]), ok(chapterWith(9)), ready, ready, completed, plan);
+    const text = (pattern: RegExp) => (html.match(pattern)?.[0] ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    return {
+      suggestion: text(/<section aria-labelledby="dagens-forslag"[\s\S]*?<\/section>/),
+      progress: text(/<section aria-label="Framdrift"[\s\S]*?<\/section>/),
+    };
+  };
+
+  beforeEach(async () => {
+    getDataSourceForRender.mockReset();
+    const hash = await subchapterInputHash({ learningGoals: "", keyConcepts: "" }, "Notat");
+    readyAll = Object.fromEntries(ids(9).map((id) => [id, hash]));
+  });
+
+  it("viser bare andelen i framdriften etter eksamensdatoen, når forslaget sier «Fullført.»", async () => {
+    const { suggestion, progress } = await show("2026-12-11", { d1: before, d2: before });
+    expect(suggestion).toContain(finishedMessage);
+    expect(progress).toContain("2 av 9 gjennomført");
+    expect(progress).toContain("7 igjen til målet");
+    expect(progress).not.toMatch(/bak planen|foran planen|i rute|om dagen|i kveld|i morgen/);
+  });
+
+  it("viser foran/bak som før på eksamensdatoen", async () => {
+    const { suggestion, progress } = await show("2026-12-10", { d1: before, d2: before });
+    expect(suggestion).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+    expect(progress).toContain("7 delkapitler bak planen.");
+    expect(progress).toContain("2 delkapitler om dagen tar deg nærmere planen.");
+  });
+
+  it("ber ikke om mer i kveld når kveldens økt er gjort, men regner veien tilbake fra i morgen", async () => {
+    const { suggestion, progress } = await show("2026-12-03", { d1: before, d2: before, d3: tonight(17), d4: tonight(18) });
+    expect(suggestion).toContain(sessionDoneMessage);
+    expect(progress).toContain("1 delkapittel bak planen.");
+    expect(progress).toContain("Fortsett i morgen med 2 delkapitler, så er du i rute søndag.");
+    expect(progress).not.toContain("i kveld");
+  });
+
+  it("ber om det som er igjen av kveldens økt når den er halvveis", async () => {
+    const { suggestion, progress } = await show("2026-12-03", { d1: before, d2: before, d3: tonight(17) });
+    expect(suggestion).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+    expect(suggestion).toContain(completedBadge);
+    expect(progress).toContain("2 delkapitler bak planen.");
+    expect(progress).toContain("1 delkapittel i kveld, så er du i rute søndag.");
+  });
+
+  it("sier «fortsett i morgen» når forslaget er gjort, også når færre enn tempoet var klare", async () => {
+    // Bare 1.1–1.3 er klare, så forslaget er 1.3 alene.
+    const ready = Object.fromEntries(ids(3).map((id) => [id, readyAll[id]]));
+    const { suggestion, progress } = await show("2026-12-03", { d1: before, d2: before, d3: tonight(17) }, ready);
+    expect(suggestion).toContain("I kveld: delkapittel 1.3, deretter quiz.");
+    expect(suggestion).toContain(sessionDoneMessage);
+    expect(progress).toContain("2 delkapitler bak planen.");
+    expect(progress).toContain("Fortsett i morgen med 2 delkapitler");
+    expect(progress).not.toContain("i kveld");
+  });
+
+  it("teller ikke delkapitler utenfor forslaget i kveldens økt", async () => {
+    const { suggestion, progress } = await show("2026-12-03", { d1: before, d2: before, d5: tonight(17), d6: tonight(18) });
+    expect(suggestion).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+    expect(suggestion).toContain("Start økta");
+    expect(suggestion).not.toContain(sessionDoneMessage);
+    expect(progress).toContain("1 delkapittel bak planen.");
+    expect(progress).toContain("2 delkapitler i kveld, så er du i rute i morgen.");
+  });
+
+  it("viser bare etterslepet på eksamensdatoen når kveldens økt er gjort", async () => {
+    const at = (hour: number) => `2026-12-10T${hour}:00:00Z`;
+    const { suggestion, progress } = await show("2026-12-10", { d1: before, d2: before, d3: at(17), d4: at(18) });
+    expect(suggestion).toContain(sessionDoneMessage);
+    expect(progress).toContain("5 delkapitler bak planen.");
+    expect(progress).not.toMatch(/i kveld|i morgen|om dagen|i rute/);
+  });
+
+  it("bruker tempoet om dagen uten dag, også når kveldens økt er halvveis", async () => {
+    // 9.12: forslaget er 1.2 og 1.3, og 1.2 er gjort i kveld, så tonight = 1. Ingen dag i rute før eksamen.
+    const at = (hour: number) => `2026-12-09T${hour}:00:00Z`;
+    const { progress } = await show("2026-12-09", { d1: before, d2: at(17) });
+    expect(progress).toContain("2 delkapitler om dagen tar deg nærmere planen.");
+    expect(progress).not.toContain("1 delkapittel om dagen");
+  });
+
+  it("er som før når ingenting er gjort i dag", async () => {
+    const { suggestion, progress } = await show("2026-12-03", { d1: before, d2: before });
+    expect(suggestion).toContain("I kveld: delkapittel 1.3 og 1.4, med quiz etter hvert.");
+    expect(progress).toContain("3 delkapitler bak planen.");
+    expect(progress).toContain("2 delkapitler i kveld, så er du i rute søndag.");
+  });
+
+  it("sier «fortsett i morgen» uten dag når eieren ikke er i rute før eksamen", async () => {
+    // 9.12: d = 9, planlagt 9, 3 gjennomført. Forslaget 1.2 og 1.3 er gjort i kveld.
+    const at = (hour: number) => `2026-12-09T${hour}:00:00Z`;
+    const { suggestion, progress } = await show("2026-12-09", { d1: before, d2: at(17), d3: at(18) });
+    expect(suggestion).toContain(sessionDoneMessage);
+    expect(progress).toContain("6 delkapitler bak planen.");
+    expect(progress).toContain("Fortsett i morgen med 2 delkapitler om dagen, så kommer du nærmere planen.");
+    expect(catchUpTomorrowText(1, "fredag")).toBe("Fortsett i morgen med 1 delkapittel, så er du i rute fredag.");
   });
 });

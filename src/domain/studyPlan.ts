@@ -161,9 +161,19 @@ export type PlanStatus =
       backlog: number;
       /** Delkapitler om dagen på veien tilbake (`dailySuggestionSize` med etterslep). */
       perDay: number;
-      /** Første dag eieren er i rute med `perDay` om dagen, eller `null` når det ikke skjer før eksamen. */
+      /** Delkapitler i kveld: det som er igjen av dagens forslag (`suggestionLeft`), ellers `perDay`. */
+      tonight: number;
+      /**
+       * Første dag eieren er i rute med `tonight` i kveld og `perDay` om dagen etterpå, eller `null`
+       * når det ikke skjer før eksamen.
+       */
       onTrackOn: string | null;
     };
+
+/** Planen er fullført når eksamensdatoen er passert. På eksamensdatoen gjelder den som før. */
+export function planFinished(plan: Pick<PlanInput, "examDate">, today: string): boolean {
+  return today > plan.examDate;
+}
 
 /** Planlagt for en dag med `d` studiedager bak seg: G₀ + ⌈R₀ × d / D⌉, med d høyst D. */
 function planned(plan: PlanInput, d: number): number {
@@ -174,7 +184,8 @@ function planned(plan: PlanInput, d: number): number {
  * Planformelen (FR-9, FR-20 del 2). d er studiedagene fra og med planstart til og med i går, så
  * dagens økt gir ikke etterslep før dagen er over. Forventet er det minste av planlagt og `reachable`,
  * så delkapitler uten notater aldri gir etterslep. Ligger eieren bak, regnes veien tilbake dag for
- * dag med `perDay` delkapitler, også på fleksible dager, til og med eksamensdatoen.
+ * dag, også på fleksible dager, til og med eksamensdatoen: i kveld det som er igjen av kveldens økt
+ * (`tonight`), og `perDay` delkapitler fra i morgen.
  */
 export function planStatus(
   plan: PlanInput,
@@ -183,6 +194,8 @@ export function planStatus(
     completed: number;
     /** Aktive delkapitler som er gjennomført eller har notater (N). */
     reachable: number;
+    /** Det som er igjen av dagens forslag (`suggestionLeft`). Uten det regnes kvelden med `perDay`. */
+    tonight?: number;
   },
   today: string,
 ): PlanStatus {
@@ -193,16 +206,21 @@ export function planStatus(
   if (backlog === 0) return { kind: "onTrack" };
 
   const perDay = dailySuggestionSize(plan.r0, plan.d, true);
+  const tonight = Math.max(0, progress.tonight ?? perDay);
   const exam = requireDay(plan.examDate);
   const start = requireDay(plan.planStart);
+  const first = requireDay(today);
   let done = completed;
-  for (let day = requireDay(today); day < exam; day++) {
-    // Kvelden `day`: eieren gjør `perDay`, og neste dag har én studiedag mer bak seg hvis `day` var en.
-    done = Math.min(reachable, done + perDay);
+  for (let day = first; day < exam; day++) {
+    // Kvelden `day`: eieren gjør resten av økta i kveld og `perDay` senere kvelder, og neste dag har
+    // én studiedag mer bak seg hvis `day` var en.
+    done = Math.min(reachable, done + (day === first ? tonight : perDay));
     if (day >= start && isWeekday(day)) d++;
-    if (Math.min(planned(plan, d), reachable) - done <= 0) return { kind: "behind", backlog, perDay, onTrackOn: dateOf(day + 1) };
+    if (Math.min(planned(plan, d), reachable) - done <= 0) {
+      return { kind: "behind", backlog, perDay, tonight, onTrackOn: dateOf(day + 1) };
+    }
   }
-  return { kind: "behind", backlog, perDay, onTrackOn: null };
+  return { kind: "behind", backlog, perDay, tonight, onTrackOn: null };
 }
 
 /** Et aktivt delkapittel slik dagens forslag trenger det. */
@@ -240,7 +258,7 @@ export function dailySuggestion(
   subchapters: readonly SuggestionCandidate[],
   today: string,
 ): DailySuggestion {
-  if (today > plan.examDate) return { kind: "finished" };
+  if (planFinished(plan, today)) return { kind: "finished" };
   const doneAtStart = (s: SuggestionCandidate) => s.completedAt !== null && osloDate(s.completedAt) < today;
   const status = planStatus(
     plan,
@@ -262,6 +280,17 @@ export function dailySuggestion(
     .sort((a, b) => Date.parse(a.completedAt!) - Date.parse(b.completedAt!));
   if (review.length > 0) return { kind: "review", numbers: review.slice(0, size).map((s) => s.number) };
   return { kind: "nothingReady" };
+}
+
+/**
+ * Det som er igjen av dagens forslag: de foreslåtte delkapitlene (`kind: "subchapters"`) som ikke er
+ * gjennomført nå. 0 ved repetisjon, fleksibel dag, ingenting klart og når planen er fullført.
+ * Delkapitler utenfor forslaget teller ikke.
+ */
+export function suggestionLeft(suggestion: DailySuggestion, subchapters: readonly SuggestionCandidate[]): number {
+  if (suggestion.kind !== "subchapters") return 0;
+  const done = new Set(subchapters.filter((s) => s.completedAt !== null).map((s) => s.number));
+  return suggestion.numbers.filter((n) => !done.has(n)).length;
 }
 
 function dateOf(day: number): string {

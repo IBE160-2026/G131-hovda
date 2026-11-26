@@ -12,6 +12,7 @@ import {
   behindText,
   belowThresholdMessage,
   catchUpText,
+  catchUpTomorrowText,
   completedBadge,
   completedMessage,
   dailySuggestionHeading,
@@ -251,13 +252,22 @@ const demoPlan = {
 const startStatus = planStatus(demoPlan, { completed: 0, reachable: subchapterCount }, today);
 const suggested = allNumbers.slice(0, dailySuggestionSize(demoPlan.r0, demoPlan.d, startStatus.kind === "behind"));
 
-/** Det framdriften sier om planen med `completed` delkapitler gjennomført. */
+/**
+ * Det framdriften sier om planen når de `completed` første foreslåtte er gjennomført i besøket, altså
+ * på demo-dagen. «I kveld» er det som er igjen av forslaget.
+ */
 function planLine(completed: number): string[] {
-  const status = planStatus(demoPlan, { completed, reachable: subchapterCount }, today);
+  const tonight = Math.max(0, suggested.length - completed);
+  const status = planStatus(demoPlan, { completed, reachable: subchapterCount, tonight }, today);
   if (status.kind === "onTrack") return [onTrackMessage];
   if (status.kind === "ahead") return [aheadText(status.lead)];
   const label = status.onTrackOn ? relativeDayLabel(status.onTrackOn, today) : null;
-  return [behindText(status.backlog), catchUpText(Math.min(status.perDay, subchapterCount - completed), label)];
+  const left = subchapterCount - completed;
+  if (status.tonight > 0) {
+    return [behindText(status.backlog), catchUpText(Math.min(label ? status.tonight : status.perDay, left), label)];
+  }
+  if (today === demoPlan.examDate) return [behindText(status.backlog)];
+  return [behindText(status.backlog), catchUpTomorrowText(Math.min(status.perDay, left), label)];
 }
 
 describe("dagens forslag og foran/bak i demoen", () => {

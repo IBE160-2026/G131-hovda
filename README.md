@@ -54,6 +54,9 @@ Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak 
 - **Planlagt i dag** = G₀ + ⌈R₀ × d / D⌉, der d er studiedagene fra planstart til og med i går. Dagens økt gir derfor ikke etterslep før dagen er over.
 - **Forventet i dag** er det minste av planlagt og antall delkapitler som er gjennomført eller har notater, så delkapitler uten notater aldri gir etterslep.
 - **Etterslep** = forventet − gjennomførte. Ved etterslep vises veien tilbake med samme tempo som dagens forslag (⌈R₀ / D⌉ + 1, høyst 3 om dagen, også i helgen), for eksempel «2 delkapitler i kveld, så er du i rute søndag».
+- **I kveld** er det som er igjen av dagens forslag: de foreslåtte delkapitlene som ikke er gjennomført nå. Delkapitler utenfor forslaget teller ikke, og ved repetisjon, fleksibel dag eller når ingenting er klart, er det 0. Forslaget og framdriften regnes med samme funksjon (`todaysSuggestion`), så de sier det samme.
+- **Når økta er gjort** (forslaget sier «Dagens økt er gjort.»), regnes veien tilbake fra i morgen, for eksempel «Fortsett i morgen med 2 delkapitler, så er du i rute søndag.». På eksamensdatoen står da bare etterslepet.
+- **Etter eksamensdatoen** viser framdriften bare andelen og hvor mange som er igjen til målet, fordi forslaget sier «Fullført.». Begge bruker samme regel (`planFinished`).
 
 Øverst på startsiden står dagens forslag, for eksempel «I kveld: delkapittel 1.2, deretter quiz.», med «Start økta» til lesesiden:
 

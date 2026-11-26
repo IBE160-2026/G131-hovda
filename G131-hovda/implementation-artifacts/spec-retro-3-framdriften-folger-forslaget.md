@@ -2,7 +2,7 @@
 title: 'Retro epic 3, A1 og A2: framdriften motsier ikke dagens forslag'
 type: 'bugfix'
 created: '2026-11-26'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: '0211328ab9c1e6cf44283932afcf68d11a1e4500'
 route: 'dispatch'
 review_loop_iteration: 1
@@ -71,13 +71,13 @@ Plan: planstart 26.11, eksamen 10.12, G₀ = 1, R₀ = 8, D = 10 og 9 delkapitle
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/studyPlan.ts` (+ test) -- `planFinished`, `suggestionLeft` og `tonight` i `planStatus`, og `dailySuggestion` bruker `planFinished`
-- [ ] `src/app/_screens/todaysSuggestion.ts` -- felles utregning av forslaget, brukt av `DailySuggestion.tsx` og `Progress.tsx`
-- [ ] `src/app/(innlogget)/emner/formState.ts` -- `catchUpTomorrowText`
-- [ ] `src/app/_screens/Progress.tsx` -- skjul foran/bak etter eksamen, `tonight` fra forslaget, og bare etterslepet på eksamensdatoen med økta gjort
-- [ ] `src/app/(innlogget)/start/page.test.ts` -- forslaget og framdriften sammen for alle matriseradene
-- [ ] `src/app/demo/demoScreens.test.ts` -- `planLine` med `tonight` fra forslaget
-- [ ] `README.md` -- kort om regelen
+- [x] `src/domain/studyPlan.ts` (+ test) -- `planFinished`, `suggestionLeft` og `tonight` i `planStatus`, og `dailySuggestion` bruker `planFinished`
+- [x] `src/app/_screens/todaysSuggestion.ts` -- felles utregning av forslaget, brukt av `DailySuggestion.tsx` og `Progress.tsx`
+- [x] `src/app/(innlogget)/emner/formState.ts` -- `catchUpTomorrowText`
+- [x] `src/app/_screens/Progress.tsx` -- skjul foran/bak etter eksamen, `tonight` fra forslaget, og bare etterslepet på eksamensdatoen med økta gjort
+- [x] `src/app/(innlogget)/start/page.test.ts` -- forslaget og framdriften sammen for alle matriseradene
+- [x] `src/app/demo/demoScreens.test.ts` -- `planLine` med `tonight` fra forslaget
+- [x] `README.md` -- kort om regelen
 
 **Acceptance Criteria:**
 - Gitt startsiden, når forslaget sier «Fullført.» eller «Dagens økt er gjort.», så ber ikke framdriften om mer i kveld.
@@ -111,6 +111,18 @@ Plan: planstart 26.11, eksamen 10.12, G₀ = 1, R₀ = 8, D = 10 og 9 delkapitle
 | 10 | blind-hunter | Én kommentarlinje i `Progress.tsx` er for lang | low | Direkte rettelse. | patch (i ny runde) |
 | 11 | blind-hunter | `planFinished` er bare testet med datoer | false | Testene på siden dekker 10.12 og 11.12 med samme plan. | reject |
 | 12 | edge-case | `today` i `page.test.ts` nullstilles ikke etter testene | low | Hver `show` og `beforeEach` setter `today` selv. Rettelsen er ny `afterEach`. | reject |
+| 13 | verification-gap, blind-hunter, edge-case | Uten dag i rute og halvveis i kveldens økt (0 < tonight < perDay) er valget `label ? tonight : perDay` i `PlanLine` ikke testet | low | Bekreftet: alle testene uten dag har tonight = perDay. Koden følger den låste regelen («Uten dag … brukes tempoet perDay»), men ingen test vokter den. | patch (runde 2) |
+| 14 | blind-hunter | «1 delkapittel i kveld, så er du i rute søndag» nevner ikke tempoet fra i morgen | low | Teksten og at den bruker `tonight` er Martes valg i den låste delen. Endringen må gjøres i spec. | reject |
+| 15 | blind-hunter | På eksamensdatoen med økta ikke gjort står «2 delkapitler om dagen tar deg nærmere planen.» | low | Den låste delen sier «På eksamensdatoen gjelder planen som før», og matriseraden «På eksamensdatoen» krever det. | reject |
+| 16 | blind-hunter, edge-case | Ved repetisjon, fleksibel dag eller ingenting klart er tonight = 0, så framdriften sier «Fortsett i morgen …» uten at forslaget sa «Dagens økt er gjort.» | low | Stemmer, men den låste delen sier tonight = 0 for disse og «Fortsett i morgen» når tonight = 0. Framdriften ber ikke om mer i kveld, så AC 1 holder. | reject |
+| 17 | edge-case | På eksamensdatoen med repetisjon eller ingenting klart står bare etterslepet | low | Følger samme låste regel som #16 (tonight = 0 på eksamensdatoen gir bare etterslepet). | reject |
+| 18 | blind-hunter | Veien tilbake regner med delkapitler som har notater, men ikke innhold | medium | Fantes før endringen. Er F3/S2 i retrospektiven for epic 3 og står der som eget punkt. | reject (sporet som S2) |
+| 19 | blind-hunter, edge-case, verification-gap | `planLine` i demotesten kopierer logikken i `PlanLine` og regner `tonight` som `suggested.length − completed` | low | carried #7. Code Map sier «`suggested` minus de fullførte». | reject |
+| 20 | blind-hunter | `tonight` er valgfri med standard `perDay` | low | carried #5: riktig uten avkrysninger i dag, og `dailySuggestion` trenger standarden. | reject |
+| 21 | blind-hunter | `catchUpTomorrowText` har ingen egen enhetstest | low | Begge greinene (med og uten dag) og entall er testet, på siden og i én direkte påstand. | reject |
+| 22 | blind-hunter | Forslaget regnes to ganger per visning | false | Samme funksjon og samme inndata gir samme svar. Ingen målbar kostnad. | reject |
+| 23 | blind-hunter | Spec-fila mangler i diffen | false | Utelatt med vilje fra reviewen. | reject |
+| 24 | blind-hunter | Negative påstander på hele framdriftsteksten er skjøre | low | Teoretisk. Rettelsen er omskriving av testene, ikke en direkte rettelse. | reject |
 
 ## Verification
 

@@ -2,23 +2,25 @@ import type { ChapterOverview } from "@/application/chapterOverview";
 import type { ReadResult, StudyPlan } from "@/application/dataSource";
 import { hasNotes } from "@/domain/hasNotes";
 import { courseProgress } from "@/domain/progress";
-import { planStatus, relativeDayLabel } from "@/domain/studyPlan";
+import { planFinished, planStatus, relativeDayLabel, suggestionLeft } from "@/domain/studyPlan";
 import {
   aheadText,
   behindText,
   catchUpText,
+  catchUpTomorrowText,
   goalReachedMessage,
   onTrackMessage,
   progressText,
   remainingText,
 } from "../(innlogget)/emner/formState";
+import { suggestionCandidates, todaysSuggestion } from "./todaysSuggestion";
 
 /**
  * Framdriften mot målet øverst i emnekortet (FR-15, FR-20): gjennomførte av de aktive
  * delkapitlene, målet på 90 % og hvor mange som er igjen. «Gjennomført» kommer fra avkrysningen.
  * Med en studieplan og dagens dato (`today`, `ÅÅÅÅ-MM-DD`) vises også om eieren er i rute, foran
- * eller bak, og veien tilbake ved etterslep (FR-9, UX-3). Vises ikke uten delkapitler, eller når de
- * ikke kan leses (kapittellisten sier da fra).
+ * eller bak, og veien tilbake ved etterslep (FR-9, UX-3). Etter eksamensdatoen vises ikke foran/bak.
+ * Vises ikke uten delkapitler, eller når de ikke kan leses (kapittellisten sier da fra).
  */
 export function Progress({
   chapters,
@@ -48,40 +50,52 @@ export function Progress({
         className="h-3 w-full accent-accent"
       />
       <p>{remaining === 0 ? goalReachedMessage : remainingText(remaining)}</p>
-      {plan && today && (
+      {/* Etter eksamensdatoen sier dagens forslag «Fullført.», så foran/bak vises ikke. */}
+      {plan && today && !planFinished(plan, today) && (
         <PlanLine
           plan={plan}
           today={today}
           completed={completed}
           reachable={subchapters.filter((s) => s.completed || hasNotes(s.noteText)).length}
+          tonight={suggestionLeft(todaysSuggestion(plan, subchapters, today), suggestionCandidates(subchapters))}
         />
       )}
     </section>
   );
 }
 
-/** I rute, foran eller bak. Etterslepet står i en egen, varm boks med veien tilbake. */
+/**
+ * I rute, foran eller bak. Etterslepet står i en egen, varm boks med veien tilbake. «I kveld» er det
+ * som er igjen av dagens forslag (`tonight`). Er det ingenting, regnes veien tilbake fra i morgen,
+ * og på eksamensdatoen står bare etterslepet.
+ */
 function PlanLine({
   plan,
   today,
   completed,
   reachable,
+  tonight,
 }: {
   plan: StudyPlan;
   today: string;
   completed: number;
   reachable: number;
+  tonight: number;
 }) {
-  const status = planStatus(plan, { completed, reachable }, today);
+  const status = planStatus(plan, { completed, reachable, tonight }, today);
   if (status.kind === "onTrack") return <p className="font-semibold">{onTrackMessage}</p>;
   if (status.kind === "ahead") return <p className="font-semibold">{aheadText(status.lead)}</p>;
   const label = status.onTrackOn ? relativeDayLabel(status.onTrackOn, today) : null;
   // Aldri flere enn det som kan gjøres: delkapitler uten notater kan ikke tas.
-  const perDay = Math.min(status.perDay, reachable - completed);
+  const left = reachable - completed;
+  let way: string | null;
+  if (status.tonight > 0) way = catchUpText(Math.min(label ? status.tonight : status.perDay, left), label);
+  else if (today === plan.examDate) way = null;
+  else way = catchUpTomorrowText(Math.min(status.perDay, left), label);
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-sun px-3 py-2 break-words">
       <p className="font-semibold">{behindText(status.backlog)}</p>
-      <p>{catchUpText(perDay, label)}</p>
+      {way && <p>{way}</p>}
     </div>
   );
 }
