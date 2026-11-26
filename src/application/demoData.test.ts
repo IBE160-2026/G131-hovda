@@ -6,7 +6,8 @@ import kapittel1 from "../../G131-hovda/notater/IBE430/kapittel-1.md?raw";
 import innhold2 from "../../G131-hovda/notater/IBE430/kapittel-2.innhold.md?raw";
 import kapittel2 from "../../G131-hovda/notater/IBE430/kapittel-2.md?raw";
 import kapittel5 from "../../G131-hovda/notater/IBE430/kapittel-5.md?raw";
-import { buildDemoData, demoMessages, serializeDemoData, validateDemoData, type DemoData } from "./demoData";
+import { buildDemoData, DEMO_PLAN, demoMessages, serializeDemoData, validateDemoData, type DemoData } from "./demoData";
+import { studyPlanMessages } from "@/domain/studyPlan";
 import { importChapter } from "./importChapter";
 import { subchapterInputHash } from "./summaryHash";
 import { MemoryDataSource } from "./testing/MemoryDataSource";
@@ -90,8 +91,9 @@ const numbers = (demo: DemoData) => demo.chapters.flatMap((c) => c.subchapters.m
 /** En gyldig minstefil som testene av skjemaet endrer på. */
 function validDemo(): DemoData {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     course: { id: "demo-ibe430", code: "IBE430", name: "Virksomhetssystemer", learningOutcomes: "", examForm: "" },
+    plan: { examDate: "2026-12-10", planStart: "2026-11-30", today: "2026-12-01" },
     chapters: [
       {
         number: 1,
@@ -135,6 +137,9 @@ describe("buildDemoData", () => {
       learningOutcomes: "Studenten kan forklare forretningsprosesser.",
       examForm: "Skriftlig eksamen, 4 timer.",
     });
+    expect(result.data.plan).toEqual({ examDate: "2026-12-10", planStart: "2026-11-30", today: "2026-12-01" });
+    expect(result.data.plan).toEqual(DEMO_PLAN);
+    expect(Object.keys(result.data)).toEqual(["schemaVersion", "course", "plan", "chapters"]);
     expect(validateDemoData(result.data).ok).toBe(true);
   });
 
@@ -249,7 +254,7 @@ describe("buildDemoData", () => {
     const second = serializeDemoData((await build(data)).data);
     expect(second).toBe(first);
     expect(first.endsWith("}\n")).toBe(true);
-    expect(first.split("\n")[1]).toBe('  "schemaVersion": 1,');
+    expect(first.split("\n")[1]).toBe('  "schemaVersion": 2,');
   });
 });
 
@@ -275,13 +280,13 @@ describe("validateDemoData", () => {
     q.correctIndex = 4;
     q.options = ["A", "B", "C"];
     delete q.explanation;
-    (demo as Record<string, unknown>).schemaVersion = 2;
+    (demo as Record<string, unknown>).schemaVersion = 1;
     demo.chapters[0].subchapters[0].title = " ";
     const result = validateDemoData(demo);
     expect(result).toEqual({
       ok: false,
       errors: [
-        "schemaVersion: skal være 1",
+        "schemaVersion: skal være 2",
         "chapters[0].subchapters[0].title: skal ikke være tom",
         "chapters[0].subchapters[0].questions[0].explanation: mangler",
         "chapters[0].subchapters[0].questions[0].options: skal ha fire alternativer",
@@ -289,6 +294,46 @@ describe("validateDemoData", () => {
       ],
     });
     expect(validateDemoData(null)).toEqual({ ok: false, errors: ["demo: skal være et objekt"] });
+  });
+
+  it("avviser en fil uten planinndata", () => {
+    const withoutPlan: Partial<DemoData> = validDemo();
+    delete withoutPlan.plan;
+    expect(validateDemoData(withoutPlan)).toEqual({ ok: false, errors: ["demo.plan: mangler"] });
+    expect(validateDemoData({ ...validDemo(), plan: { ...DEMO_PLAN, extra: "x" } })).toEqual({
+      ok: false,
+      errors: ["plan.extra: ukjent felt"],
+    });
+  });
+
+  it("avviser ugyldige datoer i planinndataene med stien til feltet", () => {
+    const withPlan = (plan: Record<string, unknown>) => validateDemoData({ ...validDemo(), plan: { ...DEMO_PLAN, ...plan } });
+    expect(withPlan({ today: "2026-13-01", planStart: 5 })).toEqual({
+      ok: false,
+      errors: ["plan.planStart: skal være tekst", "plan.today: skal være en gyldig dato (ÅÅÅÅ-MM-DD)"],
+    });
+    expect(withPlan({ planStart: "2026-12-10" })).toEqual({
+      ok: false,
+      errors: ["plan.examDate: Eksamensdatoen må være etter planstart."],
+    });
+    expect(withPlan({ today: "2026-11-29" })).toEqual({ ok: false, errors: ["plan.today: skal ikke være før planstart"] });
+    expect(withPlan({ today: "2026-12-10" })).toEqual({ ok: false, errors: ["plan.today: skal være før eksamensdatoen"] });
+    expect(withPlan({ today: "2026-11-30" }).ok).toBe(true);
+    expect(withPlan({ examDate: "10.12.2026" })).toEqual({
+      ok: false,
+      errors: ["plan.examDate: skal være en gyldig dato (ÅÅÅÅ-MM-DD)"],
+    });
+    // Lørdag til mandag har ingen studiedager.
+    expect(withPlan({ planStart: "2026-12-05", today: "2026-12-05", examDate: "2026-12-07" })).toEqual({
+      ok: false,
+      errors: [`plan.examDate: ${studyPlanMessages.noStudyDays}`],
+    });
+  });
+
+  it("avviser planinndata som ikke er et objekt", () => {
+    for (const plan of [null, "2026-12-01", [DEMO_PLAN]]) {
+      expect(validateDemoData({ ...validDemo(), plan })).toEqual({ ok: false, errors: ["plan: skal være et objekt"] });
+    }
   });
 
   it("avviser et kapittel utenfor kapittel 1–4", () => {

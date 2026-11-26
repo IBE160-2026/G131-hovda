@@ -65,8 +65,30 @@ describe("DemoDataSource med demo-data/demo.json", () => {
     expect(await data.reportSummaryVersion()).toEqual({ status: "unavailable" });
     expect(await data.reportQuizItem()).toEqual({ status: "unavailable" });
     expect(await data.saveStudyPlan()).toEqual({ status: "unavailable" });
-    expect(await data.getStudyPlan()).toEqual({ status: "ok", value: null });
     expect(await data.listCourses()).toEqual({ status: "ok", value: [expect.objectContaining({ code: "IBE430" })] });
+  });
+
+  it("gir planen med de faste datoene: G₀ = 0, R₀ = alle delkapitlene og D = 8", async () => {
+    const r0 = demoFile.chapters.flatMap((c) => c.subchapters).length;
+    expect(await data.getStudyPlan(courseId)).toEqual({
+      status: "ok",
+      value: { courseId, examDate: "2026-12-10", planStart: "2026-11-30", g0: 0, r0, d: 8 },
+    });
+    expect(await data.getStudyPlan("x")).toEqual({ status: "ok", value: null });
+    expect(data.today).toBe("2026-12-01");
+  });
+
+  it("tar demo-dagen fra fila, også for tidspunktene i besøket", async () => {
+    const other = new DemoDataSource({ ...demoFile, plan: { ...demoFile.plan, today: "2026-12-03" } });
+    expect(other.today).toBe("2026-12-03");
+    const started = await startQuiz(other, courseId, "1.2");
+    expect(started.status).toBe("ok");
+    const quizzes = await other.listQuizzes("demo-1.2");
+    expect(quizzes.status === "ok" && quizzes.value[0].createdAt).toBe("2026-12-03T00:00:00.000Z");
+  });
+
+  it("bruker den faste demo-dagen når fila er ugyldig", () => {
+    expect(new DemoDataSource(null).today).toBe("2026-12-01");
   });
 });
 
@@ -305,7 +327,7 @@ describe("DemoDataSource med en ugyldig fil", () => {
     expect(await data.listSummaryVersions(["demo-1.2"])).toEqual(unavailable);
     expect(await data.listQuestionBanks(["demo-1.2"])).toEqual(unavailable);
     expect(await data.listQuizBank("demo-1.2")).toEqual(unavailable);
-    expect(await data.getStudyPlan()).toEqual(unavailable);
+    expect(await data.getStudyPlan(courseId)).toEqual(unavailable);
     expect(await listChapterOverview(data, courseId)).toEqual(unavailable);
     expect(await getSubchapterSummary(data, courseId, "1.2")).toEqual(unavailable);
   });

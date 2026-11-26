@@ -1,10 +1,11 @@
-// Klokka i demoen: alltid samme dato, så alle besøkende ser det samme (AD-3, AD-11).
+// Klokka i demoen: alltid demo-dagen fra demofila, så alle besøkende ser det samme (AD-3, AD-11).
 import type { Clock } from "@/application/clock";
 
-export const DEMO_TODAY = "2026-12-01";
-
 export class DemoClock implements Clock {
+  /** `today` er demo-dagen, `ÅÅÅÅ-MM-DD`. */
+  constructor(private readonly day: string) {}
+
   today(): string {
-    return DEMO_TODAY;
+    return this.day;
   }
 }

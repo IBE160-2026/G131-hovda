@@ -8,10 +8,18 @@ import type { DataSource } from "@/application/dataSource";
 import { createDemo, getDemo } from "@/composition/demo";
 import demoFile from "../../../demo-data/demo.json";
 import {
+  aheadText,
+  behindText,
   belowThresholdMessage,
+  catchUpText,
   completedBadge,
   completedMessage,
+  dailySuggestionHeading,
   newQuizLabel,
+  onTrackMessage,
+  sessionDoneMessage,
+  startSessionLabel,
+  suggestionText,
   noSummaryMessage,
   reportQuestionLabel,
   subchapterNotFoundMessage,
@@ -19,7 +27,8 @@ import {
   unavailableMessage,
 } from "../(innlogget)/emner/formState";
 import { DemoCoursesView } from "./DemoCourses";
-import { DemoCourseView, loadDemoCourse } from "./emner/[id]/DemoCourse";
+import { dailySuggestionSize, planStatus, relativeDayLabel, studyDaysBetween } from "@/domain/studyPlan";
+import { demoCourseLoader, DemoCourseView, loadDemoCourse } from "./emner/[id]/DemoCourse";
 import { DemoSummaryView } from "./emner/[id]/delkapitler/[nummer]/DemoSummary";
 import { DemoQuizView } from "./emner/[id]/delkapitler/[nummer]/quiz/DemoQuiz";
 import DemoLayout from "./layout";
@@ -40,8 +49,10 @@ const subchapterCount = demoFile.chapters.flatMap((c) => c.subchapters).length;
 
 const courses = (source: DataSource) =>
   source.listCourses().then((result) => renderToStaticMarkup(createElement(DemoCoursesView, { courses: result })));
+/** Demo-dagen, slik `DemoCourse` henter den fra klokka. */
+const today = getDemo().clock.today();
 const course = (source: DataSource, courseId = id) =>
-  loadDemoCourse(source, courseId).then((result) =>
+  loadDemoCourse(source, courseId, today).then((result) =>
     renderToStaticMarkup(createElement(DemoCourseView, { id: courseId, result })),
   );
 const summary = (source: DataSource, nummer: string) =>
@@ -186,11 +197,12 @@ describe("quizen i demoen", () => {
 
     const card = await course(source);
     expect(card).toContain(`1 av ${subchapterCount} gjennomført`);
-    // Merket står ved 1.2 og ingen andre.
+    // I kapittellisten, etter dagens forslag, står merket ved 1.2 og ingen andre.
+    const list = card.slice(card.indexOf("</section>", card.indexOf("dagens-forslag")));
     const badge = `>${completedBadge}<`;
-    expect(card.split(badge)).toHaveLength(2);
-    expect(card.indexOf(badge)).toBeGreaterThan(card.indexOf("delkapitler/1.2"));
-    expect(card.indexOf(badge)).toBeLessThan(card.indexOf("delkapitler/1.3"));
+    expect(list.split(badge)).toHaveLength(2);
+    expect(list.indexOf(badge)).toBeGreaterThan(list.indexOf("delkapitler/1.2"));
+    expect(list.indexOf(badge)).toBeLessThan(list.indexOf("delkapitler/1.3"));
   });
 
   it("tilbyr en ny quiz under 80 %, uten avkrysning", async () => {
@@ -216,5 +228,118 @@ describe("quizen i demoen", () => {
       createElement(DemoQuizView, { id, nummer: "1.2", result: null, startAction: noop, answerAction: () => noop }),
     );
     expect(html).toContain(demoLoadingMessage);
+  });
+});
+
+/** Teksten i dagens forslag, fra seksjonen til den slutter. */
+const suggestionPart = (html: string) => {
+  const start = html.indexOf("dagens-forslag");
+  return start < 0 ? "" : html.slice(start, html.indexOf("</section>", start));
+};
+const startLink = (nummer: string) =>
+  new RegExp(`<a [^>]*href="/demo/emner/demo-ibe430/delkapitler/${nummer.replace(".", "\\.")}"[^>]*>${startSessionLabel}</a>`);
+
+// Forventningene regnes ut fra demofila, så testene tåler nye delkapitler fra `export-demo`.
+// Med dagens 7 delkapitler er det 1.1 og 1.2, 1 bak og «2 delkapitler i kveld, så er du i rute i morgen».
+const allNumbers = demoFile.chapters.flatMap((c) => c.subchapters.map((s) => s.number));
+const demoPlan = {
+  ...demoFile.plan,
+  g0: 0,
+  r0: subchapterCount,
+  d: studyDaysBetween(demoFile.plan.planStart, demoFile.plan.examDate),
+};
+const startStatus = planStatus(demoPlan, { completed: 0, reachable: subchapterCount }, today);
+const suggested = allNumbers.slice(0, dailySuggestionSize(demoPlan.r0, demoPlan.d, startStatus.kind === "behind"));
+
+/** Det framdriften sier om planen med `completed` delkapitler gjennomført. */
+function planLine(completed: number): string[] {
+  const status = planStatus(demoPlan, { completed, reachable: subchapterCount }, today);
+  if (status.kind === "onTrack") return [onTrackMessage];
+  if (status.kind === "ahead") return [aheadText(status.lead)];
+  const label = status.onTrackOn ? relativeDayLabel(status.onTrackOn, today) : null;
+  return [behindText(status.backlog), catchUpText(Math.min(status.perDay, subchapterCount - completed), label)];
+}
+
+describe("dagens forslag og foran/bak i demoen", () => {
+  it("lar studenten ligge litt bak planen", () => {
+    expect(startStatus.kind).toBe("behind");
+    if (startStatus.kind !== "behind") return;
+    expect(startStatus.backlog).toBeLessThanOrEqual(3);
+    expect(startStatus.onTrackOn).not.toBeNull();
+  });
+
+  it("viser forslaget med «Start økta» over framdriften, etterslepet med veien tilbake, og eksamensdatoen", async () => {
+    const html = await course(createDemo(demoFile).data);
+    const part = suggestionPart(html);
+    expect(part).toContain(dailySuggestionHeading);
+    expect(part).toContain(suggestionText(suggested));
+    expect(part).toMatch(startLink(suggested[0]));
+    expect(part).not.toContain(completedBadge);
+    expect(html.indexOf("dagens-forslag")).toBeLessThan(html.indexOf("Framdrift"));
+    for (const line of planLine(0)) expect(html).toContain(line);
+    expect(html).toContain(`<time dateTime="${demoFile.plan.examDate}">`);
+    // Forslaget er en lenke, ikke et skjema.
+    for (const word of ["<form", "<button"]) expect(html).not.toContain(word);
+  });
+
+  it("bruker demo-dagen fra klokka når `DemoCourse` laster", async () => {
+    const result = await demoCourseLoader(id)(createDemo(demoFile).data);
+    expect(result.status === "ok" && result.today).toBe(demoFile.plan.today);
+    const html = renderToStaticMarkup(createElement(DemoCourseView, { id, result }));
+    expect(suggestionPart(html)).toContain(suggestionText(suggested));
+    for (const line of planLine(0)) expect(html).toContain(line);
+  });
+
+  it("er det samme for alle besøkende", async () => {
+    expect(await course(createDemo(demoFile).data)).toBe(await course(createDemo(demoFile).data));
+  });
+
+  it("ligger fast når det første delkapittelet fullføres i besøket, mens framdriften oppdateres", async () => {
+    const source = createDemo(demoFile).data;
+    await takeQuiz(source, suggested[0], Array(10).fill(true));
+    const html = await course(source);
+    const part = suggestionPart(html);
+    expect(part).toContain(suggestionText(suggested));
+    expect(part.split(`>${completedBadge}<`)).toHaveLength(2);
+    if (suggested.length > 1) expect(part).toMatch(startLink(suggested[1]));
+    expect(html).toContain(`1 av ${subchapterCount} gjennomført`);
+    for (const line of planLine(1)) expect(html).toContain(line);
+  });
+
+  it("sier at dagens økt er gjort når alle de foreslåtte er fullført", async () => {
+    const source = createDemo(demoFile).data;
+    for (const nummer of suggested) await takeQuiz(source, nummer, Array(10).fill(true));
+    const html = await course(source);
+    const part = suggestionPart(html);
+    expect(part).toContain(suggestionText(suggested));
+    expect(part).toContain(sessionDoneMessage);
+    expect(part).not.toContain(startSessionLabel);
+    for (const line of planLine(suggested.length)) expect(html).toContain(line);
+  });
+
+  it("viser emnet uten forslag og uten foran/bak når planen ikke kan leses", async () => {
+    const source = createDemo(demoFile).data;
+    const noPlan: DataSource = Object.assign(Object.create(source), {
+      getStudyPlan: async () => ({ status: "unavailable" as const }),
+    });
+    const html = await course(noPlan);
+    expect(html).not.toContain(dailySuggestionHeading);
+    for (const line of planLine(0)) expect(html).not.toContain(line);
+    expect(html).toContain(`0 av ${subchapterCount} gjennomført`);
+  });
+
+  it("viser feilmeldingen når fila mangler planinndataene", async () => {
+    const old: Partial<typeof demoFile> = { ...demoFile, schemaVersion: 1 };
+    delete old.plan;
+    const html = await course(createDemo(old).data);
+    expect(html).toContain(unavailableMessage);
+    expect(html).not.toContain(dailySuggestionHeading);
+  });
+});
+
+describe("klokka i demoen", () => {
+  it("står på demo-dagen i fila", () => {
+    expect(createDemo(demoFile).clock.today()).toBe("2026-12-01");
+    expect(createDemo({ ...demoFile, plan: { ...demoFile.plan, today: "2026-12-02" } }).clock.today()).toBe("2026-12-02");
   });
 });

@@ -3,11 +3,13 @@
 // skriver ingenting.
 //
 // Fila har bare innhold: ingen e-post, bruker-ID, database-ID-er, notater, læringsmål, nøkkelbegreper,
-// hasher, tidspunkter, svar, framdrift eller rapporter. ID-ene lages av strukturen.
+// hasher, tidspunkter, svar, framdrift eller rapporter. ID-ene lages av strukturen. Planinndataene er
+// faste datoer, ikke tidspunkter.
+import { isValidDate, validateStudyPlanDates } from "@/domain/studyPlan";
 import { listChapterOverview } from "./chapterOverview";
 import type { DataSource, Unavailable } from "./dataSource";
 
-export const DEMO_SCHEMA_VERSION = 1;
+export const DEMO_SCHEMA_VERSION = 2;
 
 /** Kapitlene demoen kan ha. */
 export const DEMO_CHAPTERS: readonly number[] = [1, 2, 3, 4];
@@ -15,6 +17,21 @@ export const DEMO_CHAPTERS: readonly number[] = [1, 2, 3, 4];
 /** Minst så mange aktive spørsmål per delkapittel og per tema (NFR-8). */
 export const DEMO_MIN_QUESTIONS = 20;
 export const DEMO_MIN_PER_THEME = 2;
+
+/**
+ * Planinndataene i demoen (FR-26 del 2): fast eksamensdato, planstart og demo-dag for `DemoClock`, så
+ * alle besøkende ser samme forslag. Planstart dagen før demo-dagen gjør at studenten ligger litt bak.
+ */
+export type DemoPlan = {
+  /** `ÅÅÅÅ-MM-DD`. */
+  examDate: string;
+  /** `ÅÅÅÅ-MM-DD`. */
+  planStart: string;
+  /** Dagen i demoen, `ÅÅÅÅ-MM-DD`. */
+  today: string;
+};
+
+export const DEMO_PLAN: Readonly<DemoPlan> = { examDate: "2026-12-10", planStart: "2026-11-30", today: "2026-12-01" };
 
 export type DemoCourse = {
   /** `demo-<kode med små bokstaver>`, for eksempel `demo-ibe430`. */
@@ -56,6 +73,7 @@ export type DemoChapter = { number: number; title: string; subchapters: DemoSubc
 export type DemoData = {
   schemaVersion: typeof DEMO_SCHEMA_VERSION;
   course: DemoCourse;
+  plan: DemoPlan;
   chapters: DemoChapter[];
 };
 
@@ -115,7 +133,7 @@ export function validateDemoData(input: unknown): DemoValidation {
     if (typeof value === "string" && value !== expected) fail(path, `skal være «${expected}»`);
   }
 
-  if (!object(input, "demo", ["schemaVersion", "course", "chapters"])) return { ok: false, errors };
+  if (!object(input, "demo", ["schemaVersion", "course", "plan", "chapters"])) return { ok: false, errors };
 
   if (input.schemaVersion !== DEMO_SCHEMA_VERSION && "schemaVersion" in input) {
     fail("schemaVersion", `skal være ${DEMO_SCHEMA_VERSION}`);
@@ -128,6 +146,30 @@ export function validateDemoData(input: unknown): DemoValidation {
     text(course.name, "course.name");
     text(course.learningOutcomes, "course.learningOutcomes", { allowEmpty: true });
     text(course.examForm, "course.examForm", { allowEmpty: true });
+  }
+
+  // Mangler planen, er det alt meldt over.
+  const plan = input.plan;
+  if ("plan" in input && object(plan, "plan", ["examDate", "planStart", "today"])) {
+    const dateFields = ["examDate", "planStart", "today"] as const;
+    const valid = dateFields.filter((key) => {
+      const value = plan[key];
+      if (!text(value, `plan.${key}`)) return false;
+      if (isValidDate(value)) return true;
+      fail(`plan.${key}`, "skal være en gyldig dato (ÅÅÅÅ-MM-DD)");
+      return false;
+    });
+    if (valid.length === dateFields.length) {
+      const { examDate, planStart, today } = plan as DemoPlan;
+      const dates = validateStudyPlanDates({ examDate, planStart }, today);
+      if (!dates.ok) {
+        for (const [key, message] of Object.entries(dates.errors)) fail(`plan.${key}`, message);
+      } else if (today < planStart) {
+        fail("plan.today", "skal ikke være før planstart");
+      } else if (today >= examDate) {
+        fail("plan.today", "skal være før eksamensdatoen");
+      }
+    }
   }
 
   if (list(input.chapters, "chapters")) {
@@ -335,6 +377,7 @@ export async function buildDemoData(data: DataSource, courseCode: string): Promi
       learningOutcomes: course.learningOutcomes,
       examForm: course.examForm,
     },
+    plan: { ...DEMO_PLAN },
     chapters: demoChapters,
   };
   const validation = validateDemoData(demo);

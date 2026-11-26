@@ -7,6 +7,7 @@ import {
   DEMO_CHAPTERS,
   DEMO_MIN_PER_THEME,
   DEMO_MIN_QUESTIONS,
+  DEMO_PLAN,
   validateDemoData,
   type DemoData,
 } from "../src/application/demoData";
@@ -51,6 +52,10 @@ describe("demo-data/demo.json", () => {
     const all = strings(parsed);
     expect(all.filter((s) => email.test(s))).toEqual([]);
     expect(all.filter((s) => uuid.test(s))).toEqual([]);
+  });
+
+  it("har planinndataene fra `DEMO_PLAN`, som `export-demo` skriver", () => {
+    expect((parsed as DemoData).plan).toEqual(DEMO_PLAN);
   });
 
   it("er skrevet med to mellomrom og linjeskift til slutt", () => {

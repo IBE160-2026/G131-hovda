@@ -9,6 +9,9 @@
 //
 // Fila har ingen notater eller hasher. Hvert delkapittel får derfor en fast plassholdertekst som
 // notat, og sammendraget og banken får hashen av den, så de uendrede brukstilfellene gir «klart».
+//
+// Studieplanen (3.4) regnes ut fra de faste planinndataene i fila med `planSnapshot`. Demoen har ingen
+// avkrysninger før planstart, så G₀ er 0. Tidspunktene i besøket ligger på demo-dagen.
 import type {
   Chapter,
   Course,
@@ -28,9 +31,15 @@ import type {
   Unavailable,
   WriteResult,
 } from "@/application/dataSource";
-import { validateDemoData, type DemoData, type DemoQuestion, type DemoSubchapter } from "@/application/demoData";
+import {
+  DEMO_PLAN,
+  validateDemoData,
+  type DemoData,
+  type DemoQuestion,
+  type DemoSubchapter,
+} from "@/application/demoData";
 import { subchapterInputHash } from "@/application/summaryHash";
-import { DEMO_TODAY } from "@/adapters/clock/demoClock";
+import { planSnapshot } from "@/domain/studyPlan";
 
 /** Lageret tilstanden speiles til. `sessionStorage` i nettleseren. */
 export type DemoStorage = Pick<Storage, "getItem" | "setItem">;
@@ -53,7 +62,8 @@ type DemoState = {
 
 const emptyState = (): DemoState => ({ version: 1, tick: 0, nextId: 1, quizzes: [], items: [], completions: [] });
 
-const DEMO_START_MS = Date.parse(`${DEMO_TODAY}T00:00:00.000Z`);
+/** Midnatt UTC for demo-dagen `today`. I Oslo er det samme dato, kl. 01 på normaltid. */
+const startOfDay = (today: string) => `${today}T00:00:00.000Z`;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isString = (v: unknown): v is string => typeof v === "string";
@@ -63,9 +73,9 @@ const isBool = (v: unknown): v is boolean => typeof v === "boolean";
 
 /**
  * Tilstanden i `raw`, eller `null` når den er ugyldig, har en annen versjon eller viser til ID-er
- * som ikke finnes i demofila. `subchapters` er delkapitlene i fila.
+ * som ikke finnes i demofila. `subchapters` er delkapitlene i fila, `startMs` starten av demo-dagen.
  */
-function parseState(raw: string, subchapters: ReadonlyMap<string, DemoSubchapter>): DemoState | null {
+function parseState(raw: string, subchapters: ReadonlyMap<string, DemoSubchapter>, startMs: number): DemoState | null {
   let value: unknown;
   try {
     value = JSON.parse(raw);
@@ -146,7 +156,7 @@ function parseState(raw: string, subchapters: ReadonlyMap<string, DemoSubchapter
     ...(completions as SubchapterCompletion[]).map((c) => c.completedAt),
   ].flatMap((s) => (s === null ? [] : [Date.parse(s)]));
   if (stamps.some((ms) => Number.isNaN(ms))) return null;
-  const tick = Math.max(value.tick, ...stamps.map((ms) => ms - DEMO_START_MS + 1));
+  const tick = Math.max(value.tick, ...stamps.map((ms) => ms - startMs + 1));
 
   return {
     version: 1,
@@ -163,8 +173,6 @@ export const DEMO_NOTE_TEXT = "Notatet er ikke med i demoen.";
 
 const DEMO_MODEL_ID = "demo";
 const DEMO_PROMPT_VERSION = "demo";
-/** Tidspunktet versjonene får. Fila har ingen tidspunkter. */
-const DEMO_CREATED_AT = "2026-12-01T00:00:00.000Z";
 
 const unavailable: Unavailable = { status: "unavailable" };
 
@@ -182,6 +190,11 @@ export class DemoDataSource implements DataSource {
   private readonly storage: DemoStorage | null;
   /** Lest fra lageret første gang den trengs. */
   private loaded: DemoState | null = null;
+  /** Demo-dagen fra fila (`ÅÅÅÅ-MM-DD`), eller `DEMO_PLAN.today` når fila er ugyldig. `DemoClock` bruker den. */
+  readonly today: string;
+  /** Tidspunktet versjonene får, og starten for tidspunktene i besøket. Fila har ingen tidspunkter. */
+  private readonly createdAt: string;
+  private readonly startMs: number;
 
   /** `storage` er lageret tilstanden speiles til. Uten det ligger den bare i minnet. */
   constructor(input: unknown, storage?: DemoStorage | null) {
@@ -191,6 +204,9 @@ export class DemoDataSource implements DataSource {
       for (const sub of chapter.subchapters) this.subchapters.set(sub.id, sub);
     }
     this.storage = storage ?? null;
+    this.today = this.demo?.plan.today ?? DEMO_PLAN.today;
+    this.createdAt = startOfDay(this.today);
+    this.startMs = Date.parse(this.createdAt);
   }
 
   /** Tilstanden i besøket. Ugyldig eller ulesbar tilstand i lageret gir en ny, tom tilstand. */
@@ -202,7 +218,7 @@ export class DemoDataSource implements DataSource {
     } catch {
       raw = null;
     }
-    const parsed = raw === null ? null : parseState(raw, this.subchapters);
+    const parsed = raw === null ? null : parseState(raw, this.subchapters, this.startMs);
     this.loaded = parsed ?? emptyState();
     return this.loaded;
   }
@@ -216,10 +232,10 @@ export class DemoDataSource implements DataSource {
     }
   }
 
-  /** Et tidspunkt som øker for hver skriving (`DEMO_TODAY` + teller), så «nyest» er entydig. */
+  /** Et tidspunkt som øker for hver skriving (starten av demo-dagen + teller), så «nyest» er entydig. */
   private now(): string {
     const state = this.state();
-    return new Date(DEMO_START_MS + state.tick++).toISOString();
+    return new Date(this.startMs + state.tick++).toISOString();
   }
 
   /** En ny ID med `prefix` som ikke er brukt. */
@@ -338,7 +354,7 @@ export class DemoDataSource implements DataSource {
               promptVersion: DEMO_PROMPT_VERSION,
               inputHash,
               error: null,
-              createdAt: DEMO_CREATED_AT,
+              createdAt: this.createdAt,
             }
           : null;
         return { subchapterId, latest: version, latestReady: version };
@@ -362,7 +378,7 @@ export class DemoDataSource implements DataSource {
               inputHash,
               contentHash: "",
               error: null,
-              createdAt: DEMO_CREATED_AT,
+              createdAt: this.createdAt,
             }
           : null;
         return { subchapterId, latest: version, latestReady: version };
@@ -414,9 +430,16 @@ export class DemoDataSource implements DataSource {
     return this.demo ? ok([]) : unavailable;
   }
 
-  // Demoen har ingen studieplan ennå. Demoplanen kommer i 3.4.
-  async getStudyPlan(): Promise<ReadResult<StudyPlan | null>> {
-    return this.demo ? ok(null) : unavailable;
+  /**
+   * Planen med de faste datoene i fila. Øyeblikksbildet regnes som i `startPlan`, over alle
+   * delkapitlene i fila og uten avkrysninger før planstart, så G₀ er 0 og R₀ antall delkapitler.
+   */
+  async getStudyPlan(courseId: string): Promise<ReadResult<StudyPlan | null>> {
+    if (!this.demo) return unavailable;
+    if (courseId !== this.demo.course.id) return ok(null);
+    const { examDate, planStart } = this.demo.plan;
+    const snapshot = planSnapshot({ activeSubchapterIds: [...this.subchapters.keys()], completions: [], planStart, examDate });
+    return ok({ courseId, examDate, planStart, ...snapshot });
   }
 
   /** Som `MemoryDataSource`: alle elementene får samme tidspunkt, som `now()` i én transaksjon. */
