@@ -2,10 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDataSourceForRender } from "@/composition/server";
 import { OwnerOnly } from "../../OwnerOnly";
-import { updateCourseAction } from "../actions";
+import { startPlanAction, updateCourseAction } from "../actions";
 import { CourseForm } from "../CourseForm";
-import { initialCourseFormState, notFoundMessage, unavailableMessage } from "../formState";
+import {
+  initialCourseFormState,
+  initialStudyPlanFormState,
+  notFoundMessage,
+  unavailableMessage,
+} from "../formState";
 import { pageMain, textLink } from "../styles";
+import { StudyPlanForm } from "./StudyPlanForm";
 
 export const metadata: Metadata = {
   title: "Endre emne – Studievenn",
@@ -27,7 +33,7 @@ export default function EditCoursePage({ params }: PageProps<"/emner/[id]">) {
   );
 }
 
-async function EditCourse({ params }: Pick<PageProps<"/emner/[id]">, "params">) {
+export async function EditCourse({ params }: Pick<PageProps<"/emner/[id]">, "params">) {
   const { id } = await params;
   const data = await getDataSourceForRender();
   if (!data) return null;
@@ -43,12 +49,32 @@ async function EditCourse({ params }: Pick<PageProps<"/emner/[id]">, "params">) 
   if (!course.value) return <p className="text-lg text-muted">{notFoundMessage}</p>;
 
   const { code, name, learningOutcomes, examForm } = course.value;
+  const plan = await data.getStudyPlan(course.value.id);
   return (
-    <CourseForm
-      action={updateCourseAction.bind(null, course.value.id)}
-      initialState={initialCourseFormState({ code, name, learningOutcomes, examForm })}
-      submitLabel="Lagre endringene"
-      pendingLabel="Lagrer …"
-    />
+    <>
+      <CourseForm
+        action={updateCourseAction.bind(null, course.value.id)}
+        initialState={initialCourseFormState({ code, name, learningOutcomes, examForm })}
+        submitLabel="Lagre endringene"
+        pendingLabel="Lagrer …"
+      />
+      <section aria-labelledby="studieplan" className="flex flex-col gap-5 border-t border-muted/30 pt-8">
+        <h2 id="studieplan" className="text-2xl font-bold">
+          Eksamensdato og planstart
+        </h2>
+        {plan.status === "ok" ? (
+          <StudyPlanForm
+            action={startPlanAction.bind(null, course.value.id)}
+            initialState={initialStudyPlanFormState(
+              plan.value ? { examDate: plan.value.examDate, planStart: plan.value.planStart } : undefined,
+            )}
+          />
+        ) : (
+          <p role="alert" className="font-semibold text-error">
+            {unavailableMessage}
+          </p>
+        )}
+      </section>
+    </>
   );
 }

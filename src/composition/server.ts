@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 import type { Auth, Owner } from "@/application/auth";
+import type { Clock } from "@/application/clock";
 import type { DataSource } from "@/application/dataSource";
+import { OsloClock } from "@/adapters/clock/osloClock";
 import { SupabaseAuth } from "@/adapters/supabase/auth";
 import { SupabaseDataSource } from "@/adapters/supabase/dataSource";
 import { createSupabaseServerClient } from "@/adapters/supabase/serverClient";
@@ -69,3 +71,8 @@ export const getDataSourceForRender = cache(async (): Promise<DataSource | null>
   });
   return new SupabaseDataSource(client, owner.id);
 });
+
+// Klokka for appen: dagens dato i Europe/Oslo (AD-11).
+export function getClock(): Clock {
+  return new OsloClock();
+}

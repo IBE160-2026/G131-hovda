@@ -1,4 +1,5 @@
 import type { CourseField, CourseInput } from "@/domain/course";
+import type { StudyPlanField } from "@/domain/studyPlan";
 
 export type CourseFormState = {
   values: CourseInput;
@@ -13,6 +14,25 @@ export const emptyCourse: CourseInput = { code: "", name: "", learningOutcomes: 
 export function initialCourseFormState(values: CourseInput = emptyCourse): CourseFormState {
   return { values, errors: {}, formError: null, attempt: 0 };
 }
+
+/** Skjemaet for eksamensdato og planstart. Datoene er `ÅÅÅÅ-MM-DD`, som i `<input type="date">`. */
+export type StudyPlanFormState = {
+  values: { examDate: string; planStart: string };
+  errors: Partial<Record<StudyPlanField, string>>;
+  formError: string | null;
+  /** Bekreftelsen etter lagring. */
+  message: string | null;
+  attempt: number;
+};
+
+export function initialStudyPlanFormState(
+  values: StudyPlanFormState["values"] = { examDate: "", planStart: "" },
+): StudyPlanFormState {
+  return { values, errors: {}, formError: null, message: null, attempt: 0 };
+}
+
+export const studyPlanSavedMessage = "Planen er lagret.";
+export const studyPlanUnchangedMessage = "Eksamensdatoen og planstart er uendret, så planen er den samme.";
 
 export const unavailableMessage = "Noe gikk galt. Prøv igjen senere.";
 export const notFoundMessage = "Fant ikke emnet. Det kan være slettet.";

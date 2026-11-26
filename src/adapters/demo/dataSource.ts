@@ -20,6 +20,7 @@ import type {
   QuizQuestion,
   QuizResultInput,
   ReadResult,
+  StudyPlan,
   SubchapterCompletion,
   SubchapterQuestionBanks,
   SubchapterSummaries,
@@ -413,6 +414,11 @@ export class DemoDataSource implements DataSource {
     return this.demo ? ok([]) : unavailable;
   }
 
+  // Demoen har ingen studieplan ennå. Demoplanen kommer i 3.4.
+  async getStudyPlan(): Promise<ReadResult<StudyPlan | null>> {
+    return this.demo ? ok(null) : unavailable;
+  }
+
   /** Som `MemoryDataSource`: alle elementene får samme tidspunkt, som `now()` i én transaksjon. */
   async createQuiz(input: NewQuiz): Promise<WriteResult<Quiz>> {
     if (!this.demo) return unavailable;
@@ -501,7 +507,7 @@ export class DemoDataSource implements DataSource {
     return { status: "ok", value: true };
   }
 
-  // Demoen lagrer aldri emner, kapitler, sammendrag, banker eller feilrapporter.
+  // Demoen lagrer aldri emner, kapitler, sammendrag, banker, feilrapporter eller studieplaner.
   async createCourse() {
     return unavailable;
   }
@@ -527,6 +533,9 @@ export class DemoDataSource implements DataSource {
     return unavailable;
   }
   async reportSummaryVersion() {
+    return unavailable;
+  }
+  async saveStudyPlan() {
     return unavailable;
   }
 }
