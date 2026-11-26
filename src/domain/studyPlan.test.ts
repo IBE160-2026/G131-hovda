@@ -6,11 +6,13 @@ import {
   dailySuggestionSize,
   norwegianDate,
   osloDate,
+  planFinished,
   planSnapshot,
   planStatus,
   relativeDayLabel,
   studyDaysBetween,
   studyPlanMessages,
+  suggestionLeft,
   validateStudyPlanDates,
   type SuggestionCandidate,
 } from "./studyPlan";
@@ -174,12 +176,13 @@ describe("planStatus", () => {
       kind: "behind",
       backlog: 3,
       perDay: 2,
+      tonight: 2,
       onTrackOn: "2026-12-06",
     });
   });
 
   it("gir ingen dag når eieren ikke rekker det før eksamen", () => {
-    expect(planStatus(plan, all(1), "2026-12-09")).toEqual({ kind: "behind", backlog: 8, perDay: 2, onTrackOn: null });
+    expect(planStatus(plan, all(1), "2026-12-09")).toEqual({ kind: "behind", backlog: 8, perDay: 2, tonight: 2, onTrackOn: null });
   });
 
   it("gir i rute i morgen når én kveld er nok", () => {
@@ -205,11 +208,73 @@ describe("planStatus", () => {
   it("bruker d = D etter eksamen", () => {
     // d ville vært 11, men planlagt blir 9 og ikke mer.
     expect(planStatus(plan, all(9), "2026-12-11")).toEqual({ kind: "onTrack" });
-    expect(planStatus(plan, all(8), "2026-12-11")).toEqual({ kind: "behind", backlog: 1, perDay: 2, onTrackOn: null });
+    expect(planStatus(plan, all(8), "2026-12-11")).toEqual({ kind: "behind", backlog: 1, perDay: 2, tonight: 2, onTrackOn: null });
   });
 
   it("bruker d = 0 før planstart", () => {
     expect(planStatus({ ...plan, planStart: "2026-11-30" }, all(1), "2026-11-26")).toEqual({ kind: "onTrack" });
+  });
+
+  it("regner kvelden med det som er igjen av forslaget", () => {
+    // 2 gjennomført før i dag og 1 av de 2 foreslåtte i dag: 2 bak, 1 igjen i kveld.
+    expect(planStatus(plan, { ...all(3), tonight: 1 }, "2026-12-03")).toEqual({
+      kind: "behind",
+      backlog: 2,
+      perDay: 2,
+      tonight: 1,
+      onTrackOn: "2026-12-06",
+    });
+  });
+
+  it("regner veien tilbake fra i morgen når kveldens økt er gjort", () => {
+    // 2 gjennomført før i dag og 2 i dag: 1 bak. Fredag 6, lørdag 8 mot planlagt 7.
+    expect(planStatus(plan, { ...all(4), tonight: 0 }, "2026-12-03")).toEqual({
+      kind: "behind",
+      backlog: 1,
+      perDay: 2,
+      tonight: 0,
+      onTrackOn: "2026-12-06",
+    });
+    // Uten `tonight` regnes kvelden med `perDay`, og én kveld er nok.
+    expect(planStatus(plan, all(4), "2026-12-03")).toMatchObject({ tonight: 2, onTrackOn: "2026-12-04" });
+  });
+
+  it("gir aldri mindre enn 0 i kveld", () => {
+    expect(planStatus(plan, { ...all(5), tonight: -1 }, "2026-12-04")).toMatchObject({ kind: "behind", tonight: 0 });
+  });
+});
+
+describe("suggestionLeft", () => {
+  const sub = (number: string, completedAt: string | null = null) => ({ number, ready: true, hasNotes: true, completedAt });
+  const today = "2026-12-03T17:00:00Z";
+
+  it("teller de foreslåtte som ikke er gjennomført nå", () => {
+    const suggestion = { kind: "subchapters" as const, numbers: ["1.3", "1.4"] };
+    expect(suggestionLeft(suggestion, [sub("1.3"), sub("1.4")])).toBe(2);
+    expect(suggestionLeft(suggestion, [sub("1.3", today), sub("1.4")])).toBe(1);
+    expect(suggestionLeft(suggestion, [sub("1.3", today), sub("1.4", today)])).toBe(0);
+  });
+
+  it("teller ikke delkapitler utenfor forslaget", () => {
+    const suggestion = { kind: "subchapters" as const, numbers: ["1.3", "1.4"] };
+    expect(suggestionLeft(suggestion, [sub("1.3"), sub("1.4"), sub("1.5", today), sub("1.6", today)])).toBe(2);
+  });
+
+  it("er 0 for repetisjon, fleksibel dag, ingenting klart og fullført", () => {
+    const subs = [sub("1.1")];
+    expect(suggestionLeft({ kind: "review", numbers: ["1.1"] }, subs)).toBe(0);
+    expect(suggestionLeft({ kind: "flexibleDay" }, subs)).toBe(0);
+    expect(suggestionLeft({ kind: "nothingReady" }, subs)).toBe(0);
+    expect(suggestionLeft({ kind: "finished" }, subs)).toBe(0);
+  });
+});
+
+describe("planFinished", () => {
+  it("er sann etter eksamensdatoen, men ikke på den", () => {
+    const plan = { examDate: "2026-12-10" };
+    expect(planFinished(plan, "2026-12-09")).toBe(false);
+    expect(planFinished(plan, "2026-12-10")).toBe(false);
+    expect(planFinished(plan, "2026-12-11")).toBe(true);
   });
 });
 

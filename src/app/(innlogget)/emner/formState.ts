@@ -125,6 +125,16 @@ export function catchUpText(perDay: number, onTrackLabel: string | null): string
     : `${subchapterCount(perDay)} om dagen tar deg nærmere planen.`;
 }
 
+/**
+ * Veien tilbake når kveldens økt er gjort: «Fortsett i morgen med 2 delkapitler, så er du i rute fredag.»
+ * `onTrackLabel` er dagen, eller `null` når eieren ikke er i rute før eksamen.
+ */
+export function catchUpTomorrowText(perDay: number, onTrackLabel: string | null): string {
+  return onTrackLabel
+    ? `Fortsett i morgen med ${subchapterCount(perDay)}, så er du i rute ${onTrackLabel}.`
+    : `Fortsett i morgen med ${subchapterCount(perDay)} om dagen, så kommer du nærmere planen.`;
+}
+
 // Dagens forslag (FR-10 del 2, UX-1, UX-2).
 export const dailySuggestionHeading = "Dagens forslag";
 export const startSessionLabel = "Start økta";

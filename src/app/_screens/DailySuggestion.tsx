@@ -1,8 +1,6 @@
 import Link from "next/link";
 import type { ChapterOverview } from "@/application/chapterOverview";
 import type { ReadResult, StudyPlan } from "@/application/dataSource";
-import { hasNotes } from "@/domain/hasNotes";
-import { dailySuggestion } from "@/domain/studyPlan";
 import {
   completedBadge,
   dailySuggestionHeading,
@@ -15,6 +13,7 @@ import {
   suggestionText,
 } from "../(innlogget)/emner/formState";
 import { primaryButton, textLink } from "../(innlogget)/emner/styles";
+import { todaysSuggestion } from "./todaysSuggestion";
 
 /**
  * Dagens forslag øverst på startsiden (FR-10 del 2, UX-1, UX-2): hva eieren skal gjøre i kveld, med
@@ -36,16 +35,7 @@ export function DailySuggestion({
   if (!plan || chapters.status !== "ok") return null;
   const subchapters = chapters.value.flatMap((c) => c.subchapters);
   if (subchapters.length === 0) return null;
-  const suggestion = dailySuggestion(
-    plan,
-    subchapters.map((s) => ({
-      number: s.number,
-      ready: s.status === "klart" || s.status === "utdatert",
-      hasNotes: hasNotes(s.noteText),
-      completedAt: s.completedAt,
-    })),
-    today,
-  );
+  const suggestion = todaysSuggestion(plan, subchapters, today);
 
   let body;
   if (suggestion.kind === "finished") body = <p className="font-semibold">{finishedMessage}</p>;
