@@ -116,4 +116,4 @@
 - [ ] 2026-11-26 [story-3-1-bygg](966-2026-11-26-10-52-54-story-3-1-bygg.md) — manuell sjekk med `npm run dev` mot `dev`: legg inn 10.12.2026 for IBE430, se datoen på startsiden, endre til 11.12 og se at G₀, R₀ og D i `dev` stemmer
 - [ ] 2026-11-26 [story-3-1-bygg](966-2026-11-26-10-52-54-story-3-1-bygg.md) — Martes valg: skal en planstart etter i dag være lov (nå godtas den, og øyeblikksbildet tas ved lagring)?
 - [ ] 2026-11-26 [story-3-1-bygg](966-2026-11-26-10-52-54-story-3-1-bygg.md) — Martes valg: skal hjelpeteksten under «Planstart» si at en ny eksamensdato starter planen i dag når planstart står som før?
-- [ ] 2026-11-26 [story-3-1-bygg](966-2026-11-26-10-52-54-story-3-1-bygg.md) — sett 3.1 til `done` i sprint-status når PR-en for `story-3-1-eksamensdato` er merget
+- [ ] 2026-11-26 [story-3-1-bygg](966-2026-11-26-10-52-54-story-3-1-bygg.md) — sett 3.1 til `done` i sprint-status når PR #15 (`story-3-1-eksamensdato`) er merget
