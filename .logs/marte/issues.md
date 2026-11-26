@@ -111,3 +111,5 @@
 - [ ] 2026-11-24 [story-2-2-bygg](969-2026-11-24-21-07-11-story-2-2-bygg.md) — DOM-test for `useDemoResult` og demo-wrapperne når det finnes et DOM-testoppsett (se deferred-work.md)
 - [x] 2026-11-24 [story-2-3-bygg](968-2026-11-24-22-56-54-story-2-3-bygg.md) — sjekk quizen i demoen på https://g131-hovda.vercel.app/demo etter merge og deploy av 2.3: ta en quiz til resultatet, og se at framdriften flytter seg (løst 2026-11-25: Marte tok en quiz i prod, og framdriften flyttet seg)
 - [ ] 2026-11-24 [story-2-3-bygg](968-2026-11-24-22-56-54-story-2-3-bygg.md) — DOM-test for `useDemoNavigate` i demoquizen når det finnes et DOM-testoppsett (se deferred-work.md)
+- [ ] 2026-11-26 [story-3-1-spesifikasjon](967-2026-11-26-10-31-52-story-3-1-spesifikasjon.md) — bygg story 3.1 i en ny `bmad-build`-økt (specen er godkjent); bygget kjører migreringen for `study_plans` mot `dev`
+- [ ] 2026-11-26 [story-3-1-spesifikasjon](967-2026-11-26-10-31-52-story-3-1-spesifikasjon.md) — før merge av 3.1: kjør migreringen for `study_plans` mot `prod` (krever ja fra Marte); ellers feiler startsiden og «Endre emne» i prod
