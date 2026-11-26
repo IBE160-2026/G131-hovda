@@ -14,6 +14,8 @@ export type SubchapterOverview = Subchapter & {
   status: SubchapterStatus;
   summaryStatus: SubchapterStatus;
   completed: boolean;
+  /** Når delkapittelet ble krysset av (ISO-tidspunkt i UTC), eller `null`. Dagens forslag bruker det (AD-15). */
+  completedAt: string | null;
 };
 
 export type ChapterOverview = Omit<Chapter, "subchapters"> & { subchapters: SubchapterOverview[] };
@@ -52,7 +54,7 @@ export async function listChapterOverview(
   if (summaries.status !== "ok") return summaries;
   if (banks.status !== "ok") return banks;
   if (completions.status !== "ok") return completions;
-  const completedIds = new Set(completions.value.map((c) => c.subchapterId));
+  const completedAtById = new Map(completions.value.map((c) => [c.subchapterId, c.completedAt]));
   const summaryById = new Map(summaries.value.map((s) => [s.subchapterId, s.latestReady?.inputHash ?? null]));
   const bankById = new Map(banks.value.map((b) => [b.subchapterId, b.latestReady?.inputHash ?? null]));
 
@@ -66,7 +68,8 @@ export async function listChapterOverview(
             statusOf(chapter, sub, [summary, bankById.get(sub.id) ?? null]),
             statusOf(chapter, sub, [summary]),
           ]);
-          return { ...sub, status, summaryStatus, completed: completedIds.has(sub.id) };
+          const completedAt = completedAtById.get(sub.id) ?? null;
+          return { ...sub, status, summaryStatus, completed: completedAt !== null, completedAt };
         }),
       ),
     })),

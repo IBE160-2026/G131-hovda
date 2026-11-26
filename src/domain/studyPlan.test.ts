@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isStudyDay,
   isValidDate,
+  dailySuggestion,
   dailySuggestionSize,
   norwegianDate,
   osloDate,
@@ -11,6 +12,7 @@ import {
   studyDaysBetween,
   studyPlanMessages,
   validateStudyPlanDates,
+  type SuggestionCandidate,
 } from "./studyPlan";
 
 describe("studiedager", () => {
@@ -218,5 +220,115 @@ describe("relativeDayLabel", () => {
     expect(relativeDayLabel("2026-12-09", "2026-12-03")).toBe("onsdag");
     expect(relativeDayLabel("2026-12-10", "2026-12-03")).toBe("torsdag 10. desember");
     expect(relativeDayLabel("2026-12-14", "2026-12-03")).toBe("mandag 14. desember");
+  });
+});
+
+describe("dailySuggestion", () => {
+  // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10, så ⌈R₀ / D⌉ = 1.
+  const plan = { planStart: "2026-11-26", examDate: "2026-12-10", g0: 1, r0: 8, d: 10 };
+  const before = "2026-11-20T10:00:00Z";
+
+  /** Delkapitlene 1.1–1.9, alle klare med notater. `done` gir avkrysningstidspunktet per nummer. */
+  function subs(done: Record<string, string>, change: Record<string, Partial<SuggestionCandidate>> = {}) {
+    return Array.from({ length: 9 }, (_, i) => {
+      const number = `1.${i + 1}`;
+      return { number, ready: true, hasNotes: true, completedAt: done[number] ?? null, ...change[number] };
+    });
+  }
+
+  it("foreslår neste klare delkapittel på en vanlig dag", () => {
+    expect(dailySuggestion(plan, subs({ "1.1": before }), "2026-11-26")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.2"],
+    });
+  });
+
+  it("gir ett til ved etterslep", () => {
+    // d = 5, planlagt 5, 2 gjennomført.
+    expect(dailySuggestion(plan, subs({ "1.1": before, "1.2": before }), "2026-12-03")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.3", "1.4"],
+    });
+  });
+
+  it("gir aldri flere enn 3", () => {
+    const big = { ...plan, r0: 25 };
+    const many = Array.from({ length: 26 }, (_, i) => ({
+      number: `${i + 1}.1`,
+      ready: true,
+      hasNotes: true,
+      completedAt: i === 0 ? before : null,
+    }));
+    expect(dailySuggestion(big, many, "2026-12-03")).toEqual({ kind: "subchapters", numbers: ["2.1", "3.1", "4.1"] });
+  });
+
+  it("foreslår ingenting på en fleksibel dag i rute", () => {
+    // Lør 28.11: d = 2, planlagt 3, 3 gjennomført.
+    const done = { "1.1": before, "1.2": "2026-11-27T17:00:00Z", "1.3": "2026-11-27T18:00:00Z" };
+    expect(dailySuggestion(plan, subs(done), "2026-11-28")).toEqual({ kind: "flexibleDay" });
+  });
+
+  it("foreslår delkapitler på en fleksibel dag ved etterslep", () => {
+    // Lør 5.12: d = 7, planlagt 7, 2 gjennomført.
+    expect(dailySuggestion(plan, subs({ "1.1": before, "1.2": before }), "2026-12-05")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.3", "1.4"],
+    });
+  });
+
+  it("hopper over delkapitler som ikke er klare", () => {
+    expect(dailySuggestion(plan, subs({ "1.1": before }, { "1.2": { ready: false } }), "2026-11-26")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.3"],
+    });
+  });
+
+  it("foreslår repetisjon, eldst først, når ingen ikke-gjennomførte er klare", () => {
+    const notReady = Object.fromEntries(["1.4", "1.5", "1.6", "1.7", "1.8", "1.9"].map((n) => [n, { ready: false }]));
+    const done = { "1.1": "2026-11-21T10:00:00Z", "1.2": "2026-11-22T10:00:00Z", "1.3": "2026-11-20T10:00:00Z" };
+    expect(dailySuggestion(plan, subs(done, notReady), "2026-11-26")).toEqual({ kind: "review", numbers: ["1.3"] });
+    // Bak gir k = 2.
+    expect(dailySuggestion({ ...plan, g0: 3, r0: 6 }, subs(done, notReady), "2026-12-03")).toEqual({
+      kind: "review",
+      numbers: ["1.3", "1.1"],
+    });
+  });
+
+  it("sier fra når ingenting er klart", () => {
+    const none = Object.fromEntries(subs({}).map((s) => [s.number, { ready: false }]));
+    expect(dailySuggestion(plan, subs({ "1.1": before }, none), "2026-11-26")).toEqual({ kind: "nothingReady" });
+  });
+
+  it("endres ikke når et delkapittel fullføres i løpet av dagen", () => {
+    // 1.2 gjennomført kl. 14 i Oslo samme dag.
+    const done = { "1.1": before, "1.2": "2026-11-26T13:00:00Z" };
+    expect(dailySuggestion(plan, subs(done), "2026-11-26")).toEqual({ kind: "subchapters", numbers: ["1.2"] });
+  });
+
+  it("teller avkrysningen fra rett før midnatt i Oslo neste dag", () => {
+    // 23:59 i Oslo 26.11 er 22:59 UTC. Fre 27.11: d = 1, planlagt 2, 2 gjennomført.
+    expect(dailySuggestion(plan, subs({ "1.1": before, "1.2": "2026-11-26T22:59:00Z" }), "2026-11-27")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.3"],
+    });
+    // 00:00 i Oslo 27.11 er samme dag og teller ikke.
+    expect(dailySuggestion(plan, subs({ "1.1": before, "1.2": "2026-11-26T23:00:00Z" }), "2026-11-27")).toEqual({
+      kind: "subchapters",
+      numbers: ["1.2", "1.3"],
+    });
+  });
+
+  it("gir vanlig antall ved forsprang på en studiedag", () => {
+    // Man 30.11: d = 2, planlagt 3, 5 gjennomført.
+    const done = Object.fromEntries(["1.1", "1.2", "1.3", "1.4", "1.5"].map((n) => [n, before]));
+    expect(dailySuggestion(plan, subs(done), "2026-11-30")).toEqual({ kind: "subchapters", numbers: ["1.6"] });
+  });
+
+  it("regner ikke delkapitler uten notater som etterslep", () => {
+    // 1.1–1.4 gjennomført, 1.5–1.9 uten notater: N = 4, så eieren er i rute selv om planlagt er 5.
+    const done = Object.fromEntries(["1.1", "1.2", "1.3", "1.4"].map((n, i) => [n, `2026-11-2${i}T10:00:00Z`]));
+    const noNotes = Object.fromEntries(["1.5", "1.6", "1.7", "1.8", "1.9"].map((n) => [n, { ready: false, hasNotes: false }]));
+    expect(dailySuggestion(plan, subs(done, noNotes), "2026-12-03")).toEqual({ kind: "review", numbers: ["1.1"] });
+    expect(dailySuggestion(plan, subs(done, noNotes), "2026-12-05")).toEqual({ kind: "flexibleDay" });
   });
 });

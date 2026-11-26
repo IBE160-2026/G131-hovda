@@ -5,6 +5,7 @@ import { getClock, getDataSourceForRender } from "@/composition/server";
 import { ChapterList } from "../../_screens/ChapterList";
 import { CourseHeader } from "../../_screens/CourseHeader";
 import { CourseSection } from "../../_screens/CourseSection";
+import { DailySuggestion } from "../../_screens/DailySuggestion";
 import { Progress } from "../../_screens/Progress";
 import { UnavailableMessage } from "../../_screens/UnavailableMessage";
 import { OwnerOnly } from "../OwnerOnly";
@@ -87,9 +88,16 @@ export async function ActiveCourse() {
   const [chapters, plan] = await Promise.all([listChapterOverview(data, course.id), data.getStudyPlan(course.id)]);
   // Kan planen ikke leses, vises emnet uten eksamensdato og uten foran/bak.
   const studyPlan = plan.status === "ok" ? plan.value : null;
+  const today = getClock().today();
   return (
     <>
-      <Progress chapters={chapters} plan={studyPlan} today={getClock().today()} />
+      <DailySuggestion
+        chapters={chapters}
+        plan={studyPlan}
+        today={today}
+        subchapterHref={subchapterHref(course.id)}
+      />
+      <Progress chapters={chapters} plan={studyPlan} today={today} />
       <p className="text-sm font-semibold text-muted">Aktivt emne</p>
       <CourseHeader course={course} examDate={studyPlan?.examDate} />
       <div>

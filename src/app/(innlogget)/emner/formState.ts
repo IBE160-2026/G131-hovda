@@ -124,3 +124,27 @@ export function catchUpText(perDay: number, onTrackLabel: string | null): string
     ? `${subchapterCount(perDay)} i kveld, så er du i rute ${onTrackLabel}.`
     : `${subchapterCount(perDay)} om dagen tar deg nærmere planen.`;
 }
+
+// Dagens forslag (FR-10 del 2, UX-1, UX-2).
+export const dailySuggestionHeading = "Dagens forslag";
+export const startSessionLabel = "Start økta";
+export const sessionDoneMessage = "Dagens økt er gjort.";
+export const flexibleDayMessage = "I dag er en fleksibel dag. Du kan velge et delkapittel selv i listen under.";
+export const nothingReadyMessage = "Ingen delkapitler er klare ennå.";
+
+/** «3.2», «3.2 og 3.3» eller «3.2, 3.3 og 3.4». */
+function numberList(numbers: readonly string[]): string {
+  if (numbers.length <= 1) return numbers.join("");
+  return `${numbers.slice(0, -1).join(", ")} og ${numbers[numbers.length - 1]}`;
+}
+
+/** «I kveld: delkapittel 3.2, deretter quiz.» eller «I kveld: delkapittel 3.2 og 3.3, med quiz etter hvert.» */
+export function suggestionText(numbers: readonly string[]): string {
+  const quiz = numbers.length === 1 ? "deretter quiz" : "med quiz etter hvert";
+  return `I kveld: delkapittel ${numberList(numbers)}, ${quiz}.`;
+}
+
+/** «I kveld: repetisjon med ny quiz på delkapittel 1.1 og 1.2.» */
+export function reviewText(numbers: readonly string[]): string {
+  return `I kveld: repetisjon med ny quiz på delkapittel ${numberList(numbers)}.`;
+}
