@@ -96,3 +96,31 @@ export function progressText(completed: number, total: number, goal: number): st
 export function remainingText(remaining: number): string {
   return `${remaining} igjen til målet`;
 }
+
+// Foran eller bak studieplanen. Ingen skyldspråk (UX-3).
+export const onTrackMessage = "Du er i rute.";
+
+/** «1 delkapittel» eller «3 delkapitler». */
+function subchapterCount(n: number): string {
+  return `${n} ${n === 1 ? "delkapittel" : "delkapitler"}`;
+}
+
+/** «2 delkapitler foran planen.» */
+export function aheadText(lead: number): string {
+  return `${subchapterCount(lead)} foran planen.`;
+}
+
+/** «3 delkapitler bak planen.» */
+export function behindText(backlog: number): string {
+  return `${subchapterCount(backlog)} bak planen.`;
+}
+
+/**
+ * Veien tilbake: «2 delkapitler i kveld, så er du i rute søndag.» `onTrackLabel` er dagen, for eksempel
+ * «i morgen» eller «søndag», eller `null` når eieren ikke er i rute før eksamen.
+ */
+export function catchUpText(perDay: number, onTrackLabel: string | null): string {
+  return onTrackLabel
+    ? `${subchapterCount(perDay)} i kveld, så er du i rute ${onTrackLabel}.`
+    : `${subchapterCount(perDay)} om dagen tar deg nærmere planen.`;
+}

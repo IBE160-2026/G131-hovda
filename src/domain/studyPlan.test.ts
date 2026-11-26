@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   isStudyDay,
   isValidDate,
+  dailySuggestionSize,
   norwegianDate,
   osloDate,
   planSnapshot,
+  planStatus,
+  relativeDayLabel,
   studyDaysBetween,
   studyPlanMessages,
   validateStudyPlanDates,
@@ -140,5 +143,80 @@ describe("norwegianDate", () => {
   it("skriver datoen på norsk", () => {
     expect(norwegianDate("2026-12-10")).toBe("10. desember 2026");
     expect(norwegianDate("2027-01-01")).toBe("1. januar 2027");
+  });
+});
+
+describe("dailySuggestionSize", () => {
+  it("er ⌈R₀ / D⌉, minst 1, med 1 til ved etterslep og aldri over 3", () => {
+    expect(dailySuggestionSize(8, 10, false)).toBe(1);
+    expect(dailySuggestionSize(8, 10, true)).toBe(2);
+    expect(dailySuggestionSize(0, 10, false)).toBe(1);
+    expect(dailySuggestionSize(25, 10, false)).toBe(3);
+    expect(dailySuggestionSize(25, 10, true)).toBe(3);
+    expect(dailySuggestionSize(50, 10, false)).toBe(3);
+  });
+});
+
+describe("planStatus", () => {
+  // Planstart tor 26.11.2026, eksamen tor 10.12: G₀ = 1, R₀ = 8, D = 10.
+  const plan = { planStart: "2026-11-26", examDate: "2026-12-10", g0: 1, r0: 8, d: 10 };
+  const all = (completed: number) => ({ completed, reachable: 9 });
+
+  it("er i rute første dag (d = 0)", () => {
+    expect(planStatus(plan, all(1), "2026-11-26")).toEqual({ kind: "onTrack" });
+  });
+
+  it("ligger bak med veien tilbake på 2 om dagen, også i helgen", () => {
+    // d = 5, planlagt 5, 2 gjennomført.
+    expect(planStatus(plan, all(2), "2026-12-03")).toEqual({
+      kind: "behind",
+      backlog: 3,
+      perDay: 2,
+      onTrackOn: "2026-12-06",
+    });
+  });
+
+  it("gir ingen dag når eieren ikke rekker det før eksamen", () => {
+    expect(planStatus(plan, all(1), "2026-12-09")).toEqual({ kind: "behind", backlog: 8, perDay: 2, onTrackOn: null });
+  });
+
+  it("gir i rute i morgen når én kveld er nok", () => {
+    // d = 5, planlagt 5, 4 gjennomført: 2 i kveld gir 6, og planlagt fredag er 6.
+    expect(planStatus(plan, all(4), "2026-12-03")).toMatchObject({ backlog: 1, onTrackOn: "2026-12-04" });
+  });
+
+  it("viser forsprang", () => {
+    // d = 2, planlagt 3.
+    expect(planStatus(plan, all(5), "2026-11-30")).toEqual({ kind: "ahead", lead: 2 });
+  });
+
+  it("gir ikke etterslep for delkapitler uten notater", () => {
+    // Bare 2 av de 8 har notater: N = 3, planlagt 5, forventet 3.
+    expect(planStatus(plan, { completed: 3, reachable: 3 }, "2026-12-03")).toEqual({ kind: "onTrack" });
+  });
+
+  it("regner dagen før eksamen med d = 9", () => {
+    expect(planStatus(plan, all(8), "2026-12-09")).toMatchObject({ kind: "behind", backlog: 1, onTrackOn: "2026-12-10" });
+    expect(planStatus(plan, all(9), "2026-12-09")).toEqual({ kind: "onTrack" });
+  });
+
+  it("bruker d = D etter eksamen", () => {
+    // d ville vært 11, men planlagt blir 9 og ikke mer.
+    expect(planStatus(plan, all(9), "2026-12-11")).toEqual({ kind: "onTrack" });
+    expect(planStatus(plan, all(8), "2026-12-11")).toEqual({ kind: "behind", backlog: 1, perDay: 2, onTrackOn: null });
+  });
+
+  it("bruker d = 0 før planstart", () => {
+    expect(planStatus({ ...plan, planStart: "2026-11-30" }, all(1), "2026-11-26")).toEqual({ kind: "onTrack" });
+  });
+});
+
+describe("relativeDayLabel", () => {
+  it("sier i morgen, ukedagen den neste uka, ellers ukedag og dato", () => {
+    expect(relativeDayLabel("2026-12-04", "2026-12-03")).toBe("i morgen");
+    expect(relativeDayLabel("2026-12-06", "2026-12-03")).toBe("søndag");
+    expect(relativeDayLabel("2026-12-09", "2026-12-03")).toBe("onsdag");
+    expect(relativeDayLabel("2026-12-10", "2026-12-03")).toBe("torsdag 10. desember");
+    expect(relativeDayLabel("2026-12-14", "2026-12-03")).toBe("mandag 14. desember");
   });
 });

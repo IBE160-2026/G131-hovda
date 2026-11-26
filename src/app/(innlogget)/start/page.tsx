@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listChapterOverview } from "@/application/chapterOverview";
-import { getDataSourceForRender } from "@/composition/server";
+import { getClock, getDataSourceForRender } from "@/composition/server";
 import { ChapterList } from "../../_screens/ChapterList";
 import { CourseHeader } from "../../_screens/CourseHeader";
 import { CourseSection } from "../../_screens/CourseSection";
@@ -85,13 +85,13 @@ export async function ActiveCourse() {
   }
 
   const [chapters, plan] = await Promise.all([listChapterOverview(data, course.id), data.getStudyPlan(course.id)]);
-  // Kan planen ikke leses, vises emnet uten eksamensdato.
-  const examDate = plan.status === "ok" ? plan.value?.examDate : undefined;
+  // Kan planen ikke leses, vises emnet uten eksamensdato og uten foran/bak.
+  const studyPlan = plan.status === "ok" ? plan.value : null;
   return (
     <>
-      <Progress chapters={chapters} />
+      <Progress chapters={chapters} plan={studyPlan} today={getClock().today()} />
       <p className="text-sm font-semibold text-muted">Aktivt emne</p>
-      <CourseHeader course={course} examDate={examDate} />
+      <CourseHeader course={course} examDate={studyPlan?.examDate} />
       <div>
         <Link href="/emner" className={secondaryButton}>
           Bytt emne
