@@ -37,6 +37,13 @@ const listSummaryVersions = vi.fn();
 const listQuestionBanks = vi.fn();
 const listCompletions = vi.fn();
 const getStudyPlan = vi.fn();
+const listReviewQuestions = vi.fn();
+
+/** Antall aktive gjennomgangsspørsmål per kapittel-ID (ingen når den ikke er med), eller at de ikke kan leses. */
+let reviewCounts: Record<string, number> | { status: "unavailable" } = {};
+beforeEach(() => {
+  reviewCounts = {};
+});
 
 /** Siste klare versjon per delkapittel-ID, med `inputHash`. Delkapitler som ikke er med, har ingen. */
 type ReadyHashes = Record<string, string>;
@@ -73,6 +80,13 @@ async function render(
     listSummaryVersions: listSummaryVersions.mockReset().mockImplementation(async (ids: string[]) => versions(ready, ids)),
     listQuestionBanks: listQuestionBanks.mockReset().mockImplementation(async (ids: string[]) => versions(banks, ids)),
     getStudyPlan: getStudyPlan.mockReset().mockResolvedValue(plan),
+    listReviewQuestions: listReviewQuestions.mockReset().mockImplementation(async (chapterId: string) => {
+      if ("status" in reviewCounts) return reviewCounts;
+      const count = reviewCounts[chapterId] ?? 0;
+      const active = Array.from({ length: count }, (_, i) => ({ id: `g${i}`, chapterId, position: i + 1, text: `Spørsmål ${i}?`, status: "aktiv" }));
+      // Et tilbaketrukket spørsmål telles ikke.
+      return ok([...active, { id: "gt", chapterId, position: 1, text: "Gammelt?", status: "trukket" }]);
+    }),
     listCompletions: listCompletions.mockReset().mockImplementation(async (ids: string[]) => {
       if ("status" in completed) return completed;
       const at: Record<string, string> = Array.isArray(completed)
@@ -213,6 +227,31 @@ describe("kapittellisten på startsiden", () => {
     const html = await render(ok(course), ok([course]), ok(chapters), { status: "unavailable" });
     expect(html).toContain(unavailableMessage);
     expect(html).toContain('role="alert"');
+    expect(html).not.toContain("Kapittel 1: Organisasjoner");
+  });
+
+  it("viser antallet gjennomgangsspørsmål under kapitteltittelen, og ingenting uten", async () => {
+    reviewCounts = { k1: 29, k2: 0 };
+    const html = await render(ok(course), ok([course]), ok(chapters));
+    expect(listReviewQuestions).toHaveBeenCalledWith("k1");
+    expect(listReviewQuestions).toHaveBeenCalledWith("k2");
+    expect(html).toContain(">29 gjennomgangsspørsmål<");
+    const chapter2 = html.slice(html.indexOf("Kapittel 2: Forretningssystemer"));
+    expect(chapter2).not.toContain("gjennomgangsspørsmål");
+    expect(html.indexOf("29 gjennomgangsspørsmål")).toBeGreaterThan(html.indexOf("Kapittel 1: Organisasjoner"));
+    expect(html.indexOf("29 gjennomgangsspørsmål")).toBeLessThan(html.indexOf(">1.1<"));
+  });
+
+  it("bruker samme ord for ett gjennomgangsspørsmål", async () => {
+    reviewCounts = { k1: 1 };
+    const html = await render(ok(course), ok([course]), ok(chapters));
+    expect(html).toContain(">1 gjennomgangsspørsmål<");
+  });
+
+  it("viser feilmeldingen når gjennomgangsspørsmålene ikke kan hentes", async () => {
+    reviewCounts = { status: "unavailable" };
+    const html = await render(ok(course), ok([course]), ok(chapters));
+    expect(html).toContain(unavailableMessage);
     expect(html).not.toContain("Kapittel 1: Organisasjoner");
   });
 

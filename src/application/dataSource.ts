@@ -202,6 +202,29 @@ export type StudyPlan = {
   d: number;
 };
 
+/**
+ * Et gjennomgangsspørsmål for hele kapittelet (FR-27, AD-6). ID-en er stabil, og spørsmålet trekkes
+ * tilbake med status i stedet for å slettes.
+ */
+export type ReviewQuestion = {
+  id: string;
+  chapterId: string;
+  /** Plassen i notatfila, fra 1. Gjelder de aktive. */
+  position: number;
+  text: string;
+  status: "aktiv" | "trukket";
+};
+
+/** Hva `syncReviewQuestions` gjorde. */
+export type ReviewQuestionSync = {
+  /** Aktive spørsmål etterpå, det vil si spørsmålene i fila. */
+  active: number;
+  /** Nye spørsmål, også tilbaketrukne som ble aktive igjen. */
+  added: number;
+  /** Aktive spørsmål som ble trukket tilbake, fordi de ikke står i fila lenger. */
+  retired: number;
+};
+
 export type Unavailable = { status: "unavailable" };
 
 export type ReadResult<T> = { status: "ok"; value: T } | Unavailable;
@@ -313,4 +336,18 @@ export interface DataSource {
    * Bare `startPlan` kaller denne.
    */
   saveStudyPlan(plan: StudyPlan): Promise<WriteResult<StudyPlan>>;
+  /**
+   * Alle gjennomgangsspørsmålene i kapittelet: de aktive i rekkefølge, og så de tilbaketrukne.
+   * Tom når kapittelet ikke har noen eller ikke er eierens.
+   */
+  listReviewQuestions(chapterId: string): Promise<ReadResult<ReviewQuestion[]>>;
+  /**
+   * Gjør `texts` (i filens rekkefølge, uten doble) til kapittelets aktive gjennomgangsspørsmål, i én
+   * transaksjon. Spørsmål gjenkjennes på normalisert tekst (`normalizeReviewQuestion`): et aktivt
+   * spørsmål beholder ID-en og får ny plass, et tilbaketrukket blir aktivt igjen, og ellers lages et
+   * nytt. Aktive spørsmål som ikke er med, trekkes tilbake. Ingenting slettes. `unavailable` når
+   * kapittelet ikke finnes eller ikke er eierens, og da er ingenting endret. Bare `importChapter`
+   * kaller denne.
+   */
+  syncReviewQuestions(chapterId: string, texts: string[]): Promise<WriteResult<ReviewQuestionSync>>;
 }

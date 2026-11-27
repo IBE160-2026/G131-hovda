@@ -21,10 +21,16 @@ function canRead(summaryStatus: SubchapterStatus): boolean {
   return summaryStatus === "klart" || summaryStatus === "utdatert";
 }
 
+/** «29 gjennomgangsspørsmål», «1 gjennomgangsspørsmål», eller `null` når kapittelet ikke har noen. */
+export function reviewQuestionLabel(count: number): string | null {
+  return count > 0 ? `${count} gjennomgangsspørsmål` : null;
+}
+
 /**
  * Kapitlene i emnet med delkapitler i rekkefølge og samlet status for sammendraget og
  * spørsmålsbanken. Delkapitler med et sammendrag lenker til lesesiden på `subchapterHref(nummer)`.
- * Gjennomførte delkapitler har merket «gjennomført» ved siden av statusen.
+ * Gjennomførte delkapitler har merket «gjennomført» ved siden av statusen. Under kapitteltittelen
+ * står antallet aktive gjennomgangsspørsmål, og ingenting når kapittelet ikke har noen.
  */
 export function ChapterList({
   chapters,
@@ -44,40 +50,46 @@ export function ChapterList({
         <p className="max-w-prose text-muted">Ingen kapitler er importert ennå.</p>
       ) : (
         <ol className="flex flex-col gap-6">
-          {chapters.value.map((chapter) => (
-            <li key={chapter.id} className="flex flex-col gap-3">
-              <h3 className="text-xl font-semibold break-words">
-                Kapittel {chapter.number}: {chapter.title}
-              </h3>
-              <ol className="flex flex-col gap-2">
-                {chapter.subchapters.map((sub) => (
-                  <li
-                    key={sub.id}
-                    className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-sky px-4 py-3"
-                  >
-                    {canRead(sub.summaryStatus) ? (
-                      <Link href={subchapterHref(sub.number)} className={`min-w-0 break-words ${textLink}`}>
-                        <span>{sub.number}</span> <span className="font-normal">{sub.title}</span>
-                      </Link>
-                    ) : (
-                      <span className="min-w-0 break-words">
-                        <span className="font-semibold">{sub.number}</span> {sub.title}
+          {chapters.value.map((chapter) => {
+            const reviewLabel = reviewQuestionLabel(chapter.reviewQuestionCount);
+            return (
+              <li key={chapter.id} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-xl font-semibold break-words">
+                    Kapittel {chapter.number}: {chapter.title}
+                  </h3>
+                  {reviewLabel && <p className="text-muted">{reviewLabel}</p>}
+                </div>
+                <ol className="flex flex-col gap-2">
+                  {chapter.subchapters.map((sub) => (
+                    <li
+                      key={sub.id}
+                      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-sky px-4 py-3"
+                    >
+                      {canRead(sub.summaryStatus) ? (
+                        <Link href={subchapterHref(sub.number)} className={`min-w-0 break-words ${textLink}`}>
+                          <span>{sub.number}</span> <span className="font-normal">{sub.title}</span>
+                        </Link>
+                      ) : (
+                        <span className="min-w-0 break-words">
+                          <span className="font-semibold">{sub.number}</span> {sub.title}
+                        </span>
+                      )}
+                      <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${statusColors[sub.status]}`}>
+                        {sub.status}
                       </span>
-                    )}
-                    <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${statusColors[sub.status]}`}>
-                      {sub.status}
-                    </span>
-                    {sub.completed && (
-                      <span className="rounded-full bg-accent px-3 py-0.5 text-sm font-semibold text-accent-contrast">
-                        <span aria-hidden="true">✓ </span>
-                        {completedBadge}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            </li>
-          ))}
+                      {sub.completed && (
+                        <span className="rounded-full bg-accent px-3 py-0.5 text-sm font-semibold text-accent-contrast">
+                          <span aria-hidden="true">✓ </span>
+                          {completedBadge}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </li>
+            );
+          })}
         </ol>
       )}
     </section>

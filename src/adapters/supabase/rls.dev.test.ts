@@ -1,6 +1,6 @@
 // Sjekker RLS og GRANT for courses, user_settings, chapters, subchapters, summary_versions,
 // question_bank_versions, themes, quiz_questions, sessions, quizzes, quiz_items, subchapter_completions,
-// question_reports, summary_reports og study_plans mot
+// question_reports, summary_reports, study_plans og review_questions mot
 // Supabase-prosjektet dev (AD-10), og quizmetodene i adapteren med testkontoens egne data.
 // Kjøres bare med `npm run test:dev`. Krever en testkonto i dev som ikke er eieren:
 // RLS_TEST_EMAIL og RLS_TEST_PASSWORD i .env.local, i tillegg til Supabase-nøklene.
@@ -670,6 +670,56 @@ describe("RLS i dev", () => {
     expect(after.data).toEqual([]);
   });
 
+  it("gir testkontoen ingen av eierens gjennomgangsspørsmål", async () => {
+    const { data, error } = await testUser.from("review_questions").select("id, owner_id");
+    expect(error).toBeNull();
+    expect(data?.filter((row) => row.owner_id !== testUserId)).toEqual([]);
+  });
+
+  it("stopper et gjennomgangsspørsmål med en annen eier", async () => {
+    const other = "00000000-0000-0000-0000-000000000000";
+    const { error } = await testUser.from("review_questions").insert({
+      owner_id: other,
+      chapter_id: other,
+      position: 1,
+      text: "Hva?",
+      normalized_text: "hva?",
+    });
+    expect(error?.code).toBe("42501");
+  });
+
+  it("lar ikke den innloggede skrive gjennomgangsspørsmål, heller ikke egne eller med sync_review_questions", async () => {
+    const code = `GS${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const course = await testUser.from("courses").insert({ code, name: "Gjennomgang" }).select("id").single();
+    expect(course.error).toBeNull();
+    createdIds.push(course.data!.id);
+    const chapter = await testUser
+      .from("chapters")
+      .insert({ course_id: course.data!.id, number: 1, title: "Kapittel" })
+      .select("id")
+      .single();
+    expect(chapter.error).toBeNull();
+    const chapterId = chapter.data!.id;
+
+    const inserted = await testUser
+      .from("review_questions")
+      .insert({ owner_id: testUserId, chapter_id: chapterId, position: 1, text: "Hva?", normalized_text: "hva?" });
+    expect(inserted.error?.code).toBe("42501");
+    const updated = await testUser.from("review_questions").update({ text: "x" }).eq("chapter_id", chapterId).select("id");
+    expect(updated.error?.code).toBe("42501");
+    const deleted = await testUser.from("review_questions").delete().eq("chapter_id", chapterId).select("id");
+    expect(deleted.error?.code).toBe("42501");
+    const synced = await testUser.rpc("sync_review_questions", {
+      p_owner_id: testUserId,
+      p_chapter_id: chapterId,
+      p_questions: [{ text: "Hva?", normalized_text: "hva?" }],
+    });
+    expect(synced.error?.code).toBe("42501");
+    const data = new SupabaseDataSource(testUser, testUserId);
+    expect(await data.syncReviewQuestions(chapterId, ["Hva?"])).toEqual({ status: "unavailable" });
+    expect(await data.listReviewQuestions(chapterId)).toEqual({ status: "ok", value: [] });
+  });
+
   it("gir uinnloggede ingen tilgang til tabellene", async () => {
     const anon = newClient();
     const courses = await anon.from("courses").select("id");
@@ -690,6 +740,7 @@ describe("RLS i dev", () => {
       "question_reports",
       "summary_reports",
       "study_plans",
+      "review_questions",
     ]) {
       const { error } = await anon.from(table).select("id");
       expect(error?.code).toBe("42501");

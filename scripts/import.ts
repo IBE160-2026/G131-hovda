@@ -6,7 +6,8 @@
 // når innhold er utdatert eller en klar spørsmålsbank er endret. Mangler innholdsfilen, lagres
 // kapitlene, og alt «mangler innhold». Spørsmål i `## Spørsmålsbank` som skal avklares før bruk,
 // hoppes over, og utskriften sier hvilke. Etter lagringen listes spørsmålene eieren har meldt som feil
-// i kapittelet (1.9a), så de kan rettes i innholdsfila. De endrer ikke utgangskoden.
+// i kapittelet (1.9a), så de kan rettes i innholdsfila. De endrer ikke utgangskoden. Gjennomgangsspørsmålene
+// i `## Gjennomgangsspørsmål` i notatfila lagres på kapittelet (FR-27), med én linje i utskriften.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";

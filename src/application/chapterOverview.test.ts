@@ -78,6 +78,47 @@ describe("listChapterOverview", () => {
     expect(statuses(overview.value)).toEqual(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"].map((n) => [n, "klart"]));
   });
 
+  it("teller de aktive gjennomgangsspørsmålene per kapittel: 29 for kapittel 1, 0 uten seksjonen", async () => {
+    const { data, courseId } = await setup();
+    await importChapter(data, kapittel1, target);
+    const small = `---
+emne: IBE430
+kapittel: 2
+tittel: "To"
+---
+
+## Fordelt på delkapitler
+
+### 2.1 En
+
+Notat
+`;
+    await importChapter(data, small, { courseCode: "IBE430", chapterNumber: 2 });
+    const overview = await listChapterOverview(data, courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    expect(overview.value.map((c) => [c.number, c.reviewQuestionCount])).toEqual([
+      [1, 29],
+      [2, 0],
+    ]);
+  });
+
+  it("teller ikke tilbaketrukne gjennomgangsspørsmål", async () => {
+    const { data, courseId } = await setup();
+    await importChapter(data, kapittel1, target);
+    await importChapter(data, kapittel1.replace("29. Under hvilke", "29. Ny tekst: under hvilke"), target);
+    const overview = await listChapterOverview(data, courseId);
+    if (overview.status !== "ok") throw new Error("utilgjengelig");
+    expect(overview.value[0].reviewQuestionCount).toBe(29);
+    expect(data.reviewQuestions).toHaveLength(30);
+  });
+
+  it("gir «unavailable» når gjennomgangsspørsmålene ikke kan leses", async () => {
+    const { data, courseId } = await setup();
+    await importChapter(data, kapittel1, target);
+    data.reviewReadsDown = true;
+    expect(await listChapterOverview(data, courseId)).toEqual({ status: "unavailable" });
+  });
+
   it("gir «klart» bare med både sammendrag og bank, ellers «mangler innhold» eller «mangler notater»", async () => {
     const { data, courseId } = await smallChapter();
     const overview = await listChapterOverview(data, courseId);

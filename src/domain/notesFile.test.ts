@@ -279,3 +279,63 @@ describe("## Spørsmålsbank", () => {
     ]);
   });
 });
+
+describe("## Gjennomgangsspørsmål", () => {
+  const reviewFile = (body: string) =>
+    `---\nemne: IBE430\nkapittel: 1\ntittel: T\n---\n\n## Fordelt på delkapitler\n\n### 1.1 En\nNotat.\n\n## Gjennomgangsspørsmål\n\n${body}\n`;
+  const texts = (text: string) => parsed(text).reviewQuestions?.map((q) => q.text);
+
+  it("gir 29 spørsmål for kapittel 1, i rekkefølge og uten innledningen", () => {
+    const questions = parsed(kapittel1).reviewQuestions!;
+    expect(questions).toHaveLength(29);
+    expect(questions[0]).toEqual({ text: "Hva er årsaken til økt global konkurranse?", line: 110 });
+    expect(questions[28].text).toBe("Under hvilke omstendigheter har et prosesstrinn en innvirkning på et selskaps økonomi?");
+    expect(questions.some((q) => q.text.includes("FR-28"))).toBe(false);
+  });
+
+  it("leser de andre ekte filene, med underpunkter og uten «Må avklares før bruk» i kapittel 3", () => {
+    expect(parsed(kapittel2).reviewQuestions).toHaveLength(5);
+    const chapter3 = parsed(kapittel3).reviewQuestions!;
+    expect(chapter3).toHaveLength(5);
+    expect(chapter3[4].text).toBe(
+      [
+        "Definer følgende begreper:",
+        "   - a) FOB (free on board)",
+        "   - b) Betalingsbetingelser",
+        "   - c) Mengderabatt",
+        "   - d) Restbestilt antall",
+        "   - e) Treveismatch",
+      ].join("\n"),
+    );
+    // «Fra innliming 2. Spørsmålene …» står før «1.» og er ikke et spørsmål.
+    const chapter4 = parsed(kapittel4).reviewQuestions!;
+    expect(chapter4).toHaveLength(5);
+    expect(chapter4[0].text).toBe("Forklar forskjellen mellom strategiene salg fra lager og konfigurer etter bestilling.");
+    expect(chapter4[4].text).toContain("\n   - D. Levert mengde");
+    expect(parsed(kapittel5).reviewQuestions).toHaveLength(3);
+  });
+
+  it("gir `null` når seksjonen mangler, og tom liste når den ikke har spørsmål", () => {
+    expect(parsed(small("## Fordelt på delkapitler\n### 1.1 A\nNotat.")).reviewQuestions).toBeNull();
+    expect(texts(reviewFile("Kommer senere."))).toEqual([]);
+  });
+
+  it("påvirker ikke notatene", () => {
+    const without = parsed(kapittel1.replace("## Gjennomgangsspørsmål", "## Noe annet"));
+    expect(without.reviewQuestions).toBeNull();
+    expect(parsed(kapittel1).chapter).toEqual(without.chapter);
+  });
+
+  it("avviser samme spørsmål to ganger, også med andre store/små bokstaver og mellomrom", () => {
+    expect(errorsOf(reviewFile("1. Forklar de ulike flytene.\n2. Hva?\n3. forklar  de ulike flytene."))).toEqual([
+      "Linje 16: spørsmålet står to ganger (første gang på linje 14).",
+    ]);
+  });
+
+  it("avviser et spørsmål uten tekst og seksjonen to ganger", () => {
+    expect(errorsOf(`${reviewFile("1.\n2. Hva?")}\n## Gjennomgangsspørsmål\n\n1. Mer?\n`)).toEqual([
+      "Linje 17: seksjonen «## Gjennomgangsspørsmål» står to ganger (første gang på linje 12).",
+      "Linje 14: gjennomgangsspørsmålet har ingen tekst.",
+    ]);
+  });
+});

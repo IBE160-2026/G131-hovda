@@ -8,6 +8,7 @@ import {
   type StoredSubchapter,
 } from "@/domain/chapter";
 import type { CourseInput } from "@/domain/course";
+import { normalizeReviewQuestion } from "@/domain/reviewQuestions";
 import type {
   Chapter,
   Course,
@@ -22,6 +23,7 @@ import type {
   QuizItem,
   QuizQuestion,
   QuizResultInput,
+  ReviewQuestion,
   SaveChapterReport,
   StudyPlan,
   SubchapterCompletion,
@@ -50,6 +52,8 @@ type StoredQuizItem = Omit<QuizItem, "question" | "questionRetired"> & { quizId:
 type StoredQuestionReport = { questionId: string; quizItemId: string | null; comment: string | null; reportedAt: string };
 
 type StoredSummaryReport = { summaryVersionId: string; comment: string | null; reportedAt: string };
+
+type StoredReviewQuestion = ReviewQuestion & { normalizedText: string; retiredAt: string | null };
 
 export class MemoryDataSource implements DataSource {
   courses: Course[] = [];
@@ -106,6 +110,14 @@ export class MemoryDataSource implements DataSource {
   planWritesDown = false;
   /** Antall lagringer av studieplaner, så testene kan se at ingenting lagres. */
   planWrites = 0;
+  /** Gjennomgangsspørsmålene i rekkefølgen de ble laget, også de tilbaketrukne. */
+  reviewQuestions: StoredReviewQuestion[] = [];
+  /** Feiler lesingen av gjennomgangsspørsmålene. */
+  reviewReadsDown = false;
+  /** Feiler synkroniseringen av gjennomgangsspørsmålene, og da er ingenting endret. */
+  reviewWritesDown = false;
+  /** Antall kall til `syncReviewQuestions`. */
+  reviewSyncs = 0;
   private nextId = 1;
 
   private unavailable() {
@@ -150,7 +162,9 @@ export class MemoryDataSource implements DataSource {
     const removedSubIds = new Set(
       this.chapters.filter((c) => c.courseId === id).flatMap((c) => c.subchapters.map((s) => s.id)),
     );
+    const removedChapterIds = new Set(this.chapters.filter((c) => c.courseId === id).map((c) => c.id));
     this.chapters = this.chapters.filter((c) => c.courseId !== id);
+    this.reviewQuestions = this.reviewQuestions.filter((q) => !removedChapterIds.has(q.chapterId));
     this.summaryVersions = this.summaryVersions.filter((v) => !removedSubIds.has(v.subchapterId));
     const keptVersions = new Set(this.summaryVersions.map((v) => v.id));
     this.summaryReports = this.summaryReports.filter((r) => keptVersions.has(r.summaryVersionId));
@@ -543,5 +557,66 @@ export class MemoryDataSource implements DataSource {
     this.planWrites++;
     this.studyPlans = [...this.studyPlans.filter((p) => p.courseId !== plan.courseId), { ...plan }];
     return { status: "ok" as const, value: { ...plan } };
+  }
+
+  async listReviewQuestions(chapterId: string) {
+    if (this.down || this.reviewReadsDown) return this.unavailable();
+    const own = this.reviewQuestions.filter((q) => q.chapterId === chapterId);
+    const active = own.filter((q) => q.status === "aktiv").sort((a, b) => a.position - b.position);
+    const retired = own.filter((q) => q.status === "trukket");
+    const value: ReviewQuestion[] = [...active, ...retired].map(({ id, chapterId: cid, position, text, status }) => ({
+      id,
+      chapterId: cid,
+      position,
+      text,
+      status,
+    }));
+    return { status: "ok" as const, value };
+  }
+
+  /** Som `sync_review_questions`: alt eller ingenting, og tilbaketrekking med status som i `reportQuizItem`. */
+  async syncReviewQuestions(chapterId: string, texts: string[]) {
+    if (this.down || this.reviewWritesDown) return this.unavailable();
+    if (!this.chapters.some((c) => c.id === chapterId)) return this.unavailable();
+    const normalized = texts.map(normalizeReviewQuestion);
+    // Som den unike indeksen på aktive spørsmål: doble gir en feil, og ingenting er endret.
+    if (new Set(normalized).size !== normalized.length) return this.unavailable();
+    this.reviewSyncs++;
+    // Egen klokke, så quizenes tidspunkter ikke flytter seg når importen kjører.
+    const now = new Date(Date.UTC(2026, 10, 27, 0, 0, this.reviewSyncs)).toISOString();
+    const own = this.reviewQuestions.filter((q) => q.chapterId === chapterId);
+    const wanted = new Set(normalized);
+    let retired = 0;
+    for (const q of own) {
+      if (q.status === "aktiv" && !wanted.has(q.normalizedText)) {
+        Object.assign(q, { status: "trukket", retiredAt: now });
+        retired++;
+      }
+    }
+    let added = 0;
+    texts.forEach((text, i) => {
+      const position = i + 1;
+      const active = own.find((q) => q.status === "aktiv" && q.normalizedText === normalized[i]);
+      if (active) {
+        Object.assign(active, { position, text });
+        return;
+      }
+      added++;
+      const old = own.find((q) => q.status === "trukket" && q.normalizedText === normalized[i]);
+      if (old) {
+        Object.assign(old, { status: "aktiv", retiredAt: null, position, text });
+        return;
+      }
+      this.reviewQuestions.push({
+        id: `g${this.nextId++}`,
+        chapterId,
+        position,
+        text,
+        status: "aktiv",
+        normalizedText: normalized[i],
+        retiredAt: null,
+      });
+    });
+    return { status: "ok" as const, value: { active: texts.length, added, retired } };
   }
 }

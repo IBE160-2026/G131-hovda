@@ -430,6 +430,11 @@ export class DemoDataSource implements DataSource {
     return this.demo ? ok([]) : unavailable;
   }
 
+  /** Demofila har ingen gjennomgangsspørsmål ennå (4.6). */
+  async listReviewQuestions() {
+    return this.demo ? ok([]) : unavailable;
+  }
+
   /**
    * Planen med de faste datoene i fila. Øyeblikksbildet regnes som i `startPlan`, over alle
    * delkapitlene i fila og uten avkrysninger før planstart, så G₀ er 0 og R₀ antall delkapitler.
@@ -530,7 +535,8 @@ export class DemoDataSource implements DataSource {
     return { status: "ok", value: true };
   }
 
-  // Demoen lagrer aldri emner, kapitler, sammendrag, banker, feilrapporter eller studieplaner.
+  // Demoen lagrer aldri emner, kapitler, sammendrag, banker, feilrapporter, studieplaner eller
+  // gjennomgangsspørsmål.
   async createCourse() {
     return unavailable;
   }
@@ -559,6 +565,9 @@ export class DemoDataSource implements DataSource {
     return unavailable;
   }
   async saveStudyPlan() {
+    return unavailable;
+  }
+  async syncReviewQuestions() {
     return unavailable;
   }
 }

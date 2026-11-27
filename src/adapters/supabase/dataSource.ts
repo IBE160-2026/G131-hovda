@@ -24,6 +24,8 @@ import type {
   QuizResultInput,
   QuizStatus,
   ReadResult,
+  ReviewQuestion,
+  ReviewQuestionSync,
   SaveChapterReport,
   StudyPlan,
   SubchapterCompletion,
@@ -35,6 +37,7 @@ import type {
   WriteResult,
 } from "@/application/dataSource";
 import type { QuestionBankStatus } from "@/domain/questionBank";
+import { normalizeReviewQuestion } from "@/domain/reviewQuestions";
 import type { SummaryStatus } from "@/domain/summary";
 
 // Bare den delen av Supabase-klienten som adapteren bruker, så testene kan bruke en falsk klient.
@@ -199,6 +202,26 @@ function toStudyPlan(row: StudyPlanRow): StudyPlan {
     r0: row.r0,
     d: row.d,
   };
+}
+
+type ReviewQuestionRow = {
+  id: string;
+  chapter_id: string;
+  position: number;
+  text: string;
+  status: ReviewQuestion["status"];
+};
+
+const reviewQuestionColumns = "id, chapter_id, position, text, status";
+
+function toReviewQuestion(row: ReviewQuestionRow): ReviewQuestion {
+  return { id: row.id, chapterId: row.chapter_id, position: row.position, text: row.text, status: row.status };
+}
+
+function isReviewQuestionSync(value: unknown): value is ReviewQuestionSync {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return ["active", "added", "retired"].every((key) => Number.isInteger(v[key]));
 }
 
 type QuestionReportRow = {
@@ -965,6 +988,40 @@ export class SupabaseDataSource implements DataSource {
         .single();
       if (error || !data) return unavailable;
       return { status: "ok", value: toStudyPlan(data as StudyPlanRow) };
+    });
+  }
+
+  listReviewQuestions(chapterId: string): Promise<ReadResult<ReviewQuestion[]>> {
+    return guarded(async () => {
+      const { data, error } = await this.client
+        .from("review_questions")
+        .select(reviewQuestionColumns)
+        .eq("owner_id", this.ownerId)
+        .eq("chapter_id", chapterId)
+        .order("position");
+      if (isInvalidId(error)) return { status: "ok", value: [] };
+      if (error || !data) return unavailable;
+      const rows = (data as ReviewQuestionRow[]).map(toReviewQuestion);
+      // Aktive i rekkefølge først, så de tilbaketrukne.
+      return {
+        status: "ok",
+        value: [...rows.filter((q) => q.status === "aktiv"), ...rows.filter((q) => q.status === "trukket")],
+      };
+    });
+  }
+
+  syncReviewQuestions(chapterId: string, texts: string[]): Promise<WriteResult<ReviewQuestionSync>> {
+    return guarded(async () => {
+      // Hele synkroniseringen skjer i én transaksjon i databasen (sync_review_questions), så en feil
+      // underveis ikke etterlater halve lista. Den normaliserte teksten regnes ut her, med samme
+      // funksjon som valideringen av notatfila, så databasen og domenet aldri er uenige.
+      const { data, error } = await this.client.rpc("sync_review_questions", {
+        p_owner_id: this.ownerId,
+        p_chapter_id: chapterId,
+        p_questions: texts.map((text) => ({ text, normalized_text: normalizeReviewQuestion(text) })),
+      });
+      if (error || !isReviewQuestionSync(data)) return unavailable;
+      return { status: "ok", value: { active: data.active, added: data.added, retired: data.retired } };
     });
   }
 }
