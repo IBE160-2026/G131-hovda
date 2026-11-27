@@ -37,7 +37,7 @@ npx supabase db push --remote                          # kjør nye migreringer m
 
 For `prod` kobles det til `frykrsmzrbdvijtaivcd` på samme måte, og etter `db push` tilbake til `dev`. Kjør migreringen mot `prod` før koden som bruker den, merges til `main` og deployes. Ellers får startsiden i prod feilmeldingen i stedet for kapittellisten.
 
-`npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`.
+`npm run test:dev` kjører testene som går mot `dev` (`*.dev.test.ts`), blant annet at RLS stenger andre brukere ute. De kjøres ikke i CI. De trenger en testkonto i `dev` (ikke eieren) med `RLS_TEST_EMAIL` og `RLS_TEST_PASSWORD` i `.env.local`. Testen av `sync_review_questions` kjører med service role som importen, og trenger også `SUPABASE_SERVICE_ROLE_KEY` for `dev`, i `.env.local` eller i `.env.dev.local` som importen bruker.
 
 ### Eksamensdato og planstart
 
@@ -67,7 +67,7 @@ Framdriftsindikatoren på startsiden viser om eieren er i rute, foran eller bak 
 - **Fast til midnatt:** forslaget regnes ut fra avkrysningene fra før i dag (norsk tid). Et delkapittel som fullføres i løpet av dagen, blir stående, merket «gjennomført». Klar-status og notater leses slik de er nå, så en import i løpet av dagen kan endre forslaget.
 - **Etter eksamensdatoen:** forslaget sier «Fullført. Du kan fortsatt lese og ta quiz i listen under.». Resten av appen virker som før, og en ny eksamensdato gir en ny plan.
 
-### Importere notater, sammendrag og spørsmålsbanker
+### Importere notater, sammendrag, spørsmålsbanker og gjennomgangsspørsmål
 
 Kapitler, delkapitler og notater kommer fra notatfilene i `G131-hovda/notater/<EMNE>/kapittel-<n>.md`, og sammendragene og spørsmålsbankene fra innholdsfilene `kapittel-<n>.innhold.md` ved siden av. Begge legges inn med en lokal kommando:
 
@@ -85,6 +85,7 @@ Importen leser nøklene fra `.env.dev.local` eller `.env.prod.local` i prosjektr
 - Importen er idempotent. En ny kjøring med samme fil endrer ingenting og skriver «Alt er uendret». Endrede titler og notater oppdateres.
 - Et delkapittel som er borte fra fila, slettes ikke, men merkes som fjernet og skjules i kapittellisten. Kommer nummeret tilbake, blir det samme delkapittel aktivt igjen.
 - Bare `## Læringsmål for kapittelet`, `## Nøkkelbegreper` og delkapitlene (`### n.m Tittel` under `## Fordelt på delkapitler`) tas med i notatene. `## Råtekst`, `## Rettelser` og `## Gjennomgangsspørsmål` tas aldri med. Tabellen i `## Spørsmålsbank` leses bare som eierens egne quizspørsmål og inngår ikke i notatene eller hashen.
+- `## Gjennomgangsspørsmål` leses som kapittelets gjennomgangsspørsmål, uten KI. En linje som starter med et tall og punktum («1.») starter et nytt spørsmål. Innrykkede linjer (som «- a) …») og linjer rett under hører til spørsmålet over. Innledningen før «1.» hoppes over, og en linje uten nummer og innrykk etter en blank linje avslutter lista. Samme spørsmål to ganger er en feil. Spørsmålene gjenkjennes på teksten uten hensyn til store/små bokstaver og mellomrom: et endret spørsmål blir et nytt, og det gamle trekkes tilbake med status (ingenting slettes). Mangler seksjonen, røres ikke de lagrede. Utskriften har en linje som «Gjennomgangsspørsmål: 29 (3 nye, 1 trukket tilbake)», og kapittellisten viser antallet under kapitteltittelen.
 - Appen og importen kaller aldri en KI-leverandør, og importen trenger ingen KI-nøkler. Sammendragene (høyst 600 ord, bare fra notatet) og spørsmålsbankene lages på forhånd i Claude Code etter instruksjonen `G131-hovda/notater/_instruksjoner/innhold.v2.md` og skrives i innholdsfila. Instruksjonen beskriver regler, filformat og arbeidsflyt.
 - En spørsmålsbank (`## Quizspørsmål`) har en temaliste og nøyaktig 20 spørsmål per delkapittel, med fire alternativer, nøyaktig ett riktig, en forklaring og et tema fra lista, og minst 2 spørsmål per tema. Eierens egne spørsmål fra `## Spørsmålsbank` regnes med, med fasiten som riktig alternativ. Ja/Nei-spørsmål skrives om til flervalg, og originalteksten lagres. Spørsmål under «**Må avklares før bruk:**» hoppes over, og importen skriver ut hvilke.
 - Banken lagres som en versjon med temaer og spørsmål. Finnes det allerede en klar bank, gir samme bank «spørsmålsbank uendret», og en annen bank i fila gir «spørsmålsbank endret, ikke lagt inn» og kode 1. Erstatning og påfylling av spørsmål kommer senere. Et delkapittel er «klart» i kapittellisten først når både sammendraget og spørsmålsbanken er klare.

@@ -10,6 +10,9 @@
  * `## Spørsmålsbank`, `### Innliming …`) tas aldri med i notatene. Overskrifter inne i kodeblokker
  * teller ikke.
  *
+ * `## Gjennomgangsspørsmål` leses for seg, til kapittelgjennomgangen (FR-27), etter reglene i
+ * `reviewQuestions.ts`. Samme spørsmål to ganger (normalisert tekst) er en feil.
+ *
  * Tabellen i `## Spørsmålsbank` (`#`, `Delkapittel`, `Spørsmål`, `Fasit`) leses for seg, til
  * brukerens egne quizspørsmål (FR-13, AD-6). Spørsmål med nummeret i den fete starten av et punkt
  * under «**Må avklares før bruk:**» hoppes over. Tall ellers i punktteksten teller ikke.
@@ -17,11 +20,13 @@
 import type { ChapterInput, SubchapterInput } from "./chapter";
 import { normalizeCourseCode } from "./course";
 import type { OwnQuestion, OwnQuestions } from "./questionBank";
+import { normalizeReviewQuestion, readReviewQuestions, type ReviewQuestionInput } from "./reviewQuestions";
 
 export const SECTION_LEARNING_GOALS = "Læringsmål for kapittelet";
 export const SECTION_KEY_CONCEPTS = "Nøkkelbegreper";
 export const SECTION_SUBCHAPTERS = "Fordelt på delkapitler";
 export const SECTION_QUESTION_BANK = "Spørsmålsbank";
+export const SECTION_REVIEW_QUESTIONS = "Gjennomgangsspørsmål";
 
 export type NotesFile = {
   /** `emne` fra frontmatter, normalisert. */
@@ -29,6 +34,11 @@ export type NotesFile = {
   chapter: ChapterInput;
   /** Brukerens egne spørsmål fra `## Spørsmålsbank`. Inngår ikke i notatene eller `inputHash`. */
   ownQuestions: OwnQuestions;
+  /**
+   * Gjennomgangsspørsmålene fra `## Gjennomgangsspørsmål` i filens rekkefølge, eller `null` når
+   * seksjonen mangler. Inngår ikke i notatene eller `inputHash`.
+   */
+  reviewQuestions: ReviewQuestionInput[] | null;
   /** Linjenumrene til `emne` og `kapittel` i frontmatter, for feilmeldinger. */
   lines: { courseCode: number; chapterNumber: number };
 };
@@ -108,6 +118,8 @@ export function parseNotesFile(text: string): NotesFileResult {
   let subchaptersSection: number | null = null;
   let bankSection: number | null = null;
   const bankLines: { text: string; line: number }[] = [];
+  let reviewSection: number | null = null;
+  const reviewLines: { text: string; line: number }[] = [];
   let current: Collecting = null;
   let section: string | null = null;
   let fence: { marker: string; line: number } | null = null;
@@ -134,6 +146,15 @@ export function parseNotesFile(text: string): NotesFileResult {
             section = null;
           } else {
             bankSection = lineNo;
+          }
+          continue;
+        }
+        if (section === SECTION_REVIEW_QUESTIONS) {
+          if (reviewSection !== null) {
+            errors.push(at(lineNo, `seksjonen «## ${section}» står to ganger (første gang på linje ${reviewSection}).`));
+            section = null;
+          } else {
+            reviewSection = lineNo;
           }
           continue;
         }
@@ -186,6 +207,7 @@ export function parseNotesFile(text: string): NotesFileResult {
     }
 
     if (section === SECTION_QUESTION_BANK) bankLines.push({ text: line, line: lineNo });
+    else if (section === SECTION_REVIEW_QUESTIONS) reviewLines.push({ text: line, line: lineNo });
     else if (current?.kind === "section") sectionLines.get(current.name)!.push(line);
     else if (current?.kind === "subchapter") subchapters[current.index].lines.push(line);
   }
@@ -199,6 +221,8 @@ export function parseNotesFile(text: string): NotesFileResult {
 
   // Har overskriftene feil, sjekkes ikke delkapitlene i tabellen, så de ikke gir følgefeil.
   const ownQuestions = readQuestionBank(bankLines, errors.length === 0 ? new Set(subchapters.map((s) => s.number)) : null, errors);
+
+  const reviewQuestions = reviewSection === null ? null : checkReviewQuestions(readReviewQuestions(reviewLines), errors);
 
   if (errors.length > 0 || chapterNumber === null) return { ok: false, errors };
 
@@ -219,9 +243,29 @@ export function parseNotesFile(text: string): NotesFileResult {
         })),
       },
       ownQuestions,
+      reviewQuestions,
       lines: { courseCode: emne!.line, chapterNumber: kapittel!.line },
     },
   };
+}
+
+/** Sjekker at ingen spørsmål er tomme eller står to ganger. Feil legges i `errors`. */
+function checkReviewQuestions(questions: ReviewQuestionInput[], errors: string[]): ReviewQuestionInput[] {
+  const firstLine = new Map<string, number>();
+  for (const { text, line } of questions) {
+    if (text === "") {
+      errors.push(at(line, "gjennomgangsspørsmålet har ingen tekst."));
+      continue;
+    }
+    const key = normalizeReviewQuestion(text);
+    const first = firstLine.get(key);
+    if (first !== undefined) {
+      errors.push(at(line, `spørsmålet står to ganger (første gang på linje ${first}).`));
+      continue;
+    }
+    firstLine.set(key, line);
+  }
+  return questions;
 }
 
 const BANK_COLUMNS = ["#", "Delkapittel", "Spørsmål", "Fasit"];

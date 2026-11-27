@@ -1,13 +1,14 @@
 // Brukstilfellet for import av ett kapittel fra en notatfil (FR-8), med sammendrag (FR-11) og
 // spørsmålsbanker (FR-13) fra innholdsfilen. Innholdet er laget på forhånd i Claude Code, og importen
 // kaller aldri en KI-leverandør (AD-7). Eneste sted som skriver kapitler, delkapitler,
-// sammendragsversjoner og spørsmålsbanker.
+// sammendragsversjoner, spørsmålsbanker og gjennomgangsspørsmål (FR-27).
 import type { ChapterChange, ChapterInput, SubchapterChange } from "@/domain/chapter";
 import { CONTENT_INSTRUCTION_VERSION, parseContentFile, type ContentFile } from "@/domain/contentFile";
 import { normalizeCourseCode } from "@/domain/course";
 import { hasNotes } from "@/domain/hasNotes";
 import { checkNotesFileTarget, parseNotesFile } from "@/domain/notesFile";
 import type { OwnQuestions } from "@/domain/questionBank";
+import type { ReviewQuestionInput } from "@/domain/reviewQuestions";
 import type { Chapter, Course, DataSource, SaveChapterReport } from "./dataSource";
 import { questionBankContentHash, subchapterInputHash } from "./summaryHash";
 
@@ -41,11 +42,26 @@ export type ReportedQuestion = { number: string; question: string; theme: string
 /** Et sammendrag som er meldt som feil (1.9b) og fortsatt er siste klare versjon. */
 export type ReportedSummary = { number: string; title: string; comment: string | null };
 
+/**
+ * Hva som skjedde med gjennomgangsspørsmålene i kapittelet. `noSection`: notatfila har ingen
+ * `## Gjennomgangsspørsmål`, og de lagrede er ikke rørt.
+ */
+export type ReviewQuestionOutcome =
+  | { status: "noSection" }
+  | { status: "synced"; active: number; added: number; retired: number };
+
 /** `file` sier om feilene er i notatfilen eller innholdsfilen. */
 export type InvalidImport = { status: "invalid"; file: "notes" | "content"; errors: string[] };
 
 export type PreparedImport =
-  | { status: "ok"; chapter: ChapterInput; content: ContentFile | null; ownQuestions: OwnQuestions }
+  | {
+      status: "ok";
+      chapter: ChapterInput;
+      content: ContentFile | null;
+      ownQuestions: OwnQuestions;
+      /** `null` når notatfila ikke har `## Gjennomgangsspørsmål`. */
+      reviewQuestions: ReviewQuestionInput[] | null;
+    }
   | InvalidImport;
 
 export type ImportChapterResult =
@@ -55,6 +71,7 @@ export type ImportChapterResult =
       report: SaveChapterReport;
       summaries: SummaryOutcome[];
       questionBanks: QuestionBankOutcome[];
+      reviewQuestions: ReviewQuestionOutcome;
       /** Numrene i `## Spørsmålsbank` som er hoppet over («Må avklares før bruk»). */
       skippedQuestions: number[];
       /** Spørsmålene som er meldt som feil i kapittelet (1.9a), eller `null` når de ikke kunne leses. */
@@ -103,6 +120,14 @@ export const importMessages = {
   reportedHeading: "Meldt som feil (rett i innholdsfila):",
   reportsUnavailable: "Fikk ikke lest spørsmålene som er meldt som feil.",
   noComment: "ingen kommentar",
+  reviewQuestions: ({ active, added, retired }: { active: number; added: number; retired: number }) => {
+    const changes = [
+      added > 0 ? `${added} ${added === 1 ? "nytt" : "nye"}` : "",
+      retired > 0 ? `${retired} trukket tilbake` : "",
+    ].filter((part) => part);
+    return `Gjennomgangsspørsmål: ${active} (${changes.length > 0 ? changes.join(", ") : "uendret"})`;
+  },
+  reviewQuestionsNoSection: "Gjennomgangsspørsmål: notatfila har ingen «## Gjennomgangsspørsmål», så de lagrede er urørt.",
 } as const;
 
 /**
@@ -119,7 +144,7 @@ export function prepareChapterImport(
   if (!parsed.ok) return { status: "invalid", file: "notes", errors: parsed.errors };
   const targetErrors = checkNotesFileTarget(parsed.value, target);
   if (targetErrors.length > 0) return { status: "invalid", file: "notes", errors: targetErrors };
-  const { chapter, ownQuestions } = parsed.value;
+  const { chapter, ownQuestions, reviewQuestions } = parsed.value;
   const { force } = options;
   if (force !== undefined) {
     const forced = chapter.subchapters.find((s) => s.number === force);
@@ -138,13 +163,15 @@ export function prepareChapterImport(
   if (force !== undefined && !content?.summaries.some((s) => s.number === force)) {
     return { status: "invalid", file: "content", errors: [importMessages.forceNoContent(force)] };
   }
-  return { status: "ok", chapter, content, ownQuestions };
+  return { status: "ok", chapter, content, ownQuestions, reviewQuestions };
 }
 
 /**
  * Validerer begge filene, finner emnet og lagrer kapittelet idempotent. Ved feil i en av filene
- * eller manglende emne skrives ingenting. Deretter legges sammendragene og spørsmålsbankene fra
- * innholdsfilen inn for aktive delkapitler med notater. Utdatert innhold lagres ikke.
+ * eller manglende emne skrives ingenting. Så synkroniseres gjennomgangsspørsmålene fra notatfila,
+ * hvis den har seksjonen. Feiler det, stopper importen med `unavailable`. Deretter legges
+ * sammendragene og spørsmålsbankene fra innholdsfilen inn for aktive delkapitler med notater.
+ * Utdatert innhold lagres ikke.
  */
 export async function importChapter(
   data: DataSource,
@@ -165,6 +192,8 @@ export async function importChapter(
   if (saved.status !== "ok") return { status: "unavailable" };
 
   const chapter = await findSavedChapter(data, course, prepared.chapter);
+  const reviewQuestions = await syncReviewQuestions(data, chapter, prepared.reviewQuestions);
+  if (!reviewQuestions) return { status: "unavailable" };
   const summaries = chapter
     ? await createSummaries(data, chapter, prepared.chapter, prepared.content, options.force)
     : allUnavailable(prepared.chapter);
@@ -179,6 +208,7 @@ export async function importChapter(
     report: saved.value,
     summaries,
     questionBanks,
+    reviewQuestions,
     skippedQuestions: prepared.ownQuestions.skipped,
     questionReports: chapter ? await listReportedQuestions(data, chapter) : null,
     summaryReports,
@@ -218,6 +248,24 @@ async function listReportedQuestions(data: DataSource, chapter: Chapter): Promis
       theme: r.theme,
       comment: r.comment,
     }));
+}
+
+/**
+ * Gjør spørsmålene i notatfila til kapittelets aktive gjennomgangsspørsmål. Uten seksjonen røres
+ * ingenting. `null` når kapittelet ikke kunne leses eller spørsmålene ikke kunne lagres.
+ */
+async function syncReviewQuestions(
+  data: DataSource,
+  chapter: Chapter | null,
+  questions: ReviewQuestionInput[] | null,
+): Promise<ReviewQuestionOutcome | null> {
+  if (questions === null) return { status: "noSection" };
+  if (!chapter) return null;
+  const synced = await data.syncReviewQuestions(
+    chapter.id,
+    questions.map((q) => q.text),
+  );
+  return synced.status === "ok" ? { status: "synced", ...synced.value } : null;
 }
 
 /** Kapittelet slik det er lagret nå, eller `null` når det ikke kan leses. */
@@ -426,7 +474,8 @@ function contentLabel(summary?: SummaryOutcome, bank?: QuestionBankOutcome): str
 
 /**
  * Norsk sammendrag av importen, én linje per kapittel og delkapittel. Linjen for et aktivt
- * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken. Til slutt kommer
+ * delkapittel sier også hva som skjedde med sammendraget og spørsmålsbanken. Med `reviewQuestions`
+ * kommer en linje for gjennomgangsspørsmålene i kapittelet etter delkapitlene. Til slutt kommer
  * sammendragene som er meldt som feil, med delkapittel, tittel og kommentar, og så spørsmålene som er
  * meldt som feil, med delkapittel, tekst, tema og kommentar.
  */
@@ -437,6 +486,7 @@ export function describeImport(
   questionBanks: QuestionBankOutcome[] = [],
   reported: ReportedQuestion[] = [],
   reportedSummaries: ReportedSummary[] = [],
+  reviewQuestions?: ReviewQuestionOutcome,
 ): string[] {
   const titles = new Map(chapter.subchapters.map((s) => [s.number, s.title]));
   const summaryByNumber = new Map(summaries.map((s) => [s.number, s]));
@@ -447,12 +497,20 @@ export function describeImport(
     const content = contentLabel(summaryByNumber.get(sub.number), bankByNumber.get(sub.number));
     lines.push(`  ${sub.number}${title ? ` ${title}` : ""}: ${changeLabel[sub.change]}${content}`);
   }
+  if (reviewQuestions) {
+    lines.push(
+      reviewQuestions.status === "synced"
+        ? importMessages.reviewQuestions(reviewQuestions)
+        : importMessages.reviewQuestionsNoSection,
+    );
+  }
   const quiet = (s: QuestionBankOutcome) => s.status === "unchanged" || s.status === "missing" || s.status === "noNotes";
   const allUnchanged =
     report.chapter === "unchanged" &&
     report.subchapters.every((s) => s.change === "unchanged") &&
     summaries.every(quiet) &&
-    questionBanks.every(quiet);
+    questionBanks.every(quiet) &&
+    (reviewQuestions?.status !== "synced" || (reviewQuestions.added === 0 && reviewQuestions.retired === 0));
   if (allUnchanged) lines.push(importMessages.allUnchanged);
   if (reportedSummaries.length > 0) {
     lines.push(importMessages.summaryReportedHeading);
@@ -484,6 +542,7 @@ export function reportImport(result: Extract<ImportChapterResult, { status: "ok"
     questionBanks,
     result.questionReports ?? [],
     result.summaryReports ?? [],
+    result.reviewQuestions,
   );
   if (result.skippedQuestions.length > 0) stdout.push(importMessages.skippedQuestions(result.skippedQuestions));
   const stderr: string[] = [];

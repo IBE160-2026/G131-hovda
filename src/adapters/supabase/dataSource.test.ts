@@ -1014,3 +1014,69 @@ describe("SupabaseDataSource med studieplaner", () => {
     expect(await data.saveStudyPlan(plan)).toEqual({ status: "unavailable" });
   });
 });
+
+describe("SupabaseDataSource med gjennomgangsspørsmål", () => {
+  const reviewRow = (id: string, position: number, status: "aktiv" | "trukket") => ({
+    id,
+    chapter_id: "k1",
+    position,
+    text: `Spørsmål ${id}?`,
+    status,
+  });
+
+  it("lister kapittelets spørsmål filtrert på eier, aktive i rekkefølge og så tilbaketrukne", async () => {
+    const { client, queries } = fakeClient(() => ({
+      data: [reviewRow("g3", 1, "trukket"), reviewRow("g1", 1, "aktiv"), reviewRow("g2", 2, "aktiv")],
+    }));
+    const result = await new SupabaseDataSource(client, "eier").listReviewQuestions("k1");
+    expect(result).toEqual({
+      status: "ok",
+      value: [
+        { id: "g1", chapterId: "k1", position: 1, text: "Spørsmål g1?", status: "aktiv" },
+        { id: "g2", chapterId: "k1", position: 2, text: "Spørsmål g2?", status: "aktiv" },
+        { id: "g3", chapterId: "k1", position: 1, text: "Spørsmål g3?", status: "trukket" },
+      ],
+    });
+    expect(queries[0].table).toBe("review_questions");
+    expect(filtersOnOwner(queries[0])).toBe(true);
+    expect(queries[0].calls).toContainEqual(["eq", "chapter_id", "k1"]);
+  });
+
+  it("gir en tom liste for en ugyldig ID og «unavailable» ved feil", async () => {
+    const invalid = fakeClient(() => ({ error: { code: "22P02" } }));
+    expect(await new SupabaseDataSource(invalid.client, "eier").listReviewQuestions("x")).toEqual({ status: "ok", value: [] });
+    const down = fakeClient(() => ({ error: { code: "500" } }));
+    expect(await new SupabaseDataSource(down.client, "eier").listReviewQuestions("k1")).toEqual({ status: "unavailable" });
+  });
+
+  it("synkroniserer med sync_review_questions, med eieren og den normaliserte teksten", async () => {
+    const { client, queries } = fakeClient(() => ({ data: { active: 2, added: 1, retired: 0 } }));
+    const result = await new SupabaseDataSource(client, "eier").syncReviewQuestions("k1", ["Forklar  Flytene.", "Hva?"]);
+    expect(result).toEqual({ status: "ok", value: { active: 2, added: 1, retired: 0 } });
+    expect(queries.map((q) => [q.table, q.calls])).toEqual([
+      [
+        "rpc:sync_review_questions",
+        [
+          [
+            "rpc",
+            {
+              p_owner_id: "eier",
+              p_chapter_id: "k1",
+              p_questions: [
+                { text: "Forklar  Flytene.", normalized_text: "forklar flytene." },
+                { text: "Hva?", normalized_text: "hva?" },
+              ],
+            },
+          ],
+        ],
+      ],
+    ]);
+  });
+
+  it("gir «unavailable» ved feil, og når kapittelet ikke er eierens (null)", async () => {
+    const down = fakeClient(() => ({ error: { code: "23505" } }));
+    expect(await new SupabaseDataSource(down.client, "eier").syncReviewQuestions("k1", ["A?"])).toEqual({ status: "unavailable" });
+    const missing = fakeClient(() => ({ data: null }));
+    expect(await new SupabaseDataSource(missing.client, "eier").syncReviewQuestions("k1", ["A?"])).toEqual({ status: "unavailable" });
+  });
+});
